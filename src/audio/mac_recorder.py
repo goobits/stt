@@ -7,8 +7,7 @@ import time
 import wave
 import logging
 from ..config import (
-    AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, AUDIO_FORMAT,
-    RECORD_STOP_DELAY, TEMP_DIR
+    AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, RECORD_STOP_DELAY, TEMP_DIR
 )
 
 logger = logging.getLogger(__name__)
@@ -26,19 +25,19 @@ class MacAudioRecorder:
         """Detect available audio recording tool on Mac."""
         # Check for sox first (preferred)
         try:
-            subprocess.run(['sox', '--version'], 
+            subprocess.run(["sox", "--version"],
                          capture_output=True, check=True)
             logger.info("Using sox for Mac audio recording")
-            return 'sox'
+            return "sox"
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
 
         # Check for ffmpeg
         try:
-            subprocess.run(['ffmpeg', '-version'], 
+            subprocess.run(["ffmpeg", "-version"],
                          capture_output=True, check=True)
             logger.info("Using ffmpeg for Mac audio recording")
-            return 'ffmpeg'
+            return "ffmpeg"
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
 
@@ -61,7 +60,7 @@ class MacAudioRecorder:
         self._cleanup_cancel_files()
 
         try:
-            if self.recording_tool == 'sox':
+            if self.recording_tool == "sox":
                 # Use sox for recording
                 self.recording_process = subprocess.Popen([
                     "sox",
@@ -72,7 +71,7 @@ class MacAudioRecorder:
                     self.output_file
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            elif self.recording_tool == 'ffmpeg':
+            elif self.recording_tool == "ffmpeg":
                 # Use ffmpeg for recording
                 self.recording_process = subprocess.Popen([
                     "ffmpeg",
@@ -172,16 +171,16 @@ class MacAudioRecorder:
     def get_recording_tool_info(self):
         """Get information about the detected recording tool."""
         return {
-            'tool': self.recording_tool,
-            'available': self.recording_tool is not None,
-            'sox_available': self._tool_available('sox'),
-            'ffmpeg_available': self._tool_available('ffmpeg')
+            "tool": self.recording_tool,
+            "available": self.recording_tool is not None,
+            "sox_available": self._tool_available("sox"),
+            "ffmpeg_available": self._tool_available("ffmpeg")
         }
 
     def _tool_available(self, tool_name):
         """Check if a specific tool is available."""
         try:
-            subprocess.run([tool_name, '--version'], 
+            subprocess.run([tool_name, "--version"],
                          capture_output=True, check=True)
             return True
         except (subprocess.CalledProcessError, FileNotFoundError):
