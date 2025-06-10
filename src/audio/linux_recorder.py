@@ -6,10 +6,7 @@ import subprocess
 import time
 import wave
 import logging
-from ..config import (
-    AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, AUDIO_FORMAT,
-    RECORD_STOP_DELAY, TEMP_DIR
-)
+from ..config.stt_config import config
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +22,8 @@ class AudioRecorder:
         """Start audio recording to a temporary file."""
         # Generate unique filenames
         timestamp = str(int(time.time() * 1000))
-        self.output_file = os.path.join(TEMP_DIR, f"{filename_prefix}_{timestamp}.wav")
-        self.cancel_file = os.path.join(TEMP_DIR, f"cancel_{timestamp}.txt")
+        self.output_file = os.path.join(config.temp_dir, f"{filename_prefix}_{timestamp}.wav")
+        self.cancel_file = os.path.join(config.temp_dir, f"cancel_{timestamp}.txt")
 
         # Clean up any stale cancel files
         self._cleanup_cancel_files()
@@ -35,9 +32,9 @@ class AudioRecorder:
             # Start arecord process
             self.recording_process = subprocess.Popen([
                 "arecord",
-                "-f", AUDIO_FORMAT,
-                "-r", str(AUDIO_SAMPLE_RATE),
-                "-c", str(AUDIO_CHANNELS),
+                "-f", config.audio_format,
+                "-r", str(config.audio_sample_rate),
+                "-c", str(config.audio_channels),
                 self.output_file
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -59,7 +56,7 @@ class AudioRecorder:
             self.recording_process.wait(timeout=5)
 
             # Brief delay to ensure file is written
-            time.sleep(RECORD_STOP_DELAY)
+            time.sleep(config.record_stop_delay)
 
             # Verify the file exists and has content
             if os.path.exists(self.output_file) and os.path.getsize(self.output_file) > 0:
@@ -115,9 +112,9 @@ class AudioRecorder:
     def _cleanup_cancel_files(self):
         """Clean up old cancel files to prevent conflicts."""
         try:
-            cancel_files = [f for f in os.listdir(TEMP_DIR) if f.startswith("cancel_")]
+            cancel_files = [f for f in os.listdir(config.temp_dir) if f.startswith("cancel_")]
             for cancel_file in cancel_files:
-                os.remove(os.path.join(TEMP_DIR, cancel_file))
+                os.remove(os.path.join(config.temp_dir, cancel_file))
         except Exception as e:
             logger.warning(f"Failed to cleanup cancel files: {e}")
 
