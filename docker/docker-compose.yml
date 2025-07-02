@@ -7,8 +7,8 @@ services:
       dockerfile: docker/Dockerfile
     container_name: stt-transcription-server
     ports:
-      - "8080:8080"  # Dashboard port
-      - "8769:8769"  # WebSocket port
+      - "8081:8080"  # Dashboard port
+      - "8770:8769"  # WebSocket port
     volumes:
       - stt-data:/app/data
       - stt-logs:/app/logs
@@ -20,7 +20,7 @@ services:
       - WEB_PORT=8080
       - WHISPER_MODEL=large-v3-turbo
       - MAX_CLIENTS=20
-      - GPU_ENABLED=true
+      - GPU_ENABLED=false
       - CUDA_VISIBLE_DEVICES=0
     restart: unless-stopped
     networks:
@@ -31,14 +31,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    # GPU support enabled by default
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU support disabled - uncomment below to enable
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
 volumes:
   stt-data:

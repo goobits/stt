@@ -104,7 +104,7 @@ class DashboardAPI:
                     status="running",
                     model=os.getenv("WHISPER_MODEL", "large-v3-turbo"),
                     gpu_available=self._check_gpu_available(),
-                    clients=len([c for c in self.clients_db.values() if c.is_active]),
+                    clients=len(self.token_manager.get_active_clients()),
                     uptime=time.time() - self.server_start_time
                 )
                 return status

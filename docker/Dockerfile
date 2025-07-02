@@ -1,14 +1,5 @@
-# Use NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:12.1-devel-ubuntu22.04
-
-# Install Python 3.12
-RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update \
-    && apt-get install -y python3.12 python3.12-pip python3.12-dev python3.12-venv \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python
+# Use Python slim and let NVIDIA Docker handle GPU access
+FROM python:3.12-slim
 
 # Install system dependencies including OpenSSL for certificates and curl for health checks
 RUN apt-get update && apt-get install -y \
@@ -23,7 +14,7 @@ WORKDIR /app
 
 # Install Python dependencies for the Docker server with GPU support
 RUN pip install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
+    torch torchvision torchaudio \
     faster-whisper \
     fastapi[all] \
     uvicorn \
@@ -32,8 +23,7 @@ RUN pip install --no-cache-dir \
     pyjwt \
     httpx \
     pydantic \
-    python-multipart \
-    nvidia-ml-py3
+    python-multipart
 
 # Copy the entire project from parent directory
 COPY .. /app/
@@ -58,13 +48,7 @@ ENV WEBSOCKET_PORT=8769
 ENV WEB_PORT=8080
 ENV WEBSOCKET_BIND_HOST=0.0.0.0
 
-# GPU and CUDA environment variables
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
-ENV CUDA_VISIBLE_DEVICES=all
-ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX"
-
-# Whisper GPU settings
+# Whisper GPU settings - will auto-detect GPU when available
 ENV WHISPER_DEVICE=auto
 ENV WHISPER_COMPUTE_TYPE=auto
 
