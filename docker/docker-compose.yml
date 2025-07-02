@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  stt-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: stt-whisper-server
+    ports:
+      - "8769:8769"
+    volumes:
+      - ../logs:/app/logs
+      - ../ssl:/app/ssl
+      - stt-models:/root/.cache/huggingface
+    environment:
+      - WEBSOCKET_BIND_HOST=0.0.0.0
+      - CUDA_VISIBLE_DEVICES=0  # For GPU support
+    restart: unless-stopped
+    networks:
+      - stt-network
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # Optional: Nginx reverse proxy with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: stt-nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - stt-server
+    networks:
+      - stt-network
+
+volumes:
+  stt-models:
+
+networks:
+  stt-network:
+    driver: bridge

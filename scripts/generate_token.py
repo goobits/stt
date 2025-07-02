@@ -18,8 +18,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.core.config import get_config
-from lib.core.token_manager import TokenManager
+from stt_hotkeys.core.config import get_config
+from stt_hotkeys.core.token_manager import TokenManager
 
 
 def main():
