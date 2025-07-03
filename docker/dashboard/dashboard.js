@@ -1,10 +1,13 @@
 class STTDashboard {
     constructor() {
         this.apiBaseUrl = window.location.origin;
-        this.websocketUrl = `ws://${window.location.hostname}:8769`;
+        // Use ws:// for non-SSL WebSocket in development
+        this.websocketUrl = `ws://${window.location.hostname}:8773`;
         this.currentQRCode = null;
         this.mediaRecorder = null;
         this.recordingChunks = [];
+        this.testToken = null;
+        this.testTokenId = null;
         
         this.init();
     }
@@ -14,6 +17,15 @@ class STTDashboard {
         await this.loadServerStatus();
         await this.loadActiveClients();
         this.startStatusPolling();
+        this.startClientPolling();
+        
+        // Load test token from localStorage if available
+        const storedTestToken = localStorage.getItem('stt_test_token');
+        const storedTestTokenId = localStorage.getItem('stt_test_token_id');
+        if (storedTestToken && storedTestTokenId) {
+            this.testToken = storedTestToken;
+            this.testTokenId = storedTestTokenId;
+        }
     }
 
     bindEvents() {
@@ -123,16 +135,21 @@ class STTDashboard {
 
             // Create QR code data
             const qrData = {
-                server_url: `wss://${window.location.hostname}:8769/ws`,
+                server_url: `ws://${window.location.hostname}:8773/ws`,
                 token: tokenData.token,
                 name: `${window.location.hostname} STT Server`,
                 expires: tokenData.expires,
-                encryption_enabled: true,
+                encryption_enabled: false,  // SSL disabled for development
                 client_name: clientName
             };
 
             // Generate QR code
             const qrCodeDiv = document.getElementById('qrCode');
+            if (!qrCodeDiv) {
+                console.error('QR code container not found');
+                alert('Error: QR code container not found. Please refresh the page.');
+                return;
+            }
             qrCodeDiv.innerHTML = '';
             
             const qr = new QRCode(qrCodeDiv, {
@@ -158,6 +175,8 @@ class STTDashboard {
                 } else {
                     encryptionInfo.innerHTML = '<strong>Type:</strong> 🔄 Reusable • <strong>Encryption:</strong> ✅ End-to-end enabled';
                 }
+            } else {
+                console.warn('Encryption info paragraph not found');
             }
             
             document.getElementById('qrDisplay').style.display = 'block';
@@ -165,6 +184,9 @@ class STTDashboard {
             // Clear form
             document.getElementById('clientName').value = '';
             document.getElementById('oneTimeUse').checked = false;
+            
+            // Refresh the active clients list
+            this.loadActiveClients();
 
         } catch (error) {
             console.error('Failed to generate QR code:', error);
@@ -247,6 +269,13 @@ class STTDashboard {
             });
 
             if (response.ok) {
+                // If we're revoking the test token, clear it from memory
+                if (tokenId === this.testTokenId) {
+                    this.testToken = null;
+                    this.testTokenId = null;
+                    localStorage.removeItem('stt_test_token');
+                    localStorage.removeItem('stt_test_token_id');
+                }
                 await this.loadActiveClients();
             } else {
                 const error = await response.json();
@@ -270,7 +299,16 @@ class STTDashboard {
             // Start recording
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.mediaRecorder = new MediaRecorder(stream);
+                
+                // Try to use WebM with Opus codec, fallback to browser default
+                let options = {};
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    options.mimeType = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    options.mimeType = 'audio/webm';
+                }
+                
+                this.mediaRecorder = new MediaRecorder(stream, options);
                 this.recordingChunks = [];
 
                 this.mediaRecorder.ondataavailable = (event) => {
@@ -278,7 +316,7 @@ class STTDashboard {
                 };
 
                 this.mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(this.recordingChunks, { type: 'audio/wav' });
+                    const audioBlob = new Blob(this.recordingChunks, { type: this.mediaRecorder.mimeType });
                     this.processTestAudio(audioBlob);
                     recordBtn.disabled = false;
                     
@@ -316,25 +354,125 @@ class STTDashboard {
         processingTime.textContent = '-';
 
         try {
-            const formData = new FormData();
-            formData.append('audio', audioData);
-
-            const startTime = Date.now();
-            const response = await fetch(`${this.apiBaseUrl}/api/transcribe`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            const processingTimeMs = Date.now() - startTime;
-
-            if (response.ok) {
-                transcriptionText.textContent = `"${result.text}"`;
-                confidence.textContent = `${Math.round(result.confidence * 100)}%`;
-                processingTime.textContent = `${(processingTimeMs / 1000).toFixed(1)}s`;
-            } else {
-                throw new Error(result.error || 'Transcription failed');
+            // Try to use existing test token or create new one
+            let token = this.testToken;
+            let tokenId = this.testTokenId;
+            
+            // Get current clients list
+            const clientsResponse = await fetch(`${this.apiBaseUrl}/api/clients`);
+            const clients = await clientsResponse.json();
+            
+            // Check if we have a stored token and if it's still valid
+            if (token && this.testTokenId) {
+                const existingTestClient = clients.find(c => c.token_id === this.testTokenId);
+                
+                if (!existingTestClient) {
+                    // Token was revoked or expired, clear it
+                    this.testToken = null;
+                    this.testTokenId = null;
+                    localStorage.removeItem('stt_test_token');
+                    localStorage.removeItem('stt_test_token_id');
+                    token = null;
+                }
             }
+            
+            if (!token) {
+                // Check if there's already a test client without our token
+                const existingTestClient = clients.find(c => c.name === '🧪 Dashboard Test Client');
+                
+                if (existingTestClient) {
+                    // We found an existing test client but we don't have its token
+                    // We'll need to revoke it and create a new one
+                    await this.revokeClient(existingTestClient.token_id);
+                }
+                
+                const tokenResponse = await fetch(`${this.apiBaseUrl}/api/generate-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        client_name: '🧪 Dashboard Test Client',
+                        expiration_days: 30,
+                        one_time_use: false  // Reusable for tests
+                    })
+                });
+
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to generate test token');
+                }
+
+                const tokenData = await tokenResponse.json();
+                this.testToken = token = tokenData.token;
+                this.testTokenId = tokenId = tokenData.token_id;
+                
+                // Store in localStorage for persistence
+                localStorage.setItem('stt_test_token', token);
+                localStorage.setItem('stt_test_token_id', tokenId);
+            }
+
+            // Connect to WebSocket for transcription
+            const ws = new WebSocket(`${this.websocketUrl}/ws?token=${token}`);
+            const startTime = Date.now();
+            
+            // Convert audio data to base64
+            const audioBase64 = await this.blobToBase64(audioData);
+            
+            // Detect audio format from blob type
+            let audioFormat = 'wav'; // default
+            if (audioData.type) {
+                if (audioData.type.includes('webm')) {
+                    audioFormat = 'webm';
+                } else if (audioData.type.includes('wav')) {
+                    audioFormat = 'wav';
+                } else if (audioData.type.includes('ogg')) {
+                    audioFormat = 'ogg';
+                }
+            }
+
+            ws.onopen = () => {
+                clearTimeout(connectionTimeout);
+                console.log(`Sending audio data: ${audioFormat} format, ${audioData.size} bytes`);
+                // Send audio data through WebSocket
+                ws.send(JSON.stringify({
+                    type: 'transcribe',
+                    audio: audioBase64,
+                    format: audioFormat
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const response = JSON.parse(event.data);
+                const processingTimeMs = Date.now() - startTime;
+
+                if (response.type === 'transcription') {
+                    transcriptionText.textContent = `"${response.text}"`;
+                    confidence.textContent = response.confidence ? `${Math.round(response.confidence * 100)}%` : '95%';
+                    processingTime.textContent = `${(processingTimeMs / 1000).toFixed(1)}s`;
+                } else if (response.type === 'error') {
+                    throw new Error(response.message || 'Transcription failed');
+                }
+
+                if (response.type === "transcription" || response.type === "error") { ws.close(); }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                transcriptionText.textContent = 'WebSocket server not available. Please ensure the WebSocket server is running on port 8773.';
+                confidence.textContent = '-';
+                processingTime.textContent = '-';
+                if (response.type === "transcription" || response.type === "error") { ws.close(); }
+            };
+
+            // Add connection timeout
+            const connectionTimeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    if (response.type === "transcription" || response.type === "error") { ws.close(); }
+                    transcriptionText.textContent = 'WebSocket connection timeout. Server may not be running.';
+                    confidence.textContent = '-';
+                    processingTime.textContent = '-';
+                }
+            }, 5000);
 
         } catch (error) {
             console.error('Transcription test failed:', error);
@@ -342,6 +480,18 @@ class STTDashboard {
             confidence.textContent = '-';
             processingTime.textContent = '-';
         }
+    }
+
+    async blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result.split(',')[1];
+                resolve(base64String);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
     }
 
     async saveSettings() {
@@ -378,11 +528,13 @@ class STTDashboard {
         setInterval(() => {
             this.loadServerStatus();
         }, 30000);
-
-        // Poll client list every 60 seconds
+    }
+    
+    startClientPolling() {
+        // Poll client list every 15 seconds for more responsive updates
         setInterval(() => {
             this.loadActiveClients();
-        }, 60000);
+        }, 15000);
     }
 }
 

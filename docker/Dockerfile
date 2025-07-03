@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir \
     pyjwt \
     httpx \
     pydantic \
-    python-multipart
+    python-multipart \
+    ffmpeg-python
 
 # Copy the entire project from parent directory
 COPY .. /app/
@@ -56,5 +57,5 @@ ENV WHISPER_COMPUTE_TYPE=auto
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/api/status || exit 1
 
-# Run the server with dashboard enabled
-CMD ["python", "server.py", "start", "--dashboard", "--verbose"]
+# Run both servers (startup script is already copied with COPY .. /app/)
+CMD ["python", "/app/docker/start_both.py"]
