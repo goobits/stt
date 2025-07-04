@@ -1,9 +1,13 @@
 import logging
 import os
-import tempfile
 import time
+import asyncio
+import base64
+import json
+import ssl
+import websockets
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
@@ -72,6 +76,12 @@ class DashboardAPI:
         from docker.src.token_manager import get_token_manager
 
         self.token_manager = get_token_manager()
+
+        # WebSocket connection parameters
+        self.websocket_host = os.getenv("WEBSOCKET_HOST", "localhost")
+        self.websocket_port = int(os.getenv("WEBSOCKET_PORT", "8765"))
+        self.ssl_enabled = os.getenv("SSL_ENABLED", "true").lower() == "true"
+        self.auth_token = os.getenv("AUTH_TOKEN", "")
 
         self.setup_routes()
         self.setup_middleware()
@@ -154,33 +164,36 @@ class DashboardAPI:
 
         @self.app.post("/api/transcribe")
         async def transcribe_audio(audio: UploadFile = File(...)) -> TranscriptionResult:
-            """Test transcription endpoint"""
+            """Transcribe audio file via WebSocket server"""
             try:
                 start_time = time.time()
 
-                # Save uploaded file temporarily
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-                    content = await audio.read()
-                    tmp_file.write(content)
-                    tmp_path = tmp_file.name
+                # Read audio file content
+                content = await audio.read()
 
-                try:
-                    # For now, return a mock response since transcription
-                    # should go through the WebSocket server
-                    processing_time = time.time() - start_time
+                # Validate file content
+                if not content:
+                    raise HTTPException(status_code=400, detail="Empty audio file")
 
-                    # TODO: Implement actual transcription via WebSocket connection
-                    # or direct Whisper model call
+                # Send to WebSocket transcription server
+                success, transcription, error = await self._transcribe_via_websocket(
+                    audio_data=content, filename=audio.filename or "audio.wav"
+                )
+
+                processing_time = time.time() - start_time
+
+                if success and transcription:
                     return TranscriptionResult(
-                        text="Test transcription not yet implemented. Please use WebSocket API.",
-                        confidence=0.95,
+                        text=transcription,
+                        confidence=0.95,  # WebSocket server doesn't return confidence scores
                         processing_time=processing_time,
                     )
+                # Log the error and return a user-friendly message
+                logging.error(f"Transcription failed: {error}")
+                raise HTTPException(status_code=503, detail=f"Transcription service unavailable: {error}")
 
-                finally:
-                    # Clean up temp file
-                    os.unlink(tmp_path)
-
+            except HTTPException:
+                raise
             except Exception as e:
                 logging.exception(f"Transcription test failed: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
@@ -216,6 +229,83 @@ class DashboardAPI:
             return torch.cuda.is_available()
         except ImportError:
             return False
+
+    def _get_ssl_context(self) -> Optional[ssl.SSLContext]:
+        """Get SSL context for WebSocket connections"""
+        if not self.ssl_enabled:
+            return None
+
+        context = ssl.create_default_context()
+        # For development/self-signed certificates
+        if os.getenv("SSL_VERIFY_MODE", "verify").lower() == "none":
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+        return context
+
+    async def _transcribe_via_websocket(
+        self, audio_data: bytes, filename: str
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Send audio to WebSocket transcription server
+
+        Returns:
+            (success, transcription_text, error_message)
+
+        """
+        try:
+            # Build WebSocket URL
+            protocol = "wss" if self.ssl_enabled else "ws"
+            websocket_url = f"{protocol}://{self.websocket_host}:{self.websocket_port}"
+
+            # Encode audio data
+            audio_base64 = base64.b64encode(audio_data).decode("utf-8")
+
+            # Create SSL context if needed
+            ssl_context = self._get_ssl_context()
+
+            logging.info(f"Connecting to WebSocket server at {websocket_url}")
+
+            async with websockets.connect(websocket_url, ssl=ssl_context) as websocket:
+                # Wait for welcome message
+                welcome_msg = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+                welcome_data = json.loads(welcome_msg)
+
+                if welcome_data.get("type") != "welcome":
+                    return False, None, f"Unexpected welcome message: {welcome_data}"
+
+                # Send transcription request
+                request = {
+                    "type": "transcribe",
+                    "token": self.auth_token,
+                    "audio_data": audio_base64,
+                    "filename": filename,
+                    "audio_format": "wav",
+                }
+
+                await websocket.send(json.dumps(request))
+                logging.info("Transcription request sent")
+
+                # Wait for response
+                response_msg = await asyncio.wait_for(websocket.recv(), timeout=60.0)
+                response_data = json.loads(response_msg)
+
+                if response_data.get("type") == "transcription_complete":
+                    transcription = response_data.get("text", "").strip()
+                    logging.info(f"Transcription completed: {len(transcription)} chars")
+                    return True, transcription, None
+
+                if response_data.get("type") == "error":
+                    error_msg = response_data.get("message", "Unknown server error")
+                    return False, None, f"Server error: {error_msg}"
+
+                return False, None, f"Unexpected response: {response_data}"
+
+        except asyncio.TimeoutError:
+            return False, None, "Transcription request timed out"
+        except websockets.exceptions.ConnectionClosed as e:
+            return False, None, f"WebSocket connection closed: {e}"
+        except Exception as e:
+            logging.exception(f"WebSocket transcription failed: {e}")
+            return False, None, f"Transcription failed: {e}"
 
     def mark_client_active(self, token_id: str):
         """Mark a client as active when they connect"""
