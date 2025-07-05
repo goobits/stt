@@ -1,6 +1,6 @@
-# STT Docker Server
+# Matilda Docker Server
 
-Production-ready Speech-to-Text server with admin dashboard and end-to-end encryption.
+Production-ready Matilda server with admin dashboard and end-to-end encryption.
 
 ## 🚀 Quick Start
 
