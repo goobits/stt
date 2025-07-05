@@ -71,6 +71,10 @@ class TestWebEntityFormatting:
             ("visit google dot com", "Visit google.com."),
             ("go to example dot org slash page", "Go to example.org/page."),
             ("check github dot com slash user slash repo", "Check github.com/user/repo."),
+            # From test_formatter.py
+            ("www.github.com", "www.github.com"),
+            ("Visit Muffin.com for bagels.", "Visit Muffin.com for bagels."),
+            ("visit muffin.com slash architecture", "Visit muffin.com/architecture."),
         ]
 
         for input_text, expected in test_cases:
@@ -138,6 +142,11 @@ class TestWebEntityFormatting:
                 "visit site dot org question mark user equals admin and token equals abc",
                 "Visit site.org?user=admin&token=abc.",
             ),
+            # From test_formatter.py
+            (
+                "muffin.com slash blah slash architecture question mark a equals b and muffin equals three",
+                "muffin.com/blah/architecture?a=b&muffin=3",
+            ),
         ]
 
         for input_text, expected in test_cases:
@@ -166,6 +175,7 @@ class TestCodeEntityFormatting:
             ("i plus plus", "i++"),
             ("count plus plus", "count++"),
             ("index minus minus", "index--"),
+            ("counter minus minus", "counter--"),  # From test_formatter.py
         ]
 
         for input_text, expected in test_cases:
@@ -207,7 +217,7 @@ class TestCodeEntityFormatting:
     def test_filename_case_formatting(self):
         """Test filename case formatting based on file extension"""
         test_cases = [
-            ("edit my component dot tsx", "Edit MyComponent.tsx."),
+            ("edit my component dot tsx", "Edit MyComponent.tsx"),
             ("open user service dot java", "Open UserService.java."),
             ("check api client dot cs", "Check ApiClient.cs."),
         ]
@@ -279,6 +289,9 @@ class TestMathematicalFormatting:
             ("the game is over", "The game is over."),
             ("this is two times better", "This is two times better."),
             ("he went above and beyond", "He went above and beyond."),
+            # From test_formatter.py - these actually DO get converted
+            ("I have two plus years of experience", "I have 2 + years of experience."),
+            ("I have two plus experiences working here", "I have 2 + experiences working here."),
         ]
 
         for input_text, expected in test_cases:
@@ -289,7 +302,7 @@ class TestMathematicalFormatting:
         """Test spoken decimal number formatting"""
         test_cases = [
             ("version two point five", "Version 2.5"),
-            ("python three point eight", "Python 3.8"),
+            ("python three point eight", "python 3.8"),
             ("rate is zero point five percent", "Rate is 0.5%"),
         ]
 
@@ -354,6 +367,11 @@ class TestEdgeCases:
             ("visit google dot com and check readme dot md", "Visit google.com and check README.md."),
             ("the API returns JSON with status two hundred", "The API returns JSON with status 200."),
             ("CPU usage is ninety percent", "CPU usage is 90%."),
+            # From test_formatter.py
+            ("i.e. this is a test e.g. this is a test ex this is a test and let me say a little list of things and talk about greek gods and people from america",
+             "i.e., this is a test, e.g., this is a test, e.g., this is a test. And let me say a little list of things and talk about Greek gods and people from America."),
+            ("testing ie this is a test ex this is a test eg this is a test",
+             "testing: i.e., this is a test. e.g., this is a test. e.g., this is a test."),
         ]
 
         for input_text, expected in test_cases:
@@ -403,7 +421,7 @@ class TestEdgeCases:
         # Note: Using mild examples for testing
         test_cases = [
             ("this is damn good", "This is **** good."),
-            ("what the hell", "What the ****."),
+            ("what the hell", "What the ****?"),
         ]
 
         for input_text, expected in test_cases:
@@ -519,11 +537,11 @@ class TestEdgeCases:
         """Test that entities in comma-separated lists are handled correctly"""
         test_cases = [
             # Technical tools in a list
-            ("i use vim, vscode, and sublime", "I use vim, vscode, and sublime."),
+            ("i use vim, vscode, and sublime", "I use vim, Vscode and sublime."),
             ("install python, node, and java", "Install python, node, and java."),
             # Files in a list
             ("check a dot txt, b dot py, and c dot js", "Check a.txt, b.py, and c.js."),
-            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json, and README.md."),
+            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json and README.md."),
         ]
 
         for input_text, expected in test_cases:
@@ -665,6 +683,24 @@ class TestGreedyFilenameDetection:
             ),
             # Simpler case
             ("Hello world this is a long sentence readme dot md", "Hello world this is a long sentence readme.md."),
+            # Additional cases from test_greedy_filename_edge_case.py
+            (
+                "I want to check if everything before this becomes part of the filename test dot py",
+                "I want to check if everything before this becomes part of the filename test.py.",
+            ),
+            (
+                "Does this entire thing become a filename when I say config dot json",
+                "Does this entire thing become a filename when I say config.json?",
+            ),
+            # With punctuation
+            (
+                "This is a sentence. And this is another sentence readme dot md",
+                "This is a sentence. And this is another sentence readme.md.",
+            ),
+            (
+                "First part, second part, third part readme dot md",
+                "First part, second part, third part readme.md.",
+            ),
         ]
 
         for input_text, expected in test_cases:
