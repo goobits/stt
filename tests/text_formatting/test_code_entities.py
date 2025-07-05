@@ -390,6 +390,7 @@ class TestSlashCommands:
         """Test basic slash command patterns."""
         test_cases = [
             ("slash deploy to production", "/deploy to production"),
+            ("slash compact", "/compact"),
             ("use slash help for assistance", "Use /help for assistance"),
             ("try slash status command", "Try /status command"),
             ("run slash build now", "Run /build now"),
@@ -405,6 +406,20 @@ class TestSlashCommands:
             ("slash restart server one", "/restart server1"),
             ("use slash search term query", "Use /search term query"),
             ("try slash config set debug true", "Try /config set debug true"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+
+    def test_slash_commands_at_start_of_transcription(self):
+        """Test slash commands when they appear at the start of transcription."""
+        test_cases = [
+            ("slash compact", "/compact"),
+            ("slash deploy now", "/deploy now"),
+            ("slash help me", "/help me"),
+            ("slash status check", "/status check"),
+            ("slash anything goes", "/anything goes"),
         ]
 
         for input_text, expected in test_cases:
