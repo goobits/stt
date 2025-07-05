@@ -61,6 +61,15 @@ class TestUntestedEntities:
         for input_text, expected in test_cases.items():
             assert format_transcription(input_text) == expected
 
+    def test_filename_with_numbers(self):
+        """Test that filenames with spoken numbers are formatted correctly."""
+        test_cases = {
+            "report version two dot pdf": "report_version_2.pdf",
+            "log file one hundred dot txt": "log_file_100.txt",
+        }
+        for input_text, expected in test_cases.items():
+            assert format_transcription(input_text) == expected
+
 
 class TestComplexLogic:
     """Test complex conditional logic, like filename casing."""
@@ -105,6 +114,18 @@ class TestEntityConflictResolution:
         expected = "The file is 5MB."
         assert format_transcription(input_text) == expected
 
+    def test_java_package_filename_vs_url(self):
+        """Test that a Java package name is treated as one FILENAME, not a URL + filename."""
+        input_text = "open com dot example dot myapp dot java"
+        expected = "open com.example.myapp.java"
+        assert format_transcription(input_text) == expected
+
+    def test_url_with_filename_in_path(self):
+        """Test that a URL containing a filename-like path is treated as one URL entity."""
+        input_text = "download from example dot com slash assets slash archive dot zip"
+        expected = "Download from example.com/assets/archive.zip."
+        assert format_transcription(input_text) == expected
+
 
 class TestBoundaryAndNegativeCases:
     """Test the formatter's behavior with unusual or invalid inputs."""
@@ -127,3 +148,54 @@ class TestBoundaryAndNegativeCases:
         # Should still format the dot and snake_case the name.
         expected = "open my_custom_file.custom"
         assert format_transcription(input_text) == expected
+
+    def test_capitalization_of_technical_starters(self):
+        """Test that sentences starting with technical terms are not incorrectly capitalized."""
+        test_cases = {
+            # Command flags should not be capitalized.
+            "dash dash version": "--version",
+            # Filenames should follow their own casing rules, not sentence capitalization.
+            "my component dot tsx is the file": "MyComponent.tsx is the file.",
+        }
+        for input_text, expected in test_cases.items():
+            assert format_transcription(input_text) == expected
+
+    def test_idiomatic_math_phrases(self):
+        """Test that idiomatic phrases are not converted to math symbols."""
+        test_cases = {
+            # Should not become "1 / par"
+            "he was one over par": "He was one over par.",
+            # Should not become "10 - expenses"
+            "take ten minus expenses": "Take ten minus expenses.",
+        }
+        for input_text, expected in test_cases.items():
+            assert format_transcription(input_text) == expected
+
+
+class TestAdvancedEntityInteractions:
+    """Test more complex interactions between entities and formatting rules."""
+
+    def test_emoji_formatting_edge_cases(self):
+        """Test various edge cases for emoji formatting."""
+        test_cases = {
+            # Capitalization should be ignored.
+            "Thumbs Up": "👍",
+            # Punctuation should be handled correctly.
+            "that gets a thumbs up!": "That gets a 👍!",
+            # Explicit trigger word on an implicit emoji should still work.
+            "show me the smiley face emoji": "Show me the 🙂.",
+            # A word that contains an emoji trigger should not be converted.
+            "this is heartfelt": "This is heartfelt.",
+        }
+        for input_text, expected in test_cases.items():
+            assert format_transcription(input_text) == expected
+
+    def test_standalone_currency_formatting(self):
+        """Test formatting of standalone currency amounts, including cents."""
+        test_cases = {
+            "fifty cents": "50¢",
+            "one dollar fifty cents": "$1.50",
+            "ten pounds": "£10",
+        }
+        for input_text, expected in test_cases.items():
+            assert format_transcription(input_text) == expected
