@@ -153,6 +153,70 @@ class TestWebEntityFormatting:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
+    def test_port_numbers(self):
+        """Test spoken port numbers (PORT_NUMBER entity)"""
+        test_cases = [
+            ("connect to localhost colon eight zero eight zero", "connect to localhost:8080"),
+            ("the API is at api dot service dot com colon three thousand", "The API is at api.service.com:3000"),
+            ("server runs on port nine zero zero zero", "Server runs on port 9000"),
+            ("database server colon five four three two", "Database server:5432"),
+            ("redis colon six three seven nine", "Redis:6379"),
+            ("connect to one two seven dot zero dot zero dot one colon two two", "Connect to 127.0.0.1:22"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Port numbers are technical content so might not get punctuation
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+
+    def test_complex_spoken_emails(self):
+        """Test more complex spoken email cases (SPOKEN_EMAIL entity)"""
+        test_cases = [
+            # With numbers
+            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk."),
+            ("send to admin at server two dot example dot com", "Send to admin@server2.example.com."),
+            # With underscores and hyphens
+            ("email first underscore last at my-company dot org", "Email first_last@my-company.org."),
+            ("support dash team at help dot io", "Support-team@help.io."),
+            # With subdomains
+            ("reach out to sales at mail dot big-corp dot com", "Reach out to sales@mail.big-corp.com."),
+            ("notify admin at db dot prod dot company dot net", "Notify admin@db.prod.company.net."),
+            # Action verbs with emails
+            ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting."),
+            ("send the report to data at analytics dot company dot com", "Send the report to data@analytics.company.com."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_spoken_protocol_url_variations(self):
+        """Test more variations of spoken protocol URLs (SPOKEN_PROTOCOL_URL entity)"""
+        test_cases = [
+            # Basic protocols
+            ("https colon slash slash my app dot com slash login", "https://myapp.com/login"),
+            ("http colon slash slash test dot local colon eight zero eight zero", "http://test.local:8080"),
+            # With paths and query params
+            ("https colon slash slash api dot service dot com slash v one question mark key equals value", "https://api.service.com/v1?key=value"),
+            # With authentication
+            ("https colon slash slash user at secure dot site dot org", "https://user@secure.site.org"),
+            # With ports
+            ("https colon slash slash secure dot example dot com colon four four three", "https://secure.example.com:443"),
+            # FTP and other protocols
+            ("ftp colon slash slash files dot example dot com", "ftp://files.example.com"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Protocol URLs are technical content so might not get punctuation
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+
 
 class TestCodeEntityFormatting:
     """Test code-related entity formatting"""

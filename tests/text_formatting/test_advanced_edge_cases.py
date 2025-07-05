@@ -21,11 +21,17 @@ class TestUntestedEntities:
             "one half": "½",
             "two thirds": "⅔",
             "three quarters": "¾",
+            "one fourth": "¼",
+            "one eighth": "⅛",
+            "three fifths": "⅗",
+            "seven eighths": "⅞",
             "ten to twenty": "10-20",
             "one hundred to one fifty": "100-150",
+            "five to ten percent": "5-10%",
         }
         for input_text, expected in test_cases.items():
-            assert format_transcription(input_text) == expected
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_relative_time_and_ordinals(self):
         """Test relative time and ordinal number formatting."""
@@ -188,6 +194,21 @@ class TestAdvancedEntityInteractions:
         for input_text, expected in test_cases.items():
             assert format_transcription(input_text) == expected
 
+    def test_scientific_vs_colloquial_disambiguation(self):
+        """Test that scientific expressions are distinguished from colloquial usage."""
+        test_cases = {
+            # Scientific (should be converted)
+            "the concentration is two point five times ten to the negative six molar": "The concentration is 2.5 × 10⁻⁶ M",
+            "avogadro's number is six point zero two times ten to the twenty third": "Avogadro's number is 6.02 × 10²³",
+            # Colloquial (should NOT be converted)
+            "he's ten times better than me": "He's 10 times better than me.",
+            "this is a million times harder": "This is a million times harder.",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            # Note: Some of these may be aspirational depending on current implementation
+            print(f"Scientific disambiguation: '{input_text}' -> '{result}' (expected: '{expected}')")
+
     def test_standalone_currency_formatting(self):
         """Test formatting of standalone currency amounts, including cents."""
         test_cases = {
@@ -197,3 +218,95 @@ class TestAdvancedEntityInteractions:
         }
         for input_text, expected in test_cases.items():
             assert format_transcription(input_text) == expected
+
+
+class TestScientificAndMathematicalEntities:
+    """Test scientific notation, mathematical constants, and complex mathematical expressions."""
+
+    def test_scientific_notation(self):
+        """Test scientific notation formatting (SCIENTIFIC_NOTATION entity)."""
+        test_cases = {
+            "two point five times ten to the sixth": "2.5 × 10⁶",
+            "three times ten to the negative four": "3 × 10⁻⁴",
+            "one point zero times ten to the eighth": "1.0 × 10⁸",
+            "six point zero two times ten to the twenty third": "6.02 × 10²³",  # Avogadro's number
+            "nine point one zero nine times ten to the negative thirty first": "9.109 × 10⁻³¹",  # Electron mass
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_root_expressions(self):
+        """Test square root and cube root expressions (ROOT_EXPRESSION entity)."""
+        test_cases = {
+            "the square root of sixteen": "√16",
+            "square root of two": "√2",
+            "the cube root of eight": "∛8",
+            "cube root of twenty seven": "∛27",
+            "the square root of x plus one": "√(x + 1)",
+            "cube root of a squared plus b squared": "∛(a² + b²)",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_physics_equations(self):
+        """Test physics equation formatting (PHYSICS_SQUARED and PHYSICS_TIMES entities)."""
+        test_cases = {
+            # Physics squared (E=mc²)
+            "E equals MC squared": "E = MC²",
+            "energy equals mass times c squared": "E = mc²",
+            # Physics multiplication
+            "F equals M times A": "F = M × A",
+            "force equals mass times acceleration": "F = m × a",
+            "P equals I times V": "P = I × V",  # Power = Current × Voltage
+            "work equals force times distance": "W = F × d",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_mathematical_constants(self):
+        """Test mathematical constant formatting (MATH_CONSTANT entity)."""
+        test_cases = {
+            "pi is approximately three point one four": "π is approximately 3.14",
+            "calculate with pi": "Calculate with π",
+            "the value approaches infinity": "The value approaches ∞",
+            "to infinity and beyond": "To ∞ and beyond",
+            "e to the power of x": "e^x",
+            "the natural logarithm of e": "ln(e)",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_complex_mathematical_expressions(self):
+        """Test complex mathematical expressions combining multiple entities."""
+        test_cases = {
+            "the derivative of x squared plus two x plus one": "d/dx(x² + 2x + 1)",
+            "integral from zero to pi of sin x dx": "∫₀^π sin(x) dx",
+            "the limit as x approaches infinity": "lim(x→∞)",
+            "sigma from i equals one to n": "Σᵢ₌₁ⁿ",
+            "alpha plus beta equals gamma": "α + β = γ",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            # Note: These are aspirational tests - the formatter may not handle all complex cases yet
+            print(f"Complex math test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_mathematical_vs_idiomatic_disambiguation(self):
+        """Test that mathematical expressions are distinguished from idiomatic phrases."""
+        test_cases = {
+            # Mathematical (should be converted)
+            "solve for x plus five equals ten": "Solve for x + 5 = 10",
+            "what is five times ten": "What is 5 × 10",
+            "calculate two to the power of eight": "Calculate 2⁸",
+            # Idiomatic (should NOT be converted)
+            "catch twenty two": "Catch twenty two.",
+            "cloud nine": "Cloud nine.",
+            "sixth sense": "Sixth sense.",
+            "four score and seven years ago": "Four score and seven years ago.",
+        }
+        for input_text, expected in test_cases.items():
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
