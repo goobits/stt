@@ -600,11 +600,11 @@ class TestFilenameEdgeCasesAndRegressions:
 
     def test_greedy_filename_detection_regression(self, preloaded_formatter):
         """Test and document KNOWN ISSUE: Filename regex is too greedy.
-        format_transcription = preloaded_formatter
         
         The filename detection currently consumes entire sentences when it finds
         'dot extension' patterns, which is incorrect behavior.
         """
+        format_transcription = preloaded_formatter
         test_cases = [
             # KNOWN ISSUE: Everything before 'dot js' is consumed as filename
             ("function opens the door dot js", "Function opens the door dot js."),
