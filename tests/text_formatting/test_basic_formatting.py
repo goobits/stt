@@ -269,7 +269,9 @@ class TestEntityProtection:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should protect 'i' in entities: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should protect 'i' in entities: '{expected}', got '{result}'"
 
     def test_mixed_case_technical_terms(self, preloaded_formatter):
         """Test preservation of mixed-case technical terms and acronyms."""
@@ -514,7 +516,10 @@ class TestEdgeCasesAndRegressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestIdiomaticExpressions:

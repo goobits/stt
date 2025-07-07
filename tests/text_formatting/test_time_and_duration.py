@@ -11,7 +11,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import pytest
 
 
 class TestTimeEntities:
@@ -124,7 +123,10 @@ class TestDateEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_date_in_context(self, preloaded_formatter):
         """Test dates in natural sentences."""
@@ -157,7 +159,10 @@ class TestDurationEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_compound_durations(self, preloaded_formatter):
         """Test compound duration patterns."""

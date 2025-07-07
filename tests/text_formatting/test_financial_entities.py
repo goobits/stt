@@ -5,12 +5,11 @@ This module tests the detection and formatting of:
 - MONEY: "$100", "€50", "£20"
 - SPOKEN_CURRENCY: "fifty dollars" → "$50"
 - COMPOUND_CURRENCY: "five dollars and fifty cents" → "$5.50"
-- CURRENCY_SYMBOL: "USD", "EUR", "GBP" 
+- CURRENCY_SYMBOL: "USD", "EUR", "GBP"
 - STOCK_SYMBOL: "AAPL", "GOOGL"
 - Financial expressions and contexts
 """
 
-import pytest
 import pytest
 
 
@@ -31,8 +30,12 @@ class TestSpokenCurrency:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # May or may not include commas in large numbers
-            assert result in [expected, expected.replace(",", ""), expected + ".", expected.replace(",", "") + "."], \
-                f"Input '{input_text}' should format to '{expected}' variant, got '{result}'"
+            assert result in [
+                expected,
+                expected.replace(",", ""),
+                expected + ".",
+                expected.replace(",", "") + ".",
+            ], f"Input '{input_text}' should format to '{expected}' variant, got '{result}'"
 
     def test_decimal_dollar_amounts(self, preloaded_formatter):
         """Test dollar amounts with decimal values."""
@@ -46,7 +49,10 @@ class TestSpokenCurrency:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_cents_only(self, preloaded_formatter):
         """Test amounts in cents only."""
@@ -61,8 +67,12 @@ class TestSpokenCurrency:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # May format as cents symbol or as $0.XX
-            assert result in [expected, expected + ".", f"${expected[:-1]}.{expected[:-1]}", f"$0.{expected[:-1]}"], \
-                f"Input '{input_text}' should format to cents notation, got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+                f"${expected[:-1]}.{expected[:-1]}",
+                f"$0.{expected[:-1]}",
+            ], f"Input '{input_text}' should format to cents notation, got '{result}'"
 
     def test_other_currencies(self, preloaded_formatter):
         """Test other currency patterns."""
@@ -93,7 +103,10 @@ class TestSpokenCurrency:
             result = format_transcription(input_text)
             # May or may not include commas
             expected_no_comma = expected.replace(",", "")
-            assert result in [expected, expected_no_comma], f"Input '{input_text}' should format to '{expected}' or '{expected_no_comma}', got '{result}'"
+            assert result in [
+                expected,
+                expected_no_comma,
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected_no_comma}', got '{result}'"
 
 
 class TestCompoundCurrency:
@@ -111,7 +124,10 @@ class TestCompoundCurrency:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_large_amounts_with_cents(self, preloaded_formatter):
         """Test large amounts with cents."""
@@ -126,8 +142,12 @@ class TestCompoundCurrency:
             result = format_transcription(input_text)
             # May or may not include commas
             expected_no_comma = expected.replace(",", "")
-            assert result in [expected, expected + ".", expected_no_comma, expected_no_comma + "."], \
-                f"Input '{input_text}' should format to currency notation, got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+                expected_no_comma,
+                expected_no_comma + ".",
+            ], f"Input '{input_text}' should format to currency notation, got '{result}'"
 
     def test_other_compound_currencies(self, preloaded_formatter):
         """Test compound amounts in other currencies."""

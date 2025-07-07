@@ -9,7 +9,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import pytest
 
 
 class TestMusicNotation:
@@ -28,7 +27,10 @@ class TestMusicNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_flat_notes(self, preloaded_formatter):
         """Test musical flat note patterns."""
@@ -43,7 +45,10 @@ class TestMusicNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_natural_notes(self, preloaded_formatter):
         """Test natural note patterns."""
@@ -71,7 +76,10 @@ class TestMusicNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_chord_progressions(self, preloaded_formatter):
         """Test chord progression patterns."""
@@ -84,7 +92,10 @@ class TestMusicNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_music_in_context(self, preloaded_formatter):
         """Test music notation in sentences."""
@@ -265,7 +276,10 @@ class TestEntertainmentExpressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestFunEntityInteractions:
@@ -365,7 +379,10 @@ class TestFunEdgeCases:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or with period, got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or with period, got '{result}'"
 
 
 if __name__ == "__main__":

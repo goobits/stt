@@ -218,7 +218,10 @@ class TestAssignmentOperators:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Assignments are technical content so might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_assignments_with_strings(self, preloaded_formatter):
         """Test assignments with string values."""
@@ -231,7 +234,10 @@ class TestAssignmentOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_assignments_with_expressions(self, preloaded_formatter):
         """Test assignments with mathematical expressions."""
@@ -244,7 +250,10 @@ class TestAssignmentOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_typed_assignments(self, preloaded_formatter):
         """Test assignments with type annotations."""
@@ -257,7 +266,10 @@ class TestAssignmentOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestIncrementDecrementOperators:
@@ -276,7 +288,10 @@ class TestIncrementDecrementOperators:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Operators are technical content so might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_decrement_operators(self, preloaded_formatter):
         """Test decrement operator patterns."""
@@ -290,7 +305,10 @@ class TestIncrementDecrementOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_operators_in_context(self, preloaded_formatter):
         """Test operators in code context."""
@@ -303,7 +321,10 @@ class TestIncrementDecrementOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestComparisonOperators:
@@ -322,7 +343,10 @@ class TestComparisonOperators:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Comparisons are technical content so might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_comparisons_in_conditions(self, preloaded_formatter):
         """Test comparisons in conditional statements."""
@@ -335,7 +359,10 @@ class TestComparisonOperators:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestCommandFlags:
@@ -353,7 +380,10 @@ class TestCommandFlags:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_long_flags(self, preloaded_formatter):
         """Test long command-line flags."""
@@ -368,7 +398,10 @@ class TestCommandFlags:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_command_flags_in_context(self, preloaded_formatter):
         """Test command flags in complete command contexts."""
@@ -382,7 +415,10 @@ class TestCommandFlags:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_multiple_flags(self, preloaded_formatter):
         """Test multiple flags in one command."""
@@ -396,10 +432,11 @@ class TestCommandFlags:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Check that both flags are present
-            assert "-v" in result and "--debug" in result or \
-                   "-x" in result and "-f" in result or \
-                   "--verbose" in result and "--output" in result, \
-                   f"Expected multiple flags in result '{result}' for input '{input_text}'"
+            assert (
+                ("-v" in result and "--debug" in result)
+                or ("-x" in result and "-f" in result)
+                or ("--verbose" in result and "--output" in result)
+            ), f"Expected multiple flags in result '{result}' for input '{input_text}'"
 
 
 class TestSlashCommands:
@@ -418,7 +455,10 @@ class TestSlashCommands:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_slash_commands_with_parameters(self, preloaded_formatter):
         """Test slash commands with parameters."""
@@ -431,7 +471,10 @@ class TestSlashCommands:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_slash_commands_at_start_of_transcription(self, preloaded_formatter):
         """Test slash commands when they appear at the start of transcription."""
@@ -446,7 +489,10 @@ class TestSlashCommands:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestUnderscoreDelimiters:
@@ -464,7 +510,10 @@ class TestUnderscoreDelimiters:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_dunder_variables(self, preloaded_formatter):
         """Test dunder variable patterns."""
@@ -477,7 +526,10 @@ class TestUnderscoreDelimiters:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_underscore_delimited_variables(self, preloaded_formatter):
         """Test underscore-delimited variable names."""
@@ -490,7 +542,10 @@ class TestUnderscoreDelimiters:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestAbbreviations:
@@ -529,7 +584,10 @@ class TestAbbreviations:
         test_cases = [
             ("use design patterns i e singleton factory", "Use design patterns i.e. singleton, factory."),
             ("configure the tools e g linters formatters", "Configure the tools e.g. linters, formatters."),
-            ("and install dependencies libraries frameworks etc", "And install dependencies, libraries, frameworks etc."),
+            (
+                "and install dependencies libraries frameworks etc",
+                "And install dependencies, libraries, frameworks etc.",
+            ),
         ]
 
         for input_text, expected in test_cases:
@@ -600,7 +658,7 @@ class TestFilenameEdgeCasesAndRegressions:
 
     def test_greedy_filename_detection_regression(self, preloaded_formatter):
         """Test and document KNOWN ISSUE: Filename regex is too greedy.
-        
+
         The filename detection currently consumes entire sentences when it finds
         'dot extension' patterns, which is incorrect behavior.
         """
@@ -610,11 +668,9 @@ class TestFilenameEdgeCasesAndRegressions:
             ("function opens the door dot js", "Function opens the door dot js."),
             # Expected: "Function opens the door.js" or similar
             # Actual: The entire phrase becomes a filename entity
-            
             # More examples of the greedy behavior
             ("the error is in main dot py on line 5", "The error is in main.py on line 5."),
             # Currently may consume too much as filename
-            
             ("i love python dot py is great", "I love python.py is great."),
             # Should only treat 'python.py' as filename, not the whole sentence
         ]
@@ -625,7 +681,7 @@ class TestFilenameEdgeCasesAndRegressions:
             print(f"GREEDY FILENAME ISSUE - Input: '{input_text}'")
             print(f"                       Expected: '{expected}'")
             print(f"                       Actual: '{result}'")
-            print(f"                       Issue: Filename detection is too greedy")
+            print("                       Issue: Filename detection is too greedy")
             print()
 
     def test_filename_boundary_detection(self, preloaded_formatter):
@@ -636,7 +692,6 @@ class TestFilenameEdgeCasesAndRegressions:
             ("the file utils dot py is ready", "The file utils.py is ready."),
             ("check main dot js for errors", "Check main.js for errors."),
             ("open config dot json and edit", "Open config.json and edit."),
-            
             # Should handle 'dot' in non-filename contexts
             ("put a dot here", "Put a dot here."),
             ("the dot com boom", "The .com boom."),
@@ -654,11 +709,9 @@ class TestFilenameEdgeCasesAndRegressions:
             # Could be filename or sentence about a dot
             ("red dot py", "Red dot py."),
             # Is this 'red.py' or 'red dot py'?
-            
             # Sentence ending with extension-like word
             ("i love dot com", "I love .com."),
             # Could be a sentence about .com domains
-            
             # Multiple dots in sequence
             ("example dot com dot au", "example.com.au"),
             # Should be recognized as domain, not filename

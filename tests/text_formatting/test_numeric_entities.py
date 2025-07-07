@@ -14,7 +14,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import pytest
 
 
 class TestCardinalNumbers:
@@ -164,7 +163,10 @@ class TestOrdinalNumbers:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestNumericRanges:
@@ -197,7 +199,10 @@ class TestNumericRanges:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Ranges with units might get additional formatting
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_ranges_in_context(self, preloaded_formatter):
         """Test ranges in natural sentences."""
@@ -406,7 +411,10 @@ class TestTemperatures:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_generic_temperature(self, preloaded_formatter):
         """Test generic temperature patterns without scale."""
@@ -483,7 +491,10 @@ class TestImperialQuantities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_distance_measurements(self, preloaded_formatter):
         """Test distance measurement patterns."""
@@ -527,7 +538,10 @@ class TestNumericEntityInteractions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_data_size_vs_cardinal(self, preloaded_formatter):
         """Test that data sizes take precedence over cardinal numbers."""
@@ -540,7 +554,10 @@ class TestNumericEntityInteractions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_complex_numeric_sentences(self, preloaded_formatter):
         """Test sentences with multiple numeric entities."""

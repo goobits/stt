@@ -11,7 +11,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import pytest
 
 
 class TestMathExpressions:
@@ -30,7 +29,10 @@ class TestMathExpressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Math expressions might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_mathematical_expressions_with_variables(self, preloaded_formatter):
         """Test mathematical expressions with variables."""
@@ -44,7 +46,10 @@ class TestMathExpressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_complex_mathematical_expressions(self, preloaded_formatter):
         """Test more complex mathematical expressions."""
@@ -84,7 +89,6 @@ class TestMathExpressions:
 class TestPhysicsEquations:
     """Test physics equation entity detection and formatting."""
 
-
     def test_physics_equations_in_context(self, preloaded_formatter):
         """Test physics equations in natural sentences."""
         format_transcription = preloaded_formatter
@@ -96,7 +100,10 @@ class TestPhysicsEquations:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestRootExpressions:
@@ -114,7 +121,10 @@ class TestRootExpressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_cube_roots(self, preloaded_formatter):
         """Test cube root expression patterns."""
@@ -128,7 +138,10 @@ class TestRootExpressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_roots_with_expressions(self, preloaded_formatter):
         """Test root expressions with more complex arguments."""
@@ -174,7 +187,10 @@ class TestScientificNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_negative_exponents(self, preloaded_formatter):
         """Test scientific notation with negative exponents."""
@@ -188,7 +204,10 @@ class TestScientificNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_scientific_constants(self, preloaded_formatter):
         """Test scientific notation for well-known constants."""
@@ -201,20 +220,32 @@ class TestScientificNotation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_scientific_notation_in_context(self, preloaded_formatter):
         """Test scientific notation in scientific contexts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the concentration is two point five times ten to the negative six molar", "The concentration is 2.5 × 10⁻⁶ M"),
-            ("avogadro's number is six point zero two times ten to the twenty third", "Avogadro's number is 6.02 × 10²³"),
+            (
+                "the concentration is two point five times ten to the negative six molar",
+                "The concentration is 2.5 × 10⁻⁶ M",
+            ),
+            (
+                "avogadro's number is six point zero two times ten to the twenty third",
+                "Avogadro's number is 6.02 × 10²³",
+            ),
             ("the wavelength is five hundred times ten to the negative nine meters", "The wavelength is 500 × 10⁻⁹ m"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestMathematicalConstants:
@@ -232,7 +263,10 @@ class TestMathematicalConstants:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_infinity_constant(self, preloaded_formatter):
         """Test infinity constant detection and formatting."""
@@ -246,7 +280,10 @@ class TestMathematicalConstants:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_e_constant(self, preloaded_formatter):
         """Test Euler's number constant detection and formatting."""
@@ -331,8 +368,8 @@ class TestAdvancedMathematicalNotation:
         format_transcription = preloaded_formatter
         test_cases = [
             ("a and b", "A ∧ B"),  # In logical context
-            ("x or y", "X ∨ Y"),   # In logical context
-            ("not p", "¬P"),       # In logical context
+            ("x or y", "X ∨ Y"),  # In logical context
+            ("not p", "¬P"),  # In logical context
             ("if and only if", "⇔"),
             ("implies", "⇒"),
         ]

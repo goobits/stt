@@ -10,7 +10,6 @@ This module tests how different entities interact:
 """
 
 import pytest
-import pytest
 
 
 class TestEntityPriorities:
@@ -56,7 +55,10 @@ class TestEntityPriorities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_operator_vs_math_expression_priority(self, preloaded_formatter):
         """Test priority between operators and math expressions."""
@@ -74,7 +76,10 @@ class TestEntityPriorities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_number_entity_priorities(self, preloaded_formatter):
         """Test priorities among number-related entities."""
@@ -92,7 +97,10 @@ class TestEntityPriorities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_filename_vs_url_priority_complex(self, preloaded_formatter):
         """Test complex filename vs URL conflicts."""
@@ -103,7 +111,10 @@ class TestEntityPriorities:
             # Java package name should be treated as one filename
             ("open com dot example dot myapp dot java", "Open com.example.myapp.java."),
             # URL with filename in path should be treated as one URL
-            ("download from example dot com slash assets slash archive dot zip", "Download from example.com/assets/archive.zip."),
+            (
+                "download from example dot com slash assets slash archive dot zip",
+                "Download from example.com/assets/archive.zip.",
+            ),
         ]
 
         for input_text, expected in test_cases:
@@ -127,7 +138,10 @@ class TestEntityBoundaries:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_punctuation_boundaries(self, preloaded_formatter):
         """Test entity detection at punctuation boundaries."""
@@ -156,7 +170,10 @@ class TestEntityBoundaries:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestNestedEntities:
@@ -173,7 +190,10 @@ class TestNestedEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_filename_with_numbers(self, preloaded_formatter):
         """Test filenames containing numbers."""
@@ -243,7 +263,10 @@ class TestAdjacentEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestComplexEntityInteractions:
@@ -369,7 +392,7 @@ class TestEdgeCaseInteractions:
         test_cases = [
             # Could be URL or sentence
             ("visit the site", "Visit the site."),
-            # Could be email or sentence  
+            # Could be email or sentence
             ("contact john at the office", "Contact John at the office."),
             # Could be filename or regular text
             ("the script is ready", "The script is ready."),

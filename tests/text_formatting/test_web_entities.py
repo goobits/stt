@@ -5,7 +5,7 @@ This module tests the detection and formatting of:
 - SPOKEN_URL: "example dot com" → "example.com"
 - SPOKEN_PROTOCOL_URL: "https colon slash slash example dot com" → "https://example.com"
 - SPOKEN_EMAIL: "user at domain dot com" → "user@domain.com"
-- EMAIL: Standard email addresses 
+- EMAIL: Standard email addresses
 - PORT_NUMBER: "localhost colon 8080" → "localhost:8080"
 - URL: Standard URLs with proper formatting
 """
@@ -143,7 +143,10 @@ class TestSpokenProtocolUrls:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Protocol URLs are technical content so might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_protocol_urls_with_paths(self, preloaded_formatter):
         """Test protocol URLs with path segments."""
@@ -156,20 +159,29 @@ class TestSpokenProtocolUrls:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_protocol_urls_with_ports(self, preloaded_formatter):
         """Test protocol URLs with port numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
             ("http colon slash slash test dot local colon eight zero eight zero", "http://test.local:8080"),
-            ("https colon slash slash secure dot example dot com colon four four three", "https://secure.example.com:443"),
+            (
+                "https colon slash slash secure dot example dot com colon four four three",
+                "https://secure.example.com:443",
+            ),
             ("http colon slash slash localhost colon three thousand", "http://localhost:3000"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_protocol_urls_with_query_parameters(self, preloaded_formatter):
         """Test protocol URLs with query parameters."""
@@ -177,17 +189,20 @@ class TestSpokenProtocolUrls:
         test_cases = [
             (
                 "https colon slash slash api dot service dot com slash v one question mark key equals value",
-                "https://api.service.com/v1?key=value"
+                "https://api.service.com/v1?key=value",
             ),
             (
                 "http colon slash slash search dot com question mark q equals test and page equals one",
-                "http://search.com?q=test&page=1"
+                "http://search.com?q=test&page=1",
             ),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_protocol_urls_with_authentication(self, preloaded_formatter):
         """Test protocol URLs with authentication."""
@@ -199,7 +214,10 @@ class TestSpokenProtocolUrls:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestSpokenEmails:
@@ -263,7 +281,10 @@ class TestSpokenEmails:
         format_transcription = preloaded_formatter
         test_cases = [
             ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting."),
-            ("send the report to data at analytics dot company dot com", "Send the report to data@analytics.company.com."),
+            (
+                "send the report to data at analytics dot company dot com",
+                "Send the report to data@analytics.company.com.",
+            ),
             ("forward this to admin at server dot example dot org", "Forward this to admin@server.example.org."),
         ]
 
@@ -332,20 +353,29 @@ class TestPortNumbers:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Port numbers are technical content so might not get punctuation
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_port_numbers_with_ips(self, preloaded_formatter):
         """Test port numbers with IP addresses."""
         format_transcription = preloaded_formatter
         test_cases = [
             ("connect to one two seven dot zero dot zero dot one colon two two", "Connect to 127.0.0.1:22"),
-            ("the API is at one nine two dot one six eight dot one dot one colon three thousand", "The API is at 192.168.1.1:3000"),
+            (
+                "the API is at one nine two dot one six eight dot one dot one colon three thousand",
+                "The API is at 192.168.1.1:3000",
+            ),
             ("ssh to ten dot zero dot zero dot one colon two two two two", "SSH to 10.0.0.1:2222"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_port_numbers_with_domains(self, preloaded_formatter):
         """Test port numbers with domain names."""
@@ -358,7 +388,10 @@ class TestPortNumbers:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_common_service_ports(self, preloaded_formatter):
         """Test common service port numbers."""
@@ -374,7 +407,10 @@ class TestPortNumbers:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
 
 class TestStandardUrls:
@@ -385,7 +421,10 @@ class TestStandardUrls:
         format_transcription = preloaded_formatter
         test_cases = [
             ("Visit https://example.com", "Visit https://example.com."),
-            ("Check the documentation at https://docs.python.org", "Check the documentation at https://docs.python.org."),
+            (
+                "Check the documentation at https://docs.python.org",
+                "Check the documentation at https://docs.python.org.",
+            ),
             ("The API endpoint is http://api.service.com/v1", "The API endpoint is http://api.service.com/v1."),
         ]
 
