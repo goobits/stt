@@ -9,11 +9,12 @@ import re
 from collections import defaultdict
 import os
 import glob
+import hashlib
+from functools import lru_cache
+import sys
 
 # --- Constants ---
-# Use the same history file as the old script to ensure compatibility.
 HISTORY_DIR = Path(".test_artifacts")
-HISTORY_FILE = HISTORY_DIR / "test_history.json"
 
 # --- Pytest Hooks ---
 
@@ -61,24 +62,73 @@ class DiffTracker:
     def __init__(self, config):
         self.config = config
         self.current_run_results = {}
-        # Ensure the .test_artifacts directory exists before we do anything.
+        self.test_path = None
+        self.history_file = None
         HISTORY_DIR.mkdir(exist_ok=True)
 
-    def _load_history(self) -> Dict:
-        """Load test history from file."""
-        if HISTORY_FILE.exists():
-            with open(HISTORY_FILE, 'r') as f:
-                return json.load(f)
-        return {"runs": [], "test_metadata": {}}
+    @lru_cache(maxsize=32)
+    def _normalize_test_path(self, test_args: tuple) -> str:
+        """Convert test arguments to normalized path string."""
+        args_str = ' '.join(test_args).strip()
+        
+        # Handle common patterns
+        if args_str.startswith('tests/text_formatting'):
+            return 'tests/text_formatting'
+        elif args_str.startswith('tests/infrastructure'):
+            return 'tests/infrastructure'
+        elif args_str.startswith('tests/pipeline'):
+            return 'tests/pipeline'
+        elif args_str.startswith('tests/networking'):
+            return 'tests/networking'
+        elif args_str == 'tests' or args_str == 'tests/':
+            return 'tests'
+        
+        # For complex paths, use first directory component
+        if args_str.startswith('tests/'):
+            parts = args_str.split('/')
+            if len(parts) >= 2:
+                return f'tests/{parts[1]}'
+        
+        return 'tests'
 
-    def _save_history(self, history: Dict):
+    def _get_history_file(self, test_path: str) -> Path:
+        """Get history file for specific test path."""
+        path_map = {
+            'tests/text_formatting': 'text_formatting',
+            'tests/infrastructure': 'infrastructure',
+            'tests/pipeline': 'pipeline', 
+            'tests/networking': 'networking',
+            'tests': 'full'
+        }
+        
+        normalized = path_map.get(test_path)
+        if not normalized:
+            normalized = hashlib.md5(test_path.encode()).hexdigest()[:8]
+        
+        return HISTORY_DIR / f"test_history_{normalized}.json"
+
+    def _load_history(self, history_file: Path) -> Dict:
+        """Load test history from file."""
+        if not history_file.exists():
+            return {"runs": [], "test_metadata": {}}
+        
+        try:
+            import ujson
+            with open(history_file, 'rb') as f:
+                return ujson.load(f)
+        except ImportError:
+            with open(history_file, 'r') as f:
+                return json.load(f)
+
+    def _save_history(self, history: Dict, history_file: Path):
         """Save test history to file."""
-        # Keep only last 50 runs to avoid file bloat
         if len(history["runs"]) > 50:
             history["runs"] = history["runs"][-50:]
         
-        with open(HISTORY_FILE, 'w') as f:
-            json.dump(history, f, indent=2)
+        temp_file = history_file.with_suffix('.tmp')
+        with open(temp_file, 'w') as f:
+            json.dump(history, f, separators=(',', ':'))
+        temp_file.replace(history_file)
 
     def _simplify_nodeid(self, nodeid: str) -> str:
         """Convert pytest nodeid to simplified test name matching old format."""
@@ -319,8 +369,6 @@ class DiffTracker:
 
     def _write_line(self, text: str, session=None):
         """Write line to terminal, using session if available."""
-        # Force output to stdout for debugging
-        import sys
         print(text, file=sys.stdout, flush=True)
 
     def _parse_diff_range(self, diff_range: list) -> tuple:
@@ -373,20 +421,24 @@ class DiffTracker:
                 for f in partial_files:
                     with open(f, 'r') as partial_f:
                         aggregated_results.update(json.load(partial_f))
-                    os.remove(f) # Clean up temp file
+                    os.remove(f)
                 self.current_run_results = aggregated_results
 
-            # Now proceed with the original logic, using complete results.
-            history = self._load_history()
+            # Determine test path from command line args
+            test_args = tuple(arg for arg in sys.argv if arg.startswith('tests/'))
+            self.test_path = self._normalize_test_path(test_args)
+            self.history_file = self._get_history_file(self.test_path)
+            
+            history = self._load_history(self.history_file)
 
             if self.config.getoption("--track-diff"):
                 if not self.current_run_results:
                     self._write_line("\n⚠️ No test results were collected. Skipping diff tracking.", session)
                     return
                     
-                run_record = self._create_run_record()
+                run_record = self._create_run_record(self.test_path)
                 history["runs"].append(run_record)
-                self._save_history(history)
+                self._save_history(history, self.history_file)
                 
                 if len(history["runs"]) >= 2:
                     diff = self._get_diff(history)
@@ -395,14 +447,26 @@ class DiffTracker:
                     self._write_line("\n📊 First run recorded. No diff to show.", session)
             
             elif self.config.getoption("--history"):
+                # For history and diff commands, we also need to detect the test path
+                if not self.test_path:
+                    test_args = tuple(arg for arg in sys.argv if arg.startswith('tests/'))
+                    self.test_path = self._normalize_test_path(test_args)
+                    self.history_file = self._get_history_file(self.test_path)
+                    history = self._load_history(self.history_file)
                 self._print_history(history)
             
             elif self.config.getoption("diff_range"):
+                # For history and diff commands, we also need to detect the test path
+                if not self.test_path:
+                    test_args = tuple(arg for arg in sys.argv if arg.startswith('tests/'))
+                    self.test_path = self._normalize_test_path(test_args)
+                    self.history_file = self._get_history_file(self.test_path)
+                    history = self._load_history(self.history_file)
+                    
                 diff_range = self.config.getoption("diff_range")
                 try:
                     from_idx, to_idx = self._parse_diff_range(diff_range)
                     
-                    # Adjust indices to be negative for consistency if they are positive
                     num_runs = len(history["runs"])
                     if from_idx >= 0: from_idx -= num_runs
                     if to_idx >= 0: to_idx -= num_runs
