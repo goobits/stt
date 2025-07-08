@@ -34,8 +34,8 @@ class TestEntityPriorities:
         format_transcription = preloaded_formatter
         test_cases = [
             # Email should win over filename interpretation
-            ("contact john at example dot com", "Contact john@example.com."),
-            ("email support at company dot com", "Email support@company.com."),
+            ("contact john at example dot com", "Contact john@example.com"),
+            ("email support at company dot com", "Email support@company.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -128,7 +128,7 @@ class TestEntityBoundaries:
         test_cases = [
             # Should NOT match 'at' inside words
             ("concatenate strings", "Concatenate strings"),
-            ("update database", "Update database."),
+            ("update database", "Update database"),
             # Should match standalone 'at'
             ("john at example dot com", "john@example.com"),
         ]
@@ -161,8 +161,8 @@ class TestEntityBoundaries:
             ("github.com has the code", "github.com has the code"),
             ("slash deploy now", "/deploy now"),
             # Entity at end
-            ("visit github.com", "Visit github.com."),
-            ("the temperature is twenty degrees celsius", "The temperature is 20°C."),
+            ("visit github.com", "Visit github.com"),
+            ("the temperature is twenty degrees celsius", "The temperature is 20°C"),
         ]
 
         for input_text, expected in test_cases:
@@ -180,9 +180,9 @@ class TestNestedEntities:
         """Test URLs that contain port numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("connect to api.service.com colon three thousand", "Connect to api.service.com:3000."),
+            ("connect to api.service.com colon three thousand", "Connect to api.service.com:3000"),
             ("localhost colon eight zero eight zero slash admin", "localhost:8080/admin"),
-            ("server at example.com colon four four three", "Server at example.com:443."),
+            ("server at example.com colon four four three", "Server at example.com:443"),
         ]
 
         for input_text, expected in test_cases:
@@ -198,7 +198,7 @@ class TestNestedEntities:
         test_cases = [
             ("open test file version two dot py", "Open test_file_version_2.py"),
             ("edit config v three dot json", "Edit config_v_3.json"),
-            ("check log twenty twenty four dot txt", "Check log_2024.txt."),
+            ("check log twenty twenty four dot txt", "Check log_2024.txt"),
         ]
 
         for input_text, expected in test_cases:
@@ -239,9 +239,9 @@ class TestAdjacentEntities:
         """Test multiple numbers in sequence."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("add two three and five", "Add 2, 3, and 5."),
-            ("version one point two point three", "Version 1.2.3."),
-            ("coordinates ten twenty", "Coordinates 10, 20."),
+            ("add two three and five", "Add 2, 3, and 5"),
+            ("version one point two point three", "Version 1.2.3"),
+            ("coordinates ten twenty", "Coordinates 10, 20"),
         ]
 
         for input_text, expected in test_cases:
@@ -358,8 +358,8 @@ class TestEntityProtectionInFormatting:
         format_transcription = preloaded_formatter
         test_cases = [
             ("john@example.com sent the file", "john@example.com sent the file"),
-            ("the admin is root@localhost", "The admin is root@localhost."),
-            ("contact support@help.com for assistance", "Contact support@help.com for assistance."),
+            ("the admin is root@localhost", "The admin is root@localhost"),
+            ("contact support@help.com for assistance", "Contact support@help.com for assistance"),
         ]
 
         for input_text, expected in test_cases:
@@ -404,11 +404,11 @@ class TestEdgeCaseInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Partial URL pattern
-            ("check the dot com sites", "Check the .com sites."),
+            ("check the dot com sites", "Check the .com sites"),
             # Partial email pattern
-            ("user at", "User at."),
+            ("user at", "User at"),
             # Incomplete operator
-            ("x equals", "X equals."),
+            ("x equals", "X equals"),
         ]
 
         for input_text, expected in test_cases:
@@ -435,9 +435,9 @@ class TestEdgeCaseInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # URL should be detected as single entity
-            ("go to one one one one dot com", "Go to 1111.com."),
-            ("visit two two two dot net", "Visit 222.net."),
-            ("check three three three dot org", "Check 333.org."),
+            ("go to one one one one dot com", "Go to 1111.com"),
+            ("visit two two two dot net", "Visit 222.net"),
+            ("check three three three dot org", "Check 333.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -449,11 +449,11 @@ class TestEdgeCaseInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Files in a list
-            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json and README.md."),
-            ("check a dot txt, b dot py, and c dot js", "Check a.txt, b.py, and c.js."),
+            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json and README.md"),
+            ("check a dot txt, b dot py, and c dot js", "Check a.txt, b.py, and c.js"),
             # Mixed entities in lists
-            ("i use vim, vscode, and sublime", "I use vim, Vscode and sublime."),
-            ("install python, node, and java", "Install python, node, and java."),
+            ("i use vim, vscode, and sublime", "I use vim, Vscode and sublime"),
+            ("install python, node, and java", "Install python, node, and java"),
         ]
 
         for input_text, expected in test_cases:

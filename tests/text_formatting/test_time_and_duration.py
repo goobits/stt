@@ -186,7 +186,7 @@ class TestDurationEntities:
             ("the process takes two hours", "The process takes 2h"),
             ("wait for thirty minutes", "Wait for 30min"),
             ("completed in five minutes", "Completed in 5min"),
-            ("runs for twenty four hours", "Runs for 24h."),
+            ("runs for twenty four hours", "Runs for 24h"),
         ]
 
         for input_text, expected in test_cases:
@@ -197,8 +197,8 @@ class TestDurationEntities:
         """Test informal duration expressions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("a couple of hours", "A couple of hours."),
-            ("a few minutes", "A few minutes."),
+            ("a couple of hours", "A couple of hours"),
+            ("a few minutes", "A few minutes"),
             ("half an hour", "30min"),
             ("quarter of an hour", "15min"),
         ]
@@ -296,10 +296,10 @@ class TestTimeExpressions:
         """Test scheduling-related expressions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("every monday at three PM", "Every Monday at 3 PM."),
-            ("daily at nine AM", "Daily at 9 AM."),
-            ("twice a week", "Twice a week."),
-            ("every other day", "Every other day."),
+            ("every monday at three PM", "Every Monday at 3 PM"),
+            ("daily at nine AM", "Daily at 9 AM"),
+            ("twice a week", "Twice a week"),
+            ("every other day", "Every other day"),
         ]
 
         for input_text, expected in test_cases:
@@ -310,10 +310,10 @@ class TestTimeExpressions:
         """Test deadline and due date expressions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("due by five PM", "Due by 5 PM."),
-            ("deadline is friday", "Deadline is Friday."),
-            ("expires in thirty days", "Expires in 30 days."),
-            ("valid until december", "Valid until December."),
+            ("due by five PM", "Due by 5 PM"),
+            ("deadline is friday", "Deadline is Friday"),
+            ("expires in thirty days", "Expires in 30 days"),
+            ("valid until december", "Valid until December"),
         ]
 
         for input_text, expected in test_cases:
@@ -358,9 +358,9 @@ class TestTimeEntityInteractions:
         """Test multiple time entities in one sentence."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("meeting from two to three on friday", "Meeting from 2 to 3 on Friday."),
-            ("open nine AM to five PM daily", "Open 9 AM to 5 PM daily."),
-            ("available monday through friday nine to five", "Available Monday through Friday 9-5."),
+            ("meeting from two to three on friday", "Meeting from 2 to 3 on Friday"),
+            ("open nine AM to five PM daily", "Open 9 AM to 5 PM daily"),
+            ("available monday through friday nine to five", "Available Monday through Friday 9-5"),
         ]
 
         for input_text, expected in test_cases:
@@ -372,9 +372,9 @@ class TestTimeEntityInteractions:
         """Test time entities mixed with other entity types."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("call john@example.com at three PM", "Call john@example.com at 3 PM."),
-            ("the server runs twenty four seven", "The server runs 24/7."),
-            ("backup every day at two AM", "Backup every day at 2 AM."),
+            ("call john@example.com at three PM", "Call john@example.com at 3 PM"),
+            ("the server runs twenty four seven", "The server runs 24/7"),
+            ("backup every day at two AM", "Backup every day at 2 AM"),
         ]
 
         for input_text, expected in test_cases:

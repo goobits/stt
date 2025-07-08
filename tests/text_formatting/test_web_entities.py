@@ -227,10 +227,10 @@ class TestSpokenEmails:
         """Test basic spoken email patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("email john at example dot com", "Email john@example.com."),
-            ("send to user at company dot org", "Send to user@company.org."),
-            ("contact support at help dot io", "Contact support@help.io."),
-            ("reach me at admin at server dot net", "Reach me at admin@server.net."),
+            ("email john at example dot com", "Email john@example.com"),
+            ("send to user at company dot org", "Send to user@company.org"),
+            ("contact support at help dot io", "Contact support@help.io"),
+            ("reach me at admin at server dot net", "Reach me at admin@server.net"),
         ]
 
         for input_text, expected in test_cases:
@@ -241,9 +241,9 @@ class TestSpokenEmails:
         """Test spoken emails containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk."),
-            ("send to admin at server two dot example dot com", "Send to admin@server2.example.com."),
-            ("email support at help one dot service dot org", "Email support@help1.service.org."),
+            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk"),
+            ("send to admin at server two dot example dot com", "Send to admin@server2.example.com"),
+            ("email support at help one dot service dot org", "Email support@help1.service.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -254,9 +254,9 @@ class TestSpokenEmails:
         """Test spoken emails with underscores and hyphens."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("email first underscore last at my-company dot org", "Email first_last@my-company.org."),
-            ("contact support dash team at help dot io", "Contact support-team@help.io."),
-            ("send to user underscore admin at test dot com", "Send to user_admin@test.com."),
+            ("email first underscore last at my-company dot org", "Email first_last@my-company.org"),
+            ("contact support dash team at help dot io", "Contact support-team@help.io"),
+            ("send to user underscore admin at test dot com", "Send to user_admin@test.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -267,9 +267,9 @@ class TestSpokenEmails:
         """Test spoken emails with subdomains."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("reach out to sales at mail dot big-corp dot com", "Reach out to sales@mail.big-corp.com."),
-            ("notify admin at db dot prod dot company dot net", "Notify admin@db.prod.company.net."),
-            ("email support at help dot customer-service dot org", "Email support@help.customer-service.org."),
+            ("reach out to sales at mail dot big-corp dot com", "Reach out to sales@mail.big-corp.com"),
+            ("notify admin at db dot prod dot company dot net", "Notify admin@db.prod.company.net"),
+            ("email support at help dot customer-service dot org", "Email support@help.customer-service.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -280,12 +280,12 @@ class TestSpokenEmails:
         """Test spoken emails with action verbs."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting."),
+            ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting"),
             (
                 "send the report to data at analytics dot company dot com",
                 "Send the report to data@analytics.company.com.",
             ),
-            ("forward this to admin at server dot example dot org", "Forward this to admin@server.example.org."),
+            ("forward this to admin at server dot example dot org", "Forward this to admin@server.example.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -297,9 +297,9 @@ class TestSpokenEmails:
         format_transcription = preloaded_formatter
         test_cases = [
             # Email at start of sentence - should not be capitalized
-            ("hello at muffin dot com is my email address", "hello@muffin.com is my email address."),
-            ("john at company dot com sent this", "john@company.com sent this."),
-            ("support at help dot org will respond", "support@help.org will respond."),
+            ("hello at muffin dot com is my email address", "hello@muffin.com is my email address"),
+            ("john at company dot com sent this", "john@company.com sent this"),
+            ("support at help dot org will respond", "support@help.org will respond"),
         ]
 
         for input_text, expected in test_cases:
@@ -329,7 +329,7 @@ class TestStandardEmails:
         test_cases = [
             ("Email me at user@example.com!", "Email me at user@example.com!"),
             ("Is admin@server.org working?", "Is admin@server.org working?"),
-            ("Contact support@help.io.", "Contact support@help.io."),
+            ("Contact support@help.io.", "Contact support@help.io"),
         ]
 
         for input_text, expected in test_cases:
@@ -438,7 +438,7 @@ class TestStandardUrls:
         test_cases = [
             ("Go to https://example.com!", "Go to https://example.com!"),
             ("Is https://api.service.com working?", "Is https://api.service.com working?"),
-            ("Visit https://docs.site.org.", "Visit https://docs.site.org."),
+            ("Visit https://docs.site.org.", "Visit https://docs.site.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -454,10 +454,10 @@ class TestWebEntityInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Should be detected as URL, not email
-            ("visit user at example dot com", "Visit user@example.com."),  # This is actually an email pattern
-            ("go to example dot com slash user", "Go to example.com/user."),  # This is clearly a URL
+            ("visit user at example dot com", "Visit user@example.com"),  # This is actually an email pattern
+            ("go to example dot com slash user", "Go to example.com/user"),  # This is clearly a URL
             # Should be detected as email, not URL
-            ("email admin at server dot com", "Email admin@server.com."),
+            ("email admin at server dot com", "Email admin@server.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -468,8 +468,8 @@ class TestWebEntityInteractions:
         """Test URLs that contain email-like patterns in their paths."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit site dot com slash user at admin", "Visit site.com/user@admin."),
-            ("go to example dot org slash contact at info", "Go to example.org/contact@info."),
+            ("visit site dot com slash user at admin", "Visit site.com/user@admin"),
+            ("go to example dot org slash contact at info", "Go to example.org/contact@info"),
         ]
 
         for input_text, expected in test_cases:

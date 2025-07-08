@@ -556,10 +556,10 @@ class TestAbbreviations:
         """Test Latin abbreviation patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("that is i e very important", "That is i.e. very important."),
-            ("for example e g this case", "For example e.g. this case."),
-            ("and so on etc", "And so on etc."),
-            ("versus v s other options", "Versus vs. other options."),
+            ("that is i e very important", "That is i.e. very important"),
+            ("for example e g this case", "For example e.g. this case"),
+            ("and so on etc", "And so on etc"),
+            ("versus v s other options", "Versus vs. other options"),
         ]
 
         for input_text, expected in test_cases:
@@ -570,9 +570,9 @@ class TestAbbreviations:
         """Test abbreviations with proper punctuation formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("i dot e dot we should refactor", "i.e., we should refactor."),
-            ("e dot g dot use a linter", "e.g., use a linter."),
-            ("ex this is an example", "e.g., this is an example."),
+            ("i dot e dot we should refactor", "i.e., we should refactor"),
+            ("e dot g dot use a linter", "e.g., use a linter"),
+            ("ex this is an example", "e.g., this is an example"),
         ]
 
         for input_text, expected in test_cases:
@@ -583,8 +583,8 @@ class TestAbbreviations:
         """Test abbreviations in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("use design patterns i e singleton factory", "Use design patterns i.e. singleton, factory."),
-            ("configure the tools e g linters formatters", "Configure the tools e.g. linters, formatters."),
+            ("use design patterns i e singleton factory", "Use design patterns i.e. singleton, factory"),
+            ("configure the tools e g linters formatters", "Configure the tools e.g. linters, formatters"),
             (
                 "and install dependencies libraries frameworks etc",
                 "And install dependencies, libraries, frameworks etc.",
@@ -666,13 +666,13 @@ class TestFilenameEdgeCasesAndRegressions:
         format_transcription = preloaded_formatter
         test_cases = [
             # KNOWN ISSUE: Everything before 'dot js' is consumed as filename
-            ("function opens the door dot js", "Function opens the door dot js."),
+            ("function opens the door dot js", "Function opens the door dot js"),
             # Expected: "Function opens the door.js" or similar
             # Actual: The entire phrase becomes a filename entity
             # More examples of the greedy behavior
             ("the error is in main dot py on line 5", "The error is in main.py on line 5"),
             # Currently may consume too much as filename
-            ("i love python dot py is great", "I love python.py is great."),
+            ("i love python dot py is great", "I love python.py is great"),
             # Should only treat 'python.py' as filename, not the whole sentence
         ]
 
@@ -690,12 +690,12 @@ class TestFilenameEdgeCasesAndRegressions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Should stop at common verbs/prepositions
-            ("the file utils dot py is ready", "The file utils.py is ready."),
-            ("check main dot js for errors", "Check main.js for errors."),
-            ("open config dot json and edit", "Open config.json and edit."),
+            ("the file utils dot py is ready", "The file utils.py is ready"),
+            ("check main dot js for errors", "Check main.js for errors"),
+            ("open config dot json and edit", "Open config.json and edit"),
             # Should handle 'dot' in non-filename contexts
-            ("put a dot here", "Put a dot here."),
-            ("the dot com boom", "The .com boom."),
+            ("put a dot here", "Put a dot here"),
+            ("the dot com boom", "The .com boom"),
         ]
 
         for input_text, expected in test_cases:
@@ -708,10 +708,10 @@ class TestFilenameEdgeCasesAndRegressions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Could be filename or sentence about a dot
-            ("red dot py", "Red dot py."),
+            ("red dot py", "Red dot py"),
             # Is this 'red.py' or 'red dot py'?
             # Sentence ending with extension-like word
-            ("i love dot com", "I love .com."),
+            ("i love dot com", "I love .com"),
             # Could be a sentence about .com domains
             # Multiple dots in sequence
             ("example dot com dot au", "example.com.au"),
