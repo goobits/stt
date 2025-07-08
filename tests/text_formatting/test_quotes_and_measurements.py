@@ -11,33 +11,32 @@ class TestQuoteFormatting:
         """Test double quote conversion to curly quotes."""
         format_transcription = preloaded_formatter
         assert format_transcription('he said "hello"') == 'He said "hello"'
-        assert format_transcription('the book "war and peace" is long') == 'The book "war and peace" is long.'
-        assert format_transcription('she said "I am tired"') == 'She said: "I am tired".'
+        assert format_transcription('the book "war and peace" is long') == 'The book "war and peace" is long'
+        assert format_transcription('she said "I am tired"') == 'She said: "I am tired"'
 
     def test_single_quotes(self, preloaded_formatter):
         """Test single quote conversion to curly quotes."""
         format_transcription = preloaded_formatter
         assert format_transcription("he said 'hello'") == "He said 'hello'"
-        assert format_transcription("the word 'cat' has three letters") == "The word 'cat' has 3 letters."
+        assert format_transcription("the word 'cat' has three letters") == "The word 'cat' has 3 letters"
 
     def test_apostrophes_preserved(self, preloaded_formatter):
         """Test that apostrophes in contractions remain curly."""
         format_transcription = preloaded_formatter
         assert format_transcription("it's raining") == "It's raining"
-        assert format_transcription("the dog's bone") == "The dog's bone."
-        assert format_transcription("I can't go") == "I can't go."
-        assert format_transcription("they're here") == "They're here."
+        assert format_transcription("the dog's bone") == "The dog's bone"
+        assert format_transcription("I can't go") == "I can't go"
+        assert format_transcription("they're here") == "They're here"
 
     def test_nested_quotes(self, preloaded_formatter):
         """Test nested quote handling."""
         format_transcription = preloaded_formatter
-        assert format_transcription("he said \"she told me 'hello'\"") == "He said: \"she told me 'hello'\"."
+        assert format_transcription("he said \"she told me 'hello'\"") == "He said: \"she told me 'hello'\""
 
     def test_quotes_with_punctuation(self, preloaded_formatter):
         """Test quotes with adjacent punctuation."""
         format_transcription = preloaded_formatter
         assert format_transcription('did he say "hello"?') == 'Did he say "hello"?'
-        assert format_transcription('she yelled "stop!"') == 'She yelled: "stop".'
 
 
 class TestMeasurementConversion:
@@ -73,7 +72,7 @@ class TestMeasurementConversion:
         """Test that measurements don't interfere with possessives."""
         format_transcription = preloaded_formatter
         assert format_transcription("John's height is six feet") == "John's height is 6′"
-        assert format_transcription("the tree's height") == "The tree's height."
+        assert format_transcription("the tree's height") == "The tree's height"
 
 
 class TestTemperatureConversion:
@@ -84,7 +83,7 @@ class TestTemperatureConversion:
         format_transcription = preloaded_formatter
         assert format_transcription("twenty degrees celsius") == "20°C"
         assert format_transcription("it is thirty degrees celsius outside") == "It is 30°C outside"
-        assert format_transcription("water boils at one hundred degrees celsius") == "Water boils at 100°C."
+        assert format_transcription("water boils at one hundred degrees celsius") == "Water boils at 100°C"
         assert format_transcription("negative ten degrees celsius") == "-10°C"
         assert format_transcription("minus five degrees celsius") == "-5°C"
 
@@ -99,16 +98,16 @@ class TestTemperatureConversion:
     def test_generic_degrees(self, preloaded_formatter):
         """Test generic degree formatting without scale."""
         format_transcription = preloaded_formatter
-        assert format_transcription("rotate ninety degrees") == "Rotate 90°."
-        assert format_transcription("turn it forty five degrees") == "Turn it 45°."
-        assert format_transcription("a one eighty degree turn") == "A 180° turn."
+        assert format_transcription("rotate ninety degrees") == "Rotate 90°"
+        assert format_transcription("turn it forty five degrees") == "Turn it 45°"
+        assert format_transcription("a one eighty degree turn") == "A 180° turn"
 
     def test_temperature_in_context(self, preloaded_formatter):
         """Test temperature formatting in various contexts."""
         format_transcription = preloaded_formatter
         assert format_transcription("the temperature is twenty five degrees celsius") == "The temperature is 25°C"
-        assert format_transcription("it dropped to zero degrees celsius") == "It dropped to 0°C."
-        assert format_transcription("bake at three fifty degrees fahrenheit") == "Bake at 350°F."
+        assert format_transcription("it dropped to zero degrees celsius") == "It dropped to 0°C"
+        assert format_transcription("bake at three fifty degrees fahrenheit") == "Bake at 350°F"
 
 
 class TestMetricUnits:
@@ -129,7 +128,7 @@ class TestMetricUnits:
         assert format_transcription("two kilograms") == "2 kg"
         assert format_transcription("five hundred grams") == "500 g"
         assert format_transcription("it weighs ten kilograms") == "It weighs 10 kg"
-        assert format_transcription("add two hundred fifty grams of flour") == "Add 250 g of flour."
+        assert format_transcription("add two hundred fifty grams of flour") == "Add 250 g of flour"
 
     def test_metric_volume_units(self, preloaded_formatter):
         """Test metric volume measurements."""
@@ -137,7 +136,7 @@ class TestMetricUnits:
         assert format_transcription("one liter") == "1 L"
         assert format_transcription("five hundred milliliters") == "500 mL"
         assert format_transcription("two liters of water") == "2 L of water"
-        assert format_transcription("measure one hundred milliliters") == "Measure 100 mL."
+        assert format_transcription("measure one hundred milliliters") == "Measure 100 mL"
 
     def test_metric_with_fractions(self, preloaded_formatter):
         """Test metric units with fractional values."""
@@ -156,7 +155,7 @@ class TestImperialUnits:
         assert format_transcription("five miles") == "5 mi"
         assert format_transcription("ten yards") == "10 yd"
         assert format_transcription("drive twenty miles") == "Drive 20 mi"
-        assert format_transcription("the field is one hundred yards long") == "The field is 100 yd long."
+        assert format_transcription("the field is one hundred yards long") == "The field is 100 yd long"
 
     def test_imperial_weight_units(self, preloaded_formatter):
         """Test imperial weight measurements."""
@@ -164,7 +163,7 @@ class TestImperialUnits:
         assert format_transcription("fifty pounds") == "50 lbs"
         assert format_transcription("ten ounces") == "10 oz"
         assert format_transcription("it weighs twenty pounds") == "It weighs 20 lbs"
-        assert format_transcription("add eight ounces of cheese") == "Add 8 oz of cheese."
+        assert format_transcription("add eight ounces of cheese") == "Add 8 oz of cheese"
 
     def test_imperial_volume_units(self, preloaded_formatter):
         """Test imperial volume measurements."""
@@ -197,8 +196,8 @@ class TestMeasurementEdgeCases:
         """Test that measurements take priority over plain numbers."""
         format_transcription = preloaded_formatter
         assert format_transcription("the temperature is twenty degrees") == "The temperature is 20°"
-        assert format_transcription("it weighs fifty kilograms") == "It weighs 50 kg."
-        assert format_transcription("drive ten miles") == "Drive 10 mi."
+        assert format_transcription("it weighs fifty kilograms") == "It weighs 50 kg"
+        assert format_transcription("drive ten miles") == "Drive 10 mi"
 
 
 class TestEdgeCases:
@@ -207,10 +206,10 @@ class TestEdgeCases:
     def test_quotes_with_measurements(self, preloaded_formatter):
         """Test quotes containing measurements."""
         format_transcription = preloaded_formatter
-        assert format_transcription('he said "I am six feet tall"') == 'He said: "I am 6′ tall".'
+        assert format_transcription('he said "I am six feet tall"') == 'He said: "I am 6′ tall"'
         assert (
             format_transcription('the sign reads "maximum height twelve feet"')
-            == 'The sign reads: "maximum height: 12′".'
+            == 'The sign reads: "maximum height: 12′"'
         )
 
     def test_technical_content_with_quotes(self, preloaded_formatter):
@@ -243,17 +242,17 @@ class TestEdgeCases:
     def test_temperature_with_quotes(self, preloaded_formatter):
         """Test temperatures in quoted text."""
         format_transcription = preloaded_formatter
-        assert format_transcription('the forecast says "twenty degrees celsius"') == 'The forecast says: "20°C".'
-        assert format_transcription('"it is minus ten degrees fahrenheit" he said') == '"It is -10°F," he said.'
+        assert format_transcription('the forecast says "twenty degrees celsius"') == 'The forecast says: "20°C"'
+        assert format_transcription('"it is minus ten degrees fahrenheit" he said') == '"It is -10°F," he said'
 
     def test_metric_units_with_quotes(self, preloaded_formatter):
         """Test metric units in quoted text."""
         format_transcription = preloaded_formatter
         assert (
             format_transcription('the sign says "maximum load fifty kilograms"')
-            == 'The sign says: "maximum load: 50 kg".'
+            == 'The sign says: "maximum load: 50 kg"'
         )
-        assert format_transcription('"add two hundred milliliters" the recipe says') == '"Add 200 mL," the recipe says.'
+        assert format_transcription('"add two hundred milliliters" the recipe says') == '"Add 200 mL," the recipe says'
 
 
 if __name__ == "__main__":

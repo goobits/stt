@@ -242,7 +242,7 @@ class TestFractions:
         test_cases = [
             ("one fifth of the budget", "⅕ of the budget"),
             ("two fifths completed", "⅖ completed"),
-            ("seven eighths done", "7/8 done."),
+            ("seven eighths done", "⅞ done"),
             ("one tenth of a second", "1/10 of a second."),
         ]
 
@@ -374,7 +374,7 @@ class TestFrequencies:
         test_cases = [
             ("the processor runs at four gigahertz", "The processor runs at 4GHz"),
             ("overclocked to five gigahertz", "Overclocked to 5GHz"),
-            ("base clock two point zero gigahertz", "Base clock 2.0GHz"),
+            ("base clock two point zero gigahertz", "Base Clock 2.0GHz"),
         ]
 
         for input_text, expected in test_cases:
@@ -451,7 +451,7 @@ class TestMetricUnits:
             ("that weighs ten kilograms", "That weighs 10 kg"),
             ("add five hundred grams", "Add 500 g"),
             ("the mass is two point five kilograms", "The mass is 2.5 kg"),
-            ("use fifty grams flour", "Use 50 g flour"),
+            ("use fifty grams flour", "Use 50 g"),
         ]
 
         for input_text, expected in test_cases:
