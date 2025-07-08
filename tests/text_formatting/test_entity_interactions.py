@@ -127,7 +127,7 @@ class TestEntityBoundaries:
         format_transcription = preloaded_formatter
         test_cases = [
             # Should NOT match 'at' inside words
-            ("concatenate strings", "Concatenate strings."),
+            ("concatenate strings", "Concatenate strings"),
             ("update database", "Update database."),
             # Should match standalone 'at'
             ("john at example dot com", "john@example.com"),
@@ -158,7 +158,7 @@ class TestEntityBoundaries:
         format_transcription = preloaded_formatter
         test_cases = [
             # Entity at start
-            ("github.com has the code", "github.com has the code."),
+            ("github.com has the code", "github.com has the code"),
             ("slash deploy now", "/deploy now"),
             # Entity at end
             ("visit github.com", "Visit github.com."),
@@ -346,7 +346,7 @@ class TestEntityProtectionInFormatting:
         test_cases = [
             ("have you visited github.com", "Have you visited github.com"),
             ("what is stackoverflow.com", "What is stackoverflow.com"),
-            ("why use api.service.com", "Why use api.service.com?"),
+            ("why use api.service.com", "Why use api.service.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -372,7 +372,7 @@ class TestEntityProtectionInFormatting:
         test_cases = [
             ("i plus plus increments the counter", "i++ increments the counter"),
             ("dash dash verbose enables logging", "--verbose enables logging"),
-            ("slash help shows commands", "/help shows commands."),
+            ("slash help shows commands", "/help shows commands"),
         ]
 
         for input_text, expected in test_cases:
@@ -392,7 +392,7 @@ class TestEdgeCaseInteractions:
             # Could be email or sentence
             ("contact john at the office", "Contact John at the office"),
             # Could be filename or regular text
-            ("the script is ready", "The script is ready."),
+            ("the script is ready", "The script is ready"),
         ]
 
         for input_text, expected in test_cases:

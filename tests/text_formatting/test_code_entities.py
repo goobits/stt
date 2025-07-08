@@ -485,6 +485,7 @@ class TestSlashCommands:
             ("slash help me", "/help me"),
             ("slash status check", "/status check"),
             ("slash anything goes", "/anything goes"),
+            ("test it out in the slash temp directory see if it works", "Test it out in the /temp directory see if it works"),
         ]
 
         for input_text, expected in test_cases:

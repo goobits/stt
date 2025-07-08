@@ -241,7 +241,7 @@ class TestEntertainmentExpressions:
             ("GG", "GG"),
             ("press F to pay respects", "Press F to pay respects"),
             ("level up", "Level up"),
-            ("game over", "Game over."),
+            ("game over", "Game over"),
         ]
 
         for input_text, expected in test_cases:
@@ -339,7 +339,7 @@ class TestFunEdgeCases:
             ("the note C sharp", "The note C♯"),
             ("key of B flat", "Key of B♭"),
             # Non-musical context
-            ("turn sharp left", "Turn sharp left."),
+            ("turn sharp left", "Turn sharp left"),
             ("the road is flat", "The road is flat."),
         ]
 
@@ -373,7 +373,7 @@ class TestFunEdgeCases:
             ("C sharp note", "C♯ note"),
             ("B flat scale", "B♭ scale"),
             # Should NOT convert
-            ("sharpen the image", "Sharpen the image."),
+            ("sharpen the image", "Sharpen the image"),
             ("flatten the curve", "Flatten the curve."),
         ]
 

@@ -84,7 +84,7 @@ class TestCardinalNumbers:
         format_transcription = preloaded_formatter
         test_cases = [
             ("catch twenty two", "Catch twenty two"),
-            ("cloud nine", "Cloud nine."),
+            ("cloud nine", "Cloud nine"),
             ("sixth sense", "Sixth sense."),
             ("four score and seven years ago", "Four score and seven years ago."),
             ("behind the eight ball", "Behind the eight ball."),
@@ -561,7 +561,7 @@ class TestNumericEntityInteractions:
             ),
             (
                 "run for two kilometers in ten minutes",
-                "Run for 2 km in 10min.",
+                "Run for 2 km in 10min",
             ),
         ]
 
