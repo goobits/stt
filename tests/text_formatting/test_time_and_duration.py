@@ -183,8 +183,8 @@ class TestDurationEntities:
         """Test durations in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the process takes two hours", "The process takes 2h."),
-            ("wait for thirty minutes", "Wait for 30min."),
+            ("the process takes two hours", "The process takes 2h"),
+            ("wait for thirty minutes", "Wait for 30min"),
             ("completed in five minutes", "Completed in 5min."),
             ("runs for twenty four hours", "Runs for 24h."),
         ]

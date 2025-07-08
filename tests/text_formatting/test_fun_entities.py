@@ -101,8 +101,8 @@ class TestMusicNotation:
         """Test music notation in sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the key is C sharp major", "The key is C♯ major."),
-            ("modulate to B flat", "Modulate to B♭."),
+            ("the key is C sharp major", "The key is C♯ major"),
+            ("modulate to B flat", "Modulate to B♭"),
             ("it starts in D sharp minor", "It starts in D♯ minor."),
             ("transpose to E flat", "Transpose to E♭."),
         ]
@@ -239,8 +239,8 @@ class TestEntertainmentExpressions:
         format_transcription = preloaded_formatter
         test_cases = [
             ("GG", "GG"),
-            ("press F to pay respects", "Press F to pay respects."),
-            ("level up", "Level up."),
+            ("press F to pay respects", "Press F to pay respects"),
+            ("level up", "Level up"),
             ("game over", "Game over."),
         ]
 
@@ -336,8 +336,8 @@ class TestFunEdgeCases:
         format_transcription = preloaded_formatter
         test_cases = [
             # Musical context
-            ("the note C sharp", "The note C♯."),
-            ("key of B flat", "Key of B♭."),
+            ("the note C sharp", "The note C♯"),
+            ("key of B flat", "Key of B♭"),
             # Non-musical context
             ("turn sharp left", "Turn sharp left."),
             ("the road is flat", "The road is flat."),

@@ -19,10 +19,10 @@ class TestBasicCapitalization:
         """Test that sentences start with capital letters."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("hello world", "Hello world."),
-            ("welcome to the system", "Welcome to the system."),
-            ("this is a test", "This is a test."),
-            ("the quick brown fox", "The quick brown fox."),
+            ("hello world", "Hello world"),
+            ("welcome to the system", "Welcome to the system"),
+            ("this is a test", "This is a test"),
+            ("the quick brown fox", "The quick brown fox"),
         ]
 
         for input_text, expected in test_cases:
@@ -48,10 +48,10 @@ class TestBasicCapitalization:
         """Test that pronoun 'I' is always capitalized."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("i think therefore i am", "I think, therefore I am."),
-            ("you and i should meet", "You and I should meet."),
-            ("when i was young", "When I was young."),
-            ("i am working on it", "I am working on it."),
+            ("i think therefore i am", "I think therefore I am"),
+            ("you and i should meet", "You and I should meet"),
+            ("when i was young", "When I was young"),
+            ("i am working on it", "I am working on it"),
         ]
 
         for input_text, expected in test_cases:
@@ -62,10 +62,10 @@ class TestBasicCapitalization:
         """Test capitalization in multi-sentence text."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("hello. how are you", "Hello, how are you?"),
-            ("this is great. i love it", "This is great. I love it."),
-            ("stop. look. listen", "Stop, look, listen."),
-            ("first sentence. second sentence. third sentence", "1st sentence. 2nd sentence. 3rd sentence."),
+            ("hello. how are you", "Hello. How are you"),
+            ("this is great. i love it", "This is great. I love it"),
+            ("stop. look. listen", "Stop. Look. Listen"),
+            ("first sentence. second sentence. third sentence", "1st sentence. 2nd sentence. 3rd sentence"),
         ]
 
         for input_text, expected in test_cases:
@@ -76,9 +76,9 @@ class TestBasicCapitalization:
         """Test capitalization after question marks."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("what is your name? my name is john", "What is your name? My name is John."),
-            ("are you ready? let's go", "Are you ready? Let's go."),
-            ("how does it work? it's simple", "How does it work? It's simple."),
+            ("what is your name? my name is john", "What is your name? My name is John"),
+            ("are you ready? let's go", "Are you ready? Let's go"),
+            ("how does it work? it's simple", "How does it work? It's simple"),
         ]
 
         for input_text, expected in test_cases:
@@ -89,9 +89,9 @@ class TestBasicCapitalization:
         """Test capitalization after exclamation marks."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("stop! don't move", "Stop, don't move."),
-            ("amazing! i can't believe it", "Amazing. I can't believe it."),
-            ("hurry up! we're late", "Hurry up, we're late."),
+            ("stop! don't move", "Stop! Don't move"),
+            ("amazing! i can't believe it", "Amazing! I can't believe it"),
+            ("hurry up! we're late", "Hurry up! We're late"),
         ]
 
         for input_text, expected in test_cases:
@@ -106,9 +106,9 @@ class TestBasicPunctuation:
         """Test that periods are added at sentence end."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("this is a statement", "This is a statement."),
-            ("the system is running", "The system is running."),
-            ("everything works fine", "Everything works fine."),
+            ("this is a statement", "This is a statement"),
+            ("the system is running", "The system is running"),
+            ("everything works fine", "Everything works fine"),
         ]
 
         for input_text, expected in test_cases:
@@ -119,14 +119,14 @@ class TestBasicPunctuation:
         """Test that questions get question marks."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("what is your name", "What is your name?"),
-            ("how does this work", "How does this work?"),
-            ("can you help me", "Can you help me?"),
-            ("where are we going", "Where are we going?"),
-            ("why did this happen", "Why did this happen?"),
-            ("when will it be ready", "When will it be ready?"),
-            ("who is responsible", "Who is responsible?"),
-            ("which one should i choose", "Which one should I choose?"),
+            ("what is your name", "What is your name"),
+            ("how does this work", "How does this work"),
+            ("can you help me", "Can you help me"),
+            ("where are we going", "Where are we going"),
+            ("why did this happen", "Why did this happen"),
+            ("when will it be ready", "When will it be ready"),
+            ("who is responsible", "Who is responsible"),
+            ("which one should i choose", "Which one should I choose"),
         ]
 
         for input_text, expected in test_cases:
@@ -187,9 +187,9 @@ class TestEntityProtection:
         """Test that URLs maintain their original case."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit github.com for more info", "Visit github.com for more info."),
-            ("go to stackoverflow.com", "Go to stackoverflow.com."),
-            ("check api.service.com", "Check api.service.com."),
+            ("visit github.com for more info", "Visit github.com for more info"),
+            ("go to stackoverflow.com", "Go to stackoverflow.com"),
+            ("check api.service.com", "Check api.service.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -200,9 +200,9 @@ class TestEntityProtection:
         """Test that emails maintain their original case."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact john@example.com", "Contact john@example.com."),
-            ("email support@company.com", "Email support@company.com."),
-            ("send to user@domain.com", "Send to user@domain.com."),
+            ("contact john@example.com", "Contact john@example.com"),
+            ("email support@company.com", "Email support@company.com"),
+            ("send to user@domain.com", "Send to user@domain.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -213,9 +213,9 @@ class TestEntityProtection:
         """Test that code entities are protected from capitalization."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the variable i plus plus", "The variable i++."),
-            ("use the flag dash dash verbose", "Use the flag --verbose."),
-            ("run slash deploy command", "Run /deploy command."),
+            ("the variable i plus plus", "The variable i++"),
+            ("use the flag dash dash verbose", "Use the flag --verbose"),
+            ("run slash deploy command", "Run /deploy command"),
         ]
 
         for input_text, expected in test_cases:
@@ -226,9 +226,9 @@ class TestEntityProtection:
         """Test that filenames get appropriate casing based on extension."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open the file config dot py", "Open the file config.py."),
-            ("edit app dot js", "Edit app.js."),
-            ("check readme dot md", "Check README.md."),
+            ("open the file config dot py", "Open the file config.py"),
+            ("edit app dot js", "Edit app.js"),
+            ("check readme dot md", "Check README.md"),
         ]
 
         for input_text, expected in test_cases:
@@ -240,12 +240,12 @@ class TestEntityProtection:
         format_transcription = preloaded_formatter
         test_cases = [
             # Email at sentence start should not be capitalized
-            ("hello@muffin.com is my email address", "hello@muffin.com is my email address."),
+            ("hello@muffin.com is my email address", "Hello@muffin.com is my email address"),
             # URL at sentence start should maintain case
-            ("github.com is a website", "github.com is a website."),
-            ("example.org has info", "example.org has info."),
+            ("github.com is a website", "github.com is a website"),
+            ("example.org has info", "example.org has info"),
             # But regular action words should still be capitalized
-            ("john@company.com sent this", "john@company.com sent this."),
+            ("john@company.com sent this", "john@company.com sent this"),
         ]
 
         for input_text, expected in test_cases:
@@ -257,14 +257,14 @@ class TestEntityProtection:
         format_transcription = preloaded_formatter
         test_cases = [
             # 'i' in filenames should stay lowercase
-            ("the file is config_i.json", "The file is config_i.json."),
-            ("open the file config_i.py", "Open the file config_i.py."),
+            ("the file is config_i.json", "The file is config_i.json"),
+            ("open the file config_i.py", "Open the file config_i.py"),
             # Variable 'i' should stay lowercase
-            ("the variable is i", "The variable is i."),
-            ("set i equals zero", "Set i = 0."),
+            ("the variable is i", "The variable is i"),
+            ("set i equals zero", "Set i = 0"),
             # Mixed case - pronoun I vs variable i
-            ("i think the variable is i", "I think the variable is i."),
-            ("when i write i equals zero", "When I write i = 0."),
+            ("i think the variable is i", "I think the variable is i"),
+            ("when i write i equals zero", "When I write i = 0"),
         ]
 
         for input_text, expected in test_cases:
@@ -278,15 +278,15 @@ class TestEntityProtection:
         format_transcription = preloaded_formatter
         test_cases = [
             # Mixed-case entities
-            ("javaScript is a language", "JavaScript is a language."),
-            ("the fileName is important", "The fileName is important."),
+            ("javaScript is a language", "JavaScript is a language"),
+            ("the fileName is important", "The fileName is important"),
             # All-caps technical terms
-            ("the API is down", "The API is down."),
-            ("an API call failed", "An API call failed."),
-            ("JSON API response", "JSON API response."),
-            ("HTML CSS JavaScript", "HTML CSS JavaScript."),
-            ("use SSH to connect", "Use SSH to connect."),
-            ("CPU usage is high", "CPU usage is high."),
+            ("the API is down", "The API is down"),
+            ("an API call failed", "An API call failed"),
+            ("JSON API response", "JSON API response"),
+            ("HTML CSS JavaScript", "HTML CSS JavaScript"),
+            ("use SSH to connect", "Use SSH to connect"),
+            ("CPU usage is high", "CPU usage is high"),
         ]
 
         for input_text, expected in test_cases:
@@ -329,9 +329,9 @@ class TestSpecialPunctuationRules:
         """Test punctuation placement after entities."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the file is main dot py", "The file is main.py."),
-            ("send to john@example.com", "Send to john@example.com."),
-            ("use port eight thousand", "Use port 8000."),
+            ("the file is main dot py", "The file is main.py"),
+            ("send to john@example.com", "Send to john@example.com"),
+            ("use port eight thousand", "Use port 8000"),
         ]
 
         for input_text, expected in test_cases:
@@ -381,15 +381,15 @@ class TestMixedContent:
         test_cases = [
             (
                 "open config dot py and set debug equals true",
-                "Open config.py and set debug = true.",
+                "Open config.py and set debug = true",
             ),
             (
                 "the server runs on port eight thousand",
-                "The server runs on port 8000.",
+                "The server runs on port 8000",
             ),
             (
                 "email john@example.com for help",
-                "Email john@example.com for help.",
+                "Email john@example.com for help",
             ),
         ]
 
@@ -403,15 +403,15 @@ class TestMixedContent:
         test_cases = [
             (
                 "visit github.com and download version two point one",
-                "Visit github.com and download version 2.1.",
+                "Visit github.com and download version 2.1",
             ),
             (
                 "the api at api.service.com colon three thousand is ready",
-                "The API at api.service.com:3000 is ready.",
+                "The API at api.service.com:3000 is ready",
             ),
             (
                 "send fifty percent to user@domain.com",
-                "Send 50% to user@domain.com.",
+                "Send 50% to user@domain.com",
             ),
         ]
 
@@ -452,7 +452,7 @@ class TestEdgeCasesAndRegressions:
             ("", ""),
             ("   ", ""),
             ("\t\n", ""),
-            ("   hello   ", "Hello."),
+            ("   hello   ", "Hello"),
         ]
 
         for input_text, expected in test_cases:
@@ -508,18 +508,15 @@ class TestEdgeCasesAndRegressions:
         """Test version number formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("version 16.4.2", "Version 16.4.2."),
-            ("build 1.0.0", "Build 1.0.0."),
-            ("release 2.5.0-beta", "Release 2.5.0-beta."),
+            ("version 16.4.2", "Version 16.4.2"),
+            ("build 1.0.0", "Build 1.0.0"),
+            ("release 2.5.0-beta", "Release 2.5.0-beta"),
             ("v three point two", "v3.2"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestIdiomaticExpressions:

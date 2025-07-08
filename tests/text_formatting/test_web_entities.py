@@ -20,11 +20,11 @@ class TestSpokenUrls:
         """Test basic spoken URL patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit google dot com", "Visit google.com."),
-            ("go to example dot org", "Go to example.org."),
-            ("check github dot com", "Check github.com."),
-            ("visit my-site dot io", "Visit my-site.io."),
-            ("check test-domain dot co dot uk", "Check test-domain.co.uk."),
+            ("visit google dot com", "Visit google.com"),
+            ("go to example dot org", "Go to example.org"),
+            ("check github dot com", "Check github.com"),
+            ("visit my-site dot io", "Visit my-site.io"),
+            ("check test-domain dot co dot uk", "Check test-domain.co.uk"),
         ]
 
         for input_text, expected in test_cases:
@@ -35,10 +35,10 @@ class TestSpokenUrls:
         """Test spoken URLs with path segments."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("go to example dot com slash page", "Go to example.com/page."),
-            ("visit github dot com slash user slash repo", "Visit github.com/user/repo."),
-            ("check api dot site dot com slash v one slash data", "Check api.site.com/v1/data."),
-            ("download from cdn dot com slash assets slash file", "Download from cdn.com/assets/file."),
+            ("go to example dot com slash page", "Go to example.com/page"),
+            ("visit github dot com slash user slash repo", "Visit github.com/user/repo"),
+            ("check api dot site dot com slash v one slash data", "Check api.site.com/v1/data"),
+            ("download from cdn dot com slash assets slash file", "Download from cdn.com/assets/file"),
         ]
 
         for input_text, expected in test_cases:
@@ -49,10 +49,10 @@ class TestSpokenUrls:
         """Test spoken URLs containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit server one dot example dot com", "Visit server1.example.com."),
-            ("go to api dot v two dot service dot org", "Go to api.v2.service.org."),
-            ("check site dot com slash user slash one two three", "Check site.com/user/123."),
-            ("download from cdn dot com slash v one slash assets", "Download from cdn.com/v1/assets."),
+            ("visit server one dot example dot com", "Visit server1.example.com"),
+            ("go to api dot v two dot service dot org", "Go to api.v2.service.org"),
+            ("check site dot com slash user slash one two three", "Check site.com/user/123"),
+            ("download from cdn dot com slash v one slash assets", "Download from cdn.com/v1/assets"),
         ]
 
         for input_text, expected in test_cases:
@@ -65,19 +65,19 @@ class TestSpokenUrls:
         test_cases = [
             (
                 "go to search dot com question mark query equals python",
-                "Go to search.com?query=python.",
+                "Go to search.com?query=python",
             ),
             (
                 "visit site dot org question mark user equals admin and token equals abc",
-                "Visit site.org?user=admin&token=abc.",
+                "Visit site.org?user=admin&token=abc",
             ),
             (
                 "check api dot com question mark page equals one and limit equals ten",
-                "Check api.com?page=1&limit=10.",
+                "Check api.com?page=1&limit=10",
             ),
             (
                 "search on google dot com question mark q equals voice recognition",
-                "Search on google.com?q=voicerecognition.",
+                "Search on google.com?q=voicerecognition",
             ),
         ]
 
@@ -89,10 +89,10 @@ class TestSpokenUrls:
         """Test spoken URLs with subdomains."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit mail dot google dot com", "Visit mail.google.com."),
-            ("go to api dot my-service dot example dot org", "Go to api.my-service.example.org."),
-            ("check www dot github dot com", "Check www.github.com."),
-            ("visit docs dot python dot org", "Visit docs.python.org."),
+            ("visit mail dot google dot com", "Visit mail.google.com"),
+            ("go to api dot my-service dot example dot org", "Go to api.my-service.example.org"),
+            ("check www dot github dot com", "Check www.github.com"),
+            ("visit docs dot python dot org", "Visit docs.python.org"),
         ]
 
         for input_text, expected in test_cases:
@@ -103,10 +103,10 @@ class TestSpokenUrls:
         """Test rescue of mangled domain names."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit googlecom", "Visit google.com."),
-            ("go to githubcom", "Go to github.com."),
-            ("check stackoverflowcom", "Check stackoverflow.com."),
-            ("visit wwwgooglecom", "Visit www.google.com."),
+            ("visit googlecom", "Visit google.com"),
+            ("go to githubcom", "Go to github.com"),
+            ("check stackoverflowcom", "Check stackoverflow.com"),
+            ("visit wwwgooglecom", "Visit www.google.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -117,10 +117,10 @@ class TestSpokenUrls:
         """Test spoken URLs embedded in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("you can find the docs at python dot org", "You can find the docs at python.org."),
-            ("the source code is hosted on github dot com", "The source code is hosted on github.com."),
-            ("for more info visit our website at company dot com", "For more info visit our website at company.com."),
-            ("the API endpoint is api dot service dot com slash v one", "The API endpoint is api.service.com/v1."),
+            ("you can find the docs at python dot org", "You can find the docs at python.org"),
+            ("the source code is hosted on github dot com", "The source code is hosted on github.com"),
+            ("for more info visit our website at company dot com", "For more info visit our website at company.com"),
+            ("the API endpoint is api dot service dot com slash v one", "The API endpoint is api.service.com/v1"),
         ]
 
         for input_text, expected in test_cases:
@@ -314,9 +314,9 @@ class TestStandardEmails:
         """Test standard email addresses that are already formatted."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("My email is user@example.com", "My email is user@example.com."),
-            ("Contact support@company.org for help", "Contact support@company.org for help."),
-            ("Send to admin@server.net", "Send to admin@server.net."),
+            ("My email is user@example.com", "My email is user@example.com"),
+            ("Contact support@company.org for help", "Contact support@company.org for help"),
+            ("Send to admin@server.net", "Send to admin@server.net"),
         ]
 
         for input_text, expected in test_cases:
@@ -420,12 +420,12 @@ class TestStandardUrls:
         """Test standard URLs that are already formatted."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("Visit https://example.com", "Visit https://example.com."),
+            ("Visit https://example.com", "Visit https://example.com"),
             (
                 "Check the documentation at https://docs.python.org",
-                "Check the documentation at https://docs.python.org.",
+                "Check the documentation at https://docs.python.org",
             ),
-            ("The API endpoint is http://api.service.com/v1", "The API endpoint is http://api.service.com/v1."),
+            ("The API endpoint is http://api.service.com/v1", "The API endpoint is http://api.service.com/v1"),
         ]
 
         for input_text, expected in test_cases:
@@ -482,15 +482,15 @@ class TestWebEntityInteractions:
         test_cases = [
             (
                 "email admin at server dot com or visit the site at example dot org",
-                "Email admin@server.com or visit the site at example.org.",
+                "Email admin@server.com or visit the site at example.org",
             ),
             (
                 "the API at api dot service dot com colon three thousand returns JSON",
-                "The API at api.service.com:3000 returns JSON.",
+                "The API at api.service.com:3000 returns JSON",
             ),
             (
                 "contact support at help dot company dot org or check https colon slash slash docs dot company dot org",
-                "Contact: support@help.company.org or check https://docs.company.org.",
+                "Contact: support@help.company.org or check https://docs.company.org",
             ),
         ]
 

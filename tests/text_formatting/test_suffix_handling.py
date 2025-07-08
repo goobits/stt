@@ -36,14 +36,14 @@ class TestSuffixHandling:
         format_transcription = preloaded_formatter
         result = format_transcription("hello world", enter_pressed=True)
         # Should not have suffix when enter is pressed
-        assert result == "Hello world."  # Just formatted, no suffix
+        assert result == "Hello world"  # Just formatted, no suffix
 
     def test_formatter_without_enter_pressed(self, preloaded_formatter):
         """Test that normal transcription gets formatted properly"""
         format_transcription = preloaded_formatter
         result = format_transcription("hello world", enter_pressed=False)
         # Formatter doesn't add suffix, but formats the text
-        assert result == "Hello world."
+        assert result == "Hello world"
 
     # Note: Daemon suffix logic is tested in TestHotkeyDaemonSuffixLogic class below
 

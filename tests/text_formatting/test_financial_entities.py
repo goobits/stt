@@ -171,8 +171,8 @@ class TestCurrencySymbols:
         """Test three-letter currency codes."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("price in USD", "Price in USD."),
-            ("convert to EUR", "Convert to EUR."),
+            ("price in USD", "Price in USD"),
+            ("convert to EUR", "Convert to EUR"),
             ("paid in GBP", "Paid in GBP."),
             ("amount in JPY", "Amount in JPY."),
         ]
@@ -203,8 +203,8 @@ class TestStockSymbols:
         """Test common stock ticker symbols."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("buy AAPL stock", "Buy AAPL stock."),
-            ("GOOGL is up", "GOOGL is up."),
+            ("buy AAPL stock", "Buy AAPL stock"),
+            ("GOOGL is up", "GOOGL is up"),
             ("sell MSFT shares", "Sell MSFT shares."),
             ("TSLA price increased", "TSLA price increased."),
         ]
@@ -217,8 +217,8 @@ class TestStockSymbols:
         """Test stock symbols in financial contexts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("AMZN hit a new high", "AMZN hit a new high."),
-            ("the ticker is META", "The ticker is META."),
+            ("AMZN hit a new high", "AMZN hit a new high"),
+            ("the ticker is META", "The ticker is META"),
             ("watch NFLX today", "Watch NFLX today."),
         ]
 

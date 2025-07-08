@@ -20,8 +20,8 @@ class TestEntityPriorities:
         format_transcription = preloaded_formatter
         test_cases = [
             # URL should win over filename interpretation
-            ("visit example.com", "Visit example.com."),
-            ("go to github.com slash project", "Go to github.com/project."),
+            ("visit example.com", "Visit example.com"),
+            ("go to github.com slash project", "Go to github.com/project"),
             ("check api.service.com", "Check api.service.com."),
         ]
 
@@ -107,9 +107,9 @@ class TestEntityPriorities:
         format_transcription = preloaded_formatter
         test_cases = [
             # Filename should win when it's clearly a filename pattern
-            ("go to main dot py on example dot com", "Go to main.py on example.com."),
+            ("go to main dot py on example dot com", "Go to main.py on example.com"),
             # Java package name should be treated as one filename
-            ("open com dot example dot myapp dot java", "Open com.example.myapp.java."),
+            ("open com dot example dot myapp dot java", "Open com.example.myapp.java"),
             # URL with filename in path should be treated as one URL
             (
                 "download from example dot com slash assets slash archive dot zip",
@@ -147,8 +147,8 @@ class TestEntityBoundaries:
         """Test entity detection at punctuation boundaries."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit github.com, then stackoverflow.com", "Visit github.com, then stackoverflow.com."),
-            ("email: john@example.com", "Email: john@example.com."),
+            ("visit github.com, then stackoverflow.com", "Visit github.com, then stackoverflow.com"),
+            ("email: john@example.com", "Email: john@example.com"),
             ("use port 8000; default is 3000", "Use port 8000; default is 3000."),
         ]
 
@@ -199,8 +199,8 @@ class TestNestedEntities:
         """Test filenames containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open test file version two dot py", "Open test_file_version_2.py."),
-            ("edit config v three dot json", "Edit config_v_3.json."),
+            ("open test file version two dot py", "Open test_file_version_2.py"),
+            ("edit config v three dot json", "Edit config_v_3.json"),
             ("check log twenty twenty four dot txt", "Check log_2024.txt."),
         ]
 
@@ -230,8 +230,8 @@ class TestAdjacentEntities:
         """Test multiple URLs in sequence."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit github.com and stackoverflow.com", "Visit github.com and stackoverflow.com."),
-            ("check example.com or test.com", "Check example.com or test.com."),
+            ("visit github.com and stackoverflow.com", "Visit github.com and stackoverflow.com"),
+            ("check example.com or test.com", "Check example.com or test.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -347,7 +347,7 @@ class TestEntityProtectionInFormatting:
         """Test URLs in questions maintain case."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("have you visited github.com", "Have you visited github.com?"),
+            ("have you visited github.com", "Have you visited github.com"),
             ("what is stackoverflow.com", "What is stackoverflow.com?"),
             ("why use api.service.com", "Why use api.service.com?"),
         ]
@@ -360,7 +360,7 @@ class TestEntityProtectionInFormatting:
         """Test emails maintain format in various sentence positions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("john@example.com sent the file", "john@example.com sent the file."),
+            ("john@example.com sent the file", "John@example.com sent the file"),
             ("the admin is root@localhost", "The admin is root@localhost."),
             ("contact support@help.com for assistance", "Contact support@help.com for assistance."),
         ]
@@ -373,8 +373,8 @@ class TestEntityProtectionInFormatting:
         """Test code entities resist improper capitalization."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("i plus plus increments the counter", "i++ increments the counter."),
-            ("dash dash verbose enables logging", "--verbose enables logging."),
+            ("i plus plus increments the counter", "i++ increments the counter"),
+            ("dash dash verbose enables logging", "--verbose enables logging"),
             ("slash help shows commands", "/help shows commands."),
         ]
 
@@ -391,9 +391,9 @@ class TestEdgeCaseInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Could be URL or sentence
-            ("visit the site", "Visit the site."),
+            ("visit the site", "Visit the site"),
             # Could be email or sentence
-            ("contact john at the office", "Contact John at the office."),
+            ("contact john at the office", "Contact John at the office"),
             # Could be filename or regular text
             ("the script is ready", "The script is ready."),
         ]

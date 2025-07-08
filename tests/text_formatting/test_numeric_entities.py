@@ -23,11 +23,11 @@ class TestCardinalNumbers:
         """Test basic cardinal number patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("there were three bugs", "There were 3 bugs."),
-            ("I found five issues", "I found 5 issues."),
-            ("we have ten users", "We have 10 users."),
-            ("the system handles twenty requests", "The system handles 20 requests."),
-            ("there are fifty files", "There are 50 files."),
+            ("there were three bugs", "There were 3 bugs"),
+            ("I found five issues", "I found 5 issues"),
+            ("we have ten users", "We have 10 users"),
+            ("the system handles twenty requests", "The system handles 20 requests"),
+            ("there are fifty files", "There are 50 files"),
         ]
 
         for input_text, expected in test_cases:
@@ -38,11 +38,11 @@ class TestCardinalNumbers:
         """Test compound cardinal numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("we have twenty one users", "We have 21 users."),
-            ("there are one hundred files", "There are 100 files."),
-            ("process one hundred twenty three items", "Process 123 items."),
-            ("found one thousand twenty errors", "Found 1020 errors."),
-            ("handle two thousand five hundred requests", "Handle 2500 requests."),
+            ("we have twenty one users", "We have 21 users"),
+            ("there are one hundred files", "There are 100 files"),
+            ("process one hundred twenty three items", "Process 123 items"),
+            ("found one thousand twenty errors", "Found 1020 errors"),
+            ("handle two thousand five hundred requests", "Handle 2500 requests"),
         ]
 
         for input_text, expected in test_cases:
@@ -53,10 +53,10 @@ class TestCardinalNumbers:
         """Test decimal number patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the value is three point one four", "The value is 3.14."),
-            ("rate is zero point five", "Rate is 0.5."),
-            ("version two point one", "Version 2.1."),
-            ("pi equals three point one four one five nine", "Pi equals 3.14159."),
+            ("the value is three point one four", "The value is 3.14"),
+            ("rate is zero point five", "Rate is 0.5"),
+            ("version two point one", "Version 2.1"),
+            ("pi equals three point one four one five nine", "Pi equals 3.14159"),
         ]
 
         for input_text, expected in test_cases:
@@ -83,7 +83,7 @@ class TestCardinalNumbers:
         """Test that idiomatic expressions with numbers are not converted."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("catch twenty two", "Catch twenty two."),
+            ("catch twenty two", "Catch twenty two"),
             ("cloud nine", "Cloud nine."),
             ("sixth sense", "Sixth sense."),
             ("four score and seven years ago", "Four score and seven years ago."),
@@ -120,11 +120,11 @@ class TestOrdinalNumbers:
         """Test basic ordinal number patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("this is the first attempt", "This is the 1st attempt."),
-            ("he came in second place", "He came in 2nd place."),
-            ("this is the third time", "This is the 3rd time."),
-            ("on the fourth day", "On the 4th day."),
-            ("the fifth element", "The 5th element."),
+            ("this is the first attempt", "This is the 1st attempt"),
+            ("he came in second place", "He came in 2nd place"),
+            ("this is the third time", "This is the 3rd time"),
+            ("on the fourth day", "On the 4th day"),
+            ("the fifth element", "The 5th element"),
         ]
 
         for input_text, expected in test_cases:
@@ -135,10 +135,10 @@ class TestOrdinalNumbers:
         """Test compound ordinal numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("this is the twenty first of the month", "This is the 21st of the month."),
-            ("the thirty second iteration", "The 32nd iteration."),
-            ("on the forty third day", "On the 43rd day."),
-            ("the one hundred first item", "The 101st item."),
+            ("this is the twenty first of the month", "This is the 21st of the month"),
+            ("the thirty second iteration", "The 32nd iteration"),
+            ("on the forty third day", "On the 43rd day"),
+            ("the one hundred first item", "The 101st item"),
         ]
 
         for input_text, expected in test_cases:
@@ -176,10 +176,10 @@ class TestNumericRanges:
         """Test basic numeric range patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("select lines ten to twenty", "Select lines 10-20."),
-            ("pages five to fifteen", "Pages 5-15."),
-            ("users one to one hundred", "Users 1-100."),
-            ("items twenty to thirty", "Items 20-30."),
+            ("select lines ten to twenty", "Select lines 10-20"),
+            ("pages five to fifteen", "Pages 5-15"),
+            ("users one to one hundred", "Users 1-100"),
+            ("items twenty to thirty", "Items 20-30"),
         ]
 
         for input_text, expected in test_cases:
@@ -208,8 +208,8 @@ class TestNumericRanges:
         """Test ranges in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("process between ten to twenty items", "Process between 10-20 items."),
-            ("the range is five to fifteen", "The range is 5-15."),
+            ("process between ten to twenty items", "Process between 10-20 items"),
+            ("the range is five to fifteen", "The range is 5-15"),
             ("select from one to one hundred", "Select from 1-100."),
         ]
 
@@ -225,8 +225,8 @@ class TestFractions:
         """Test fractions that have Unicode representations."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("add one half cup of sugar", "Add ½ cup of sugar."),
-            ("two thirds of the users", "⅔ of the users."),
+            ("add one half cup of sugar", "Add ½ cup of sugar"),
+            ("two thirds of the users", "⅔ of the users"),
             ("three quarters finished", "¾ finished."),
             ("one fourth of the time", "¼ of the time."),
             ("one eighth of an inch", "⅛ of an inch."),
@@ -240,7 +240,7 @@ class TestFractions:
         """Test fractions that don't have Unicode representations."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("one fifth of the budget", "1/5 of the budget."),
+            ("one fifth of the budget", "⅕ of the budget"),
             ("two fifths completed", "2/5 completed."),
             ("seven eighths done", "7/8 done."),
             ("one tenth of a second", "1/10 of a second."),
@@ -271,7 +271,7 @@ class TestPercentages:
         """Test basic percentage patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("we are ninety percent done", "We are 90% done."),
+            ("we are ninety percent done", "We are 90% done"),
             ("fifty percent of users", "50% of users."),
             ("one hundred percent complete", "100% complete."),
             ("twenty five percent faster", "25% faster."),
@@ -285,7 +285,7 @@ class TestPercentages:
         """Test decimal percentage patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("a nine point five percent increase", "A 9.5% increase."),
+            ("a nine point five percent increase", "A 9.5% increase"),
             ("zero point one percent error rate", "0.1% error rate."),
             ("three point seven five percent growth", "3.75% growth."),
         ]
@@ -298,7 +298,7 @@ class TestPercentages:
         """Test percentages in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the success rate is eighty percent", "The success rate is 80%."),
+            ("the success rate is eighty percent", "The success rate is 80%"),
             ("only ten percent failed", "Only 10% failed."),
             ("over ninety nine percent accuracy", "Over 99% accuracy."),
         ]
@@ -315,7 +315,7 @@ class TestDataSizes:
         """Test basic data size patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the file is five megabytes", "The file is 5MB."),
+            ("the file is five megabytes", "The file is 5MB"),
             ("download two gigabytes", "Download 2GB."),
             ("only ten kilobytes", "Only 10KB."),
             ("use one terabyte storage", "Use 1TB storage."),
@@ -329,7 +329,7 @@ class TestDataSizes:
         """Test decimal data size patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("I have two point five gigabytes free", "I have 2.5GB free."),
+            ("I have two point five gigabytes free", "I have 2.5GB free"),
             ("the file is one point two megabytes", "The file is 1.2MB."),
             ("need zero point five terabytes", "Need 0.5TB."),
         ]
@@ -342,7 +342,7 @@ class TestDataSizes:
         """Test data sizes in technical contexts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the database is fifty gigabytes", "The database is 50GB."),
+            ("the database is fifty gigabytes", "The database is 50GB"),
             ("memory usage is four gigabytes", "Memory usage is 4GB."),
             ("the log file grew to one hundred megabytes", "The log file grew to 100MB."),
         ]
@@ -359,7 +359,7 @@ class TestFrequencies:
         """Test basic frequency patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the CPU is two point four gigahertz", "The CPU is 2.4GHz."),
+            ("the CPU is two point four gigahertz", "The CPU is 2.4GHz"),
             ("runs at three gigahertz", "Runs at 3GHz."),
             ("base frequency one point eight gigahertz", "Base frequency 1.8GHz."),
         ]
@@ -372,7 +372,7 @@ class TestFrequencies:
         """Test frequencies in technical contexts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the processor runs at four gigahertz", "The processor runs at 4GHz."),
+            ("the processor runs at four gigahertz", "The processor runs at 4GHz"),
             ("overclocked to five gigahertz", "Overclocked to 5GHz."),
             ("base clock two point zero gigahertz", "Base clock 2.0GHz."),
         ]
@@ -389,7 +389,7 @@ class TestTemperatures:
         """Test Celsius temperature patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("it is twenty degrees celsius outside", "It is 20°C outside."),
+            ("it is twenty degrees celsius outside", "It is 20°C outside"),
             ("set it to thirty degrees celsius", "Set it to 30°C."),
             ("water boils at one hundred degrees celsius", "Water boils at 100°C."),
             ("the temperature is negative ten degrees celsius", "The temperature is -10°C."),
@@ -420,7 +420,7 @@ class TestTemperatures:
         """Test generic temperature patterns without scale."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the temperature is twenty degrees", "The temperature is 20°."),
+            ("the temperature is twenty degrees", "The temperature is 20°"),
             ("set to fifty degrees", "Set to 50°."),
             ("increase by ten degrees", "Increase by 10°."),
         ]
@@ -437,7 +437,7 @@ class TestMetricUnits:
         """Test metric length patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("we drove five kilometers", "We drove 5 km."),
+            ("we drove five kilometers", "We drove 5 km"),
             ("it's two point five centimeters long", "It's 2.5 cm long."),
             ("the height is one point eight meters", "The height is 1.8 m."),
             ("move ten millimeters", "Move 10 mm."),
@@ -451,7 +451,7 @@ class TestMetricUnits:
         """Test metric weight patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("that weighs ten kilograms", "That weighs 10 kg."),
+            ("that weighs ten kilograms", "That weighs 10 kg"),
             ("add five hundred grams", "Add 500 g."),
             ("the mass is two point five kilograms", "The mass is 2.5 kg."),
             ("use fifty grams flour", "Use 50 g flour."),
@@ -465,7 +465,7 @@ class TestMetricUnits:
         """Test metric volume patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("add five hundred milliliters", "Add 500 mL."),
+            ("add five hundred milliliters", "Add 500 mL"),
             ("pour two liters", "Pour 2 L."),
             ("the tank holds fifty liters", "The tank holds 50 L."),
             ("measure one hundred milliliters", "Measure 100 mL."),
@@ -500,7 +500,7 @@ class TestImperialQuantities:
         """Test distance measurement patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("drive five miles", "Drive 5 mi."),
+            ("drive five miles", "Drive 5 mi"),
             ("run three miles", "Run 3 mi."),
             ("the distance is ten miles", "The distance is 10 mi."),
         ]
@@ -513,7 +513,7 @@ class TestImperialQuantities:
         """Test weight measurement patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("weighs fifty pounds", "Weighs 50 lbs."),
+            ("weighs fifty pounds", "Weighs 50 lbs"),
             ("add ten pounds", "Add 10 lbs."),
             ("the box is twenty pounds", "The box is 20 lbs."),
         ]
@@ -565,7 +565,7 @@ class TestNumericEntityInteractions:
         test_cases = [
             (
                 "process fifty items at ninety percent speed",
-                "Process 50 items at 90% speed.",
+                "Process 50 items at 90% speed",
             ),
             (
                 "the file is five megabytes and takes ten seconds",

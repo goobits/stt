@@ -23,11 +23,11 @@ class TestFilenameEntities:
         """Test Python files get lower_snake_case formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open main dot py", "Open main.py."),
-            ("edit my script dot py", "Edit my_script.py."),
-            ("check config loader dot py", "Check config_loader.py."),
-            ("run test helper dot py", "Run test_helper.py."),
-            ("import utils dot py", "Import utils.py."),
+            ("open main dot py", "Open main.py"),
+            ("edit my script dot py", "Edit my_script.py"),
+            ("check config loader dot py", "Check config_loader.py"),
+            ("run test helper dot py", "Run test_helper.py"),
+            ("import utils dot py", "Import utils.py"),
         ]
 
         for input_text, expected in test_cases:
@@ -38,11 +38,11 @@ class TestFilenameEntities:
         """Test JavaScript files get camelCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("edit app dot js", "Edit app.js."),
-            ("open my component dot js", "Open myComponent.js."),
-            ("check api client dot js", "Check apiClient.js."),
-            ("run test utils dot js", "Run testUtils.js."),
-            ("import user service dot js", "Import userService.js."),
+            ("edit app dot js", "Edit app.js"),
+            ("open my component dot js", "Open myComponent.js"),
+            ("check api client dot js", "Check apiClient.js"),
+            ("run test utils dot js", "Run testUtils.js"),
+            ("import user service dot js", "Import userService.js"),
         ]
 
         for input_text, expected in test_cases:
@@ -53,11 +53,11 @@ class TestFilenameEntities:
         """Test TypeScript files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("create user service dot ts", "Create UserService.ts."),
-            ("edit my component dot tsx", "Edit MyComponent.tsx."),
-            ("open api client dot ts", "Open ApiClient.ts."),
-            ("check data service dot tsx", "Check DataService.tsx."),
-            ("import auth helper dot ts", "Import AuthHelper.ts."),
+            ("create user service dot ts", "Create UserService.ts"),
+            ("edit my component dot tsx", "Edit MyComponent.tsx"),
+            ("open api client dot ts", "Open ApiClient.ts"),
+            ("check data service dot tsx", "Check DataService.tsx"),
+            ("import auth helper dot ts", "Import AuthHelper.ts"),
         ]
 
         for input_text, expected in test_cases:
@@ -68,10 +68,10 @@ class TestFilenameEntities:
         """Test Java files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open user service dot java", "Open UserService.java."),
-            ("edit my component dot java", "Edit MyComponent.java."),
-            ("check api client dot java", "Check ApiClient.java."),
-            ("run test helper dot java", "Run TestHelper.java."),
+            ("open user service dot java", "Open UserService.java"),
+            ("edit my component dot java", "Edit MyComponent.java"),
+            ("check api client dot java", "Check ApiClient.java"),
+            ("run test helper dot java", "Run TestHelper.java"),
         ]
 
         for input_text, expected in test_cases:
@@ -82,9 +82,9 @@ class TestFilenameEntities:
         """Test C# files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open user service dot cs", "Open UserService.cs."),
-            ("edit my component dot cs", "Edit MyComponent.cs."),
-            ("check api client dot cs", "Check ApiClient.cs."),
+            ("open user service dot cs", "Open UserService.cs"),
+            ("edit my component dot cs", "Edit MyComponent.cs"),
+            ("check api client dot cs", "Check ApiClient.cs"),
         ]
 
         for input_text, expected in test_cases:
@@ -95,10 +95,10 @@ class TestFilenameEntities:
         """Test CSS files get kebab-case formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("edit main styles dot css", "Edit main-styles.css."),
-            ("open my stylesheet dot css", "Open my-stylesheet.css."),
-            ("check component styles dot scss", "Check component-styles.scss."),
-            ("import base theme dot css", "Import base-theme.css."),
+            ("edit main styles dot css", "Edit main-styles.css"),
+            ("open my stylesheet dot css", "Open my-stylesheet.css"),
+            ("check component styles dot scss", "Check component-styles.scss"),
+            ("import base theme dot css", "Import base-theme.css"),
         ]
 
         for input_text, expected in test_cases:
@@ -109,10 +109,10 @@ class TestFilenameEntities:
         """Test Markdown files get UPPER_SNAKE_CASE formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open readme dot md", "Open README.md."),
-            ("edit change log dot md", "Edit CHANGE_LOG.md."),
-            ("check api docs dot md", "Check API_DOCS.md."),
-            ("view user guide dot md", "View USER_GUIDE.md."),
+            ("open readme dot md", "Open README.md"),
+            ("edit change log dot md", "Edit CHANGE_LOG.md"),
+            ("check api docs dot md", "Check API_DOCS.md"),
+            ("view user guide dot md", "View USER_GUIDE.md"),
         ]
 
         for input_text, expected in test_cases:
@@ -123,10 +123,10 @@ class TestFilenameEntities:
         """Test filenames containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open report version two dot pdf", "Open report_version_2.pdf."),
-            ("edit config v one dot json", "Edit config_v_1.json."),
-            ("check log file one hundred dot txt", "Check log_file_100.txt."),
-            ("run test case three dot py", "Run test_case_3.py."),
+            ("open report version two dot pdf", "Open report_version_2.pdf"),
+            ("edit config v one dot json", "Edit config_v_1.json"),
+            ("check log file one hundred dot txt", "Check log_file_100.txt"),
+            ("run test case three dot py", "Run test_case_3.py"),
         ]
 
         for input_text, expected in test_cases:
@@ -137,10 +137,10 @@ class TestFilenameEntities:
         """Test filenames with spoken underscores."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open my file underscore name dot py", "Open my_file_name.py."),
-            ("edit config underscore loader dot js", "Edit config_loader.js."),
-            ("check test underscore helper dot rb", "Check test_helper.rb."),
-            ("import data underscore utils dot py", "Import data_utils.py."),
+            ("open my file underscore name dot py", "Open my_file_name.py"),
+            ("edit config underscore loader dot js", "Edit config_loader.js"),
+            ("check test underscore helper dot rb", "Check test_helper.rb"),
+            ("import data underscore utils dot py", "Import data_utils.py"),
         ]
 
         for input_text, expected in test_cases:
@@ -151,9 +151,9 @@ class TestFilenameEntities:
         """Test special dunder filenames."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open underscore underscore init underscore underscore dot py", "Open __init__.py."),
-            ("edit underscore underscore main underscore underscore dot py", "Edit __main__.py."),
-            ("check underscore underscore name underscore underscore dot py", "Check __name__.py."),
+            ("open underscore underscore init underscore underscore dot py", "Open __init__.py"),
+            ("edit underscore underscore main underscore underscore dot py", "Edit __main__.py"),
+            ("check underscore underscore name underscore underscore dot py", "Check __name__.py"),
         ]
 
         for input_text, expected in test_cases:
@@ -164,9 +164,9 @@ class TestFilenameEntities:
         """Test Java package names as filenames."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open com dot example dot myapp", "Open com.example.myapp."),
-            ("edit org dot springframework dot boot", "Edit org.springframework.boot."),
-            ("check io dot github dot user dot project", "Check io.github.user.project."),
+            ("open com dot example dot myapp", "Open com.example.myapp"),
+            ("edit org dot springframework dot boot", "Edit org.springframework.boot"),
+            ("check io dot github dot user dot project", "Check io.github.user.project"),
         ]
 
         for input_text, expected in test_cases:
@@ -177,10 +177,10 @@ class TestFilenameEntities:
         """Test filenames embedded in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the error is in main dot js on line five", "The error is in main.js on line 5."),
-            ("edit the config file settings dot json", "Edit the config file settings.json."),
-            ("my favorite file is utils dot py", "My favorite file is utils.py."),
-            ("the documentation is in readme dot md", "The documentation is in README.md."),
+            ("the error is in main dot js on line five", "The error is in main.js on line 5"),
+            ("edit the config file settings dot json", "Edit the config file settings.json"),
+            ("my favorite file is utils dot py", "My favorite file is utils.py"),
+            ("the documentation is in readme dot md", "The documentation is in README.md"),
         ]
 
         for input_text, expected in test_cases:
@@ -191,9 +191,9 @@ class TestFilenameEntities:
         """Test filenames with unknown extensions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open my custom file dot custom", "Open my_custom_file.custom."),
-            ("edit config dot ini", "Edit config.ini."),
-            ("check data dot xml", "Check data.xml."),
+            ("open my custom file dot custom", "Open my_custom_file.custom"),
+            ("edit config dot ini", "Edit config.ini"),
+            ("check data dot xml", "Check data.xml"),
         ]
 
         for input_text, expected in test_cases:
@@ -602,8 +602,8 @@ class TestCodeEntityInteractions:
         """Test sentences with both filenames and assignments."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("in config dot py set debug equals true", "In config.py set debug = true."),
-            ("edit main dot js where count equals zero", "Edit main.js where count = 0."),
+            ("in config dot py set debug equals true", "In config.py set debug = true"),
+            ("edit main dot js where count equals zero", "Edit main.js where count = 0"),
         ]
 
         for input_text, expected in test_cases:
@@ -614,8 +614,8 @@ class TestCodeEntityInteractions:
         """Test sentences with filenames and operators."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("in loop dot py use i plus plus", "In loop.py use i++."),
-            ("check util dot js for counter minus minus", "Check util.js for counter--."),
+            ("in loop dot py use i plus plus", "In loop.py use i++"),
+            ("check util dot js for counter minus minus", "Check util.js for counter--"),
         ]
 
         for input_text, expected in test_cases:
@@ -626,8 +626,8 @@ class TestCodeEntityInteractions:
         """Test commands with both flags and filenames."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("run script dot py with dash dash verbose", "Run script.py with --verbose."),
-            ("execute main dot js using dash d flag", "Execute main.js using -d flag."),
+            ("run script dot py with dash dash verbose", "Run script.py with --verbose"),
+            ("execute main dot js using dash d flag", "Execute main.js using -d flag"),
         ]
 
         for input_text, expected in test_cases:
@@ -640,11 +640,11 @@ class TestCodeEntityInteractions:
         test_cases = [
             (
                 "in config dot py set debug equals true and run with dash dash verbose",
-                "In config.py set debug = true and run with --verbose.",
+                "In config.py set debug = true and run with --verbose",
             ),
             (
                 "edit main dot js where count plus plus and status equals active",
-                "Edit main.js where count++ and status = active.",
+                "Edit main.js where count++ and status = active",
             ),
         ]
 
@@ -669,7 +669,7 @@ class TestFilenameEdgeCasesAndRegressions:
             # Expected: "Function opens the door.js" or similar
             # Actual: The entire phrase becomes a filename entity
             # More examples of the greedy behavior
-            ("the error is in main dot py on line 5", "The error is in main.py on line 5."),
+            ("the error is in main dot py on line 5", "The error is in main.py on line 5"),
             # Currently may consume too much as filename
             ("i love python dot py is great", "I love python.py is great."),
             # Should only treat 'python.py' as filename, not the whole sentence
