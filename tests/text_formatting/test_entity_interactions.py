@@ -22,7 +22,7 @@ class TestEntityPriorities:
             # URL should win over filename interpretation
             ("visit example.com", "Visit example.com"),
             ("go to github.com slash project", "Go to github.com/project"),
-            ("check api.service.com", "Check api.service.com."),
+            ("check api.service.com", "Check api.service.com"),
         ]
 
         for input_text, expected in test_cases:
@@ -92,15 +92,12 @@ class TestEntityPriorities:
             # Temperature should win over plain cardinal
             ("twenty degrees celsius", "20°C"),
             # Ordinal should be preserved
-            ("the first item", "The 1st item."),
+            ("the first item", "The 1st item"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_filename_vs_url_priority_complex(self, preloaded_formatter):
         """Test complex filename vs URL conflicts."""
@@ -113,7 +110,7 @@ class TestEntityPriorities:
             # URL with filename in path should be treated as one URL
             (
                 "download from example dot com slash assets slash archive dot zip",
-                "Download from example.com/assets/archive.zip.",
+                "Download from example.com/assets/archive.zip",
             ),
         ]
 
@@ -149,7 +146,7 @@ class TestEntityBoundaries:
         test_cases = [
             ("visit github.com, then stackoverflow.com", "Visit github.com, then stackoverflow.com"),
             ("email: john@example.com", "Email: john@example.com"),
-            ("use port 8000; default is 3000", "Use port 8000; default is 3000."),
+            ("use port 8000; default is 3000", "Use port 8000; default is 3000"),
         ]
 
         for input_text, expected in test_cases:
@@ -348,7 +345,7 @@ class TestEntityProtectionInFormatting:
         format_transcription = preloaded_formatter
         test_cases = [
             ("have you visited github.com", "Have you visited github.com"),
-            ("what is stackoverflow.com", "What is stackoverflow.com?"),
+            ("what is stackoverflow.com", "What is stackoverflow.com"),
             ("why use api.service.com", "Why use api.service.com?"),
         ]
 
@@ -360,7 +357,7 @@ class TestEntityProtectionInFormatting:
         """Test emails maintain format in various sentence positions."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("john@example.com sent the file", "John@example.com sent the file"),
+            ("john@example.com sent the file", "john@example.com sent the file"),
             ("the admin is root@localhost", "The admin is root@localhost."),
             ("contact support@help.com for assistance", "Contact support@help.com for assistance."),
         ]

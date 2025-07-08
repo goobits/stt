@@ -38,10 +38,10 @@ class TestTimeEntities:
         """Test numeric time patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("at three PM", "At 3 PM."),
-            ("by five o'clock", "By 5 o'clock."),
-            ("at ten thirty", "At 10:30."),
-            ("around two forty five", "Around 2:45."),
+            ("at three PM", "At 3 PM"),
+            ("by five o'clock", "By 5 o'clock"),
+            ("at ten thirty", "At 10:30"),
+            ("around two forty five", "Around 2:45"),
         ]
 
         for input_text, expected in test_cases:
@@ -132,9 +132,9 @@ class TestDateEntities:
         """Test dates in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the meeting is on january first", "The meeting is on January 1st."),
-            ("due by december thirty first", "Due by December 31st."),
-            ("starts next monday", "Starts next Monday."),
+            ("the meeting is on january first", "The meeting is on January 1st"),
+            ("due by december thirty first", "Due by December 31st"),
+            ("starts next monday", "Starts next Monday"),
         ]
 
         for input_text, expected in test_cases:

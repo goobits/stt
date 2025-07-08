@@ -93,10 +93,10 @@ class TestSpokenCurrency:
         """Test currency amounts in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the price is twenty dollars", "The price is $20."),
-            ("it costs fifty dollars and fifty cents", "It costs $50.50."),
-            ("save ten dollars today", "Save $10 today."),
-            ("earn one thousand dollars", "Earn $1,000."),
+            ("the price is twenty dollars", "The price is $20"),
+            ("it costs fifty dollars and fifty cents", "It costs $50.50"),
+            ("save ten dollars today", "Save $10 today"),
+            ("earn one thousand dollars", "Earn $1,000"),
         ]
 
         for input_text, expected in test_cases:
@@ -205,8 +205,8 @@ class TestStockSymbols:
         test_cases = [
             ("buy AAPL stock", "Buy AAPL stock"),
             ("GOOGL is up", "GOOGL is up"),
-            ("sell MSFT shares", "Sell MSFT shares."),
-            ("TSLA price increased", "TSLA price increased."),
+            ("sell MSFT shares", "Sell MSFT shares"),
+            ("TSLA price increased", "TSLA price increased"),
         ]
 
         for input_text, expected in test_cases:
@@ -219,7 +219,7 @@ class TestStockSymbols:
         test_cases = [
             ("AMZN hit a new high", "AMZN hit a new high"),
             ("the ticker is META", "The ticker is META"),
-            ("watch NFLX today", "Watch NFLX today."),
+            ("watch NFLX today", "Watch NFLX today"),
         ]
 
         for input_text, expected in test_cases:

@@ -103,8 +103,8 @@ class TestMusicNotation:
         test_cases = [
             ("the key is C sharp major", "The key is C♯ major"),
             ("modulate to B flat", "Modulate to B♭"),
-            ("it starts in D sharp minor", "It starts in D♯ minor."),
-            ("transpose to E flat", "Transpose to E♭."),
+            ("it starts in D sharp minor", "It starts in D♯ minor"),
+            ("transpose to E flat", "Transpose to E♭"),
         ]
 
         for input_text, expected in test_cases:

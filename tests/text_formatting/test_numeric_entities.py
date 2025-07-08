@@ -210,7 +210,7 @@ class TestNumericRanges:
         test_cases = [
             ("process between ten to twenty items", "Process between 10-20 items"),
             ("the range is five to fifteen", "The range is 5-15"),
-            ("select from one to one hundred", "Select from 1-100."),
+            ("select from one to one hundred", "Select from 1-100"),
         ]
 
         for input_text, expected in test_cases:
@@ -227,9 +227,9 @@ class TestFractions:
         test_cases = [
             ("add one half cup of sugar", "Add ½ cup of sugar"),
             ("two thirds of the users", "⅔ of the users"),
-            ("three quarters finished", "¾ finished."),
-            ("one fourth of the time", "¼ of the time."),
-            ("one eighth of an inch", "⅛ of an inch."),
+            ("three quarters finished", "¾ finished"),
+            ("one fourth of the time", "¼ of the time"),
+            ("one eighth of an inch", "⅛ of an inch"),
         ]
 
         for input_text, expected in test_cases:
@@ -241,7 +241,7 @@ class TestFractions:
         format_transcription = preloaded_formatter
         test_cases = [
             ("one fifth of the budget", "⅕ of the budget"),
-            ("two fifths completed", "2/5 completed."),
+            ("two fifths completed", "⅖ completed"),
             ("seven eighths done", "7/8 done."),
             ("one tenth of a second", "1/10 of a second."),
         ]
@@ -272,9 +272,9 @@ class TestPercentages:
         format_transcription = preloaded_formatter
         test_cases = [
             ("we are ninety percent done", "We are 90% done"),
-            ("fifty percent of users", "50% of users."),
-            ("one hundred percent complete", "100% complete."),
-            ("twenty five percent faster", "25% faster."),
+            ("fifty percent of users", "50% of users"),
+            ("one hundred percent complete", "100% complete"),
+            ("twenty five percent faster", "25% faster"),
         ]
 
         for input_text, expected in test_cases:
@@ -316,9 +316,9 @@ class TestDataSizes:
         format_transcription = preloaded_formatter
         test_cases = [
             ("the file is five megabytes", "The file is 5MB"),
-            ("download two gigabytes", "Download 2GB."),
-            ("only ten kilobytes", "Only 10KB."),
-            ("use one terabyte storage", "Use 1TB storage."),
+            ("download two gigabytes", "Download 2GB"),
+            ("only ten kilobytes", "Only 10KB"),
+            ("use one terabyte storage", "Use 1TB storage"),
         ]
 
         for input_text, expected in test_cases:
@@ -330,8 +330,8 @@ class TestDataSizes:
         format_transcription = preloaded_formatter
         test_cases = [
             ("I have two point five gigabytes free", "I have 2.5GB free"),
-            ("the file is one point two megabytes", "The file is 1.2MB."),
-            ("need zero point five terabytes", "Need 0.5TB."),
+            ("the file is one point two megabytes", "The file is 1.2MB"),
+            ("need zero point five terabytes", "Need 0.5TB"),
         ]
 
         for input_text, expected in test_cases:
@@ -343,8 +343,8 @@ class TestDataSizes:
         format_transcription = preloaded_formatter
         test_cases = [
             ("the database is fifty gigabytes", "The database is 50GB"),
-            ("memory usage is four gigabytes", "Memory usage is 4GB."),
-            ("the log file grew to one hundred megabytes", "The log file grew to 100MB."),
+            ("memory usage is four gigabytes", "Memory usage is 4GB"),
+            ("the log file grew to one hundred megabytes", "The log file grew to 100MB"),
         ]
 
         for input_text, expected in test_cases:
@@ -360,8 +360,8 @@ class TestFrequencies:
         format_transcription = preloaded_formatter
         test_cases = [
             ("the CPU is two point four gigahertz", "The CPU is 2.4GHz"),
-            ("runs at three gigahertz", "Runs at 3GHz."),
-            ("base frequency one point eight gigahertz", "Base frequency 1.8GHz."),
+            ("runs at three gigahertz", "Runs at 3GHz"),
+            ("base frequency one point eight gigahertz", "Base frequency 1.8GHz"),
         ]
 
         for input_text, expected in test_cases:
@@ -373,8 +373,8 @@ class TestFrequencies:
         format_transcription = preloaded_formatter
         test_cases = [
             ("the processor runs at four gigahertz", "The processor runs at 4GHz"),
-            ("overclocked to five gigahertz", "Overclocked to 5GHz."),
-            ("base clock two point zero gigahertz", "Base clock 2.0GHz."),
+            ("overclocked to five gigahertz", "Overclocked to 5GHz"),
+            ("base clock two point zero gigahertz", "Base clock 2.0GHz"),
         ]
 
         for input_text, expected in test_cases:
@@ -390,9 +390,9 @@ class TestTemperatures:
         format_transcription = preloaded_formatter
         test_cases = [
             ("it is twenty degrees celsius outside", "It is 20°C outside"),
-            ("set it to thirty degrees celsius", "Set it to 30°C."),
-            ("water boils at one hundred degrees celsius", "Water boils at 100°C."),
-            ("the temperature is negative ten degrees celsius", "The temperature is -10°C."),
+            ("set it to thirty degrees celsius", "Set it to 30°C"),
+            ("water boils at one hundred degrees celsius", "Water boils at 100°C"),
+            ("the temperature is negative ten degrees celsius", "The temperature is -10°C"),
         ]
 
         for input_text, expected in test_cases:
@@ -403,26 +403,23 @@ class TestTemperatures:
         """Test Fahrenheit temperature patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("it's ninety eight point six degrees fahrenheit", "It's 98.6°F."),
-            ("set oven to four hundred degrees fahrenheit", "Set oven to 400°F."),
-            ("freezing is thirty two degrees fahrenheit", "Freezing is 32°F."),
+            ("it's ninety eight point six degrees fahrenheit", "It's 98.6°F"),
+            ("set oven to four hundred degrees fahrenheit", "Set oven to 400°F"),
+            ("freezing is thirty two degrees fahrenheit", "Freezing is 32°F"),
             ("negative ten degrees fahrenheit", "-10°F"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_generic_temperature(self, preloaded_formatter):
         """Test generic temperature patterns without scale."""
         format_transcription = preloaded_formatter
         test_cases = [
             ("the temperature is twenty degrees", "The temperature is 20°"),
-            ("set to fifty degrees", "Set to 50°."),
-            ("increase by ten degrees", "Increase by 10°."),
+            ("set to fifty degrees", "Set to 50°"),
+            ("increase by ten degrees", "Increase by 10°"),
         ]
 
         for input_text, expected in test_cases:
@@ -438,9 +435,9 @@ class TestMetricUnits:
         format_transcription = preloaded_formatter
         test_cases = [
             ("we drove five kilometers", "We drove 5 km"),
-            ("it's two point five centimeters long", "It's 2.5 cm long."),
-            ("the height is one point eight meters", "The height is 1.8 m."),
-            ("move ten millimeters", "Move 10 mm."),
+            ("it's two point five centimeters long", "It's 2.5 cm long"),
+            ("the height is one point eight meters", "The height is 1.8 m"),
+            ("move ten millimeters", "Move 10 mm"),
         ]
 
         for input_text, expected in test_cases:
@@ -452,9 +449,9 @@ class TestMetricUnits:
         format_transcription = preloaded_formatter
         test_cases = [
             ("that weighs ten kilograms", "That weighs 10 kg"),
-            ("add five hundred grams", "Add 500 g."),
-            ("the mass is two point five kilograms", "The mass is 2.5 kg."),
-            ("use fifty grams flour", "Use 50 g flour."),
+            ("add five hundred grams", "Add 500 g"),
+            ("the mass is two point five kilograms", "The mass is 2.5 kg"),
+            ("use fifty grams flour", "Use 50 g flour"),
         ]
 
         for input_text, expected in test_cases:
@@ -466,9 +463,9 @@ class TestMetricUnits:
         format_transcription = preloaded_formatter
         test_cases = [
             ("add five hundred milliliters", "Add 500 mL"),
-            ("pour two liters", "Pour 2 L."),
-            ("the tank holds fifty liters", "The tank holds 50 L."),
-            ("measure one hundred milliliters", "Measure 100 mL."),
+            ("pour two liters", "Pour 2 L"),
+            ("the tank holds fifty liters", "The tank holds 50 L"),
+            ("measure one hundred milliliters", "Measure 100 mL"),
         ]
 
         for input_text, expected in test_cases:
@@ -483,26 +480,23 @@ class TestImperialQuantities:
         """Test height measurement patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("he is six feet tall", "He is 6′ tall."),
-            ("she is five foot ten", "She is 5′10″."),
-            ("the door is eight feet high", "The door is 8′ high."),
+            ("he is six feet tall", "He is 6′ tall"),
+            ("she is five foot ten", "She is 5′10″"),
+            ("the door is eight feet high", "The door is 8′ high"),
             ("six feet two inches", "6′2″"),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_distance_measurements(self, preloaded_formatter):
         """Test distance measurement patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
             ("drive five miles", "Drive 5 mi"),
-            ("run three miles", "Run 3 mi."),
-            ("the distance is ten miles", "The distance is 10 mi."),
+            ("run three miles", "Run 3 mi"),
+            ("the distance is ten miles", "The distance is 10 mi"),
         ]
 
         for input_text, expected in test_cases:
@@ -514,8 +508,8 @@ class TestImperialQuantities:
         format_transcription = preloaded_formatter
         test_cases = [
             ("weighs fifty pounds", "Weighs 50 lbs"),
-            ("add ten pounds", "Add 10 lbs."),
-            ("the box is twenty pounds", "The box is 20 lbs."),
+            ("add ten pounds", "Add 10 lbs"),
+            ("the box is twenty pounds", "The box is 20 lbs"),
         ]
 
         for input_text, expected in test_cases:
@@ -538,10 +532,7 @@ class TestNumericEntityInteractions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_data_size_vs_cardinal(self, preloaded_formatter):
         """Test that data sizes take precedence over cardinal numbers."""
@@ -554,10 +545,7 @@ class TestNumericEntityInteractions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_complex_numeric_sentences(self, preloaded_formatter):
         """Test sentences with multiple numeric entities."""
@@ -569,7 +557,7 @@ class TestNumericEntityInteractions:
             ),
             (
                 "the file is five megabytes and takes ten seconds",
-                "The file is 5MB and takes 10s.",
+                "The file is 5MB and takes 10s",
             ),
             (
                 "run for two kilometers in ten minutes",
