@@ -173,7 +173,8 @@ class CodeEntityDetector:
         using token analysis to ensure they're used in valid programming contexts.
         """
         if not self.nlp:
-            logger.debug("SpaCy not available for spoken operator detection")
+            logger.debug("SpaCy not available for spoken operator detection, using regex fallback")
+            self._detect_spoken_operators_regex(text, entities, all_entities)
             return
         try:
             doc = self.nlp(text)
@@ -223,7 +224,7 @@ class CodeEntityDetector:
                                         start=start_pos,
                                         end=end_pos,
                                         text=entity_text,
-                                        type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.SPOKEN_OPERATOR,
+                                        type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.COMPARISON,
                                         metadata={"variable": prev_token.text, "operator": operator_patterns[two_word_pattern]},
                                     )
                                 )
@@ -268,6 +269,65 @@ class CodeEntityDetector:
                                             },
                                         )
                                     )
+
+    def _detect_spoken_operators_regex(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+        """Regex-based fallback for operator detection when spaCy is not available."""
+        # Get operator keywords for the current language
+        resources = get_resources(self.language)
+        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        
+        # Build patterns for all operators
+        for operator_phrase, symbol in operators.items():
+            if symbol in ["++", "--"]:
+                # Build pattern: variable + operator phrase
+                # Use word boundaries and allow for spaces in the operator phrase
+                escaped_phrase = re.escape(operator_phrase)
+                pattern = rf"\b([a-zA-Z_]\w*)\s+{escaped_phrase}\b"
+                
+                for match in re.finditer(pattern, text, re.IGNORECASE):
+                    start_pos = match.start()
+                    end_pos = match.end()
+                    check_entities = all_entities if all_entities else entities
+                    
+                    if not is_inside_entity(start_pos, end_pos, check_entities):
+                        variable_name = match.group(1)
+                        entity_type = EntityType.INCREMENT_OPERATOR if symbol == "++" else EntityType.DECREMENT_OPERATOR
+                        
+                        entities.append(
+                            Entity(
+                                start=start_pos,
+                                end=end_pos,
+                                text=match.group(0),
+                                type=entity_type,
+                                metadata={"variable": variable_name, "operator": symbol},
+                            )
+                        )
+                        logger.debug(f"Regex detected {symbol} operator: '{match.group(0)}' at {start_pos}-{end_pos}")
+            
+            elif symbol == "==":
+                # Build pattern for comparison: variable + operator phrase + value
+                escaped_phrase = re.escape(operator_phrase)
+                pattern = rf"\b([a-zA-Z_]\w*)\s+{escaped_phrase}\s+(\w+)\b"
+                
+                for match in re.finditer(pattern, text, re.IGNORECASE):
+                    start_pos = match.start()
+                    end_pos = match.end()
+                    check_entities = all_entities if all_entities else entities
+                    
+                    if not is_inside_entity(start_pos, end_pos, check_entities):
+                        left_var = match.group(1)
+                        right_val = match.group(2)
+                        
+                        entities.append(
+                            Entity(
+                                start=start_pos,
+                                end=end_pos,
+                                text=match.group(0),
+                                type=EntityType.COMPARISON,
+                                metadata={"left": left_var, "right": right_val, "operator": symbol},
+                            )
+                        )
+                        logger.debug(f"Regex detected {symbol} comparison: '{match.group(0)}' at {start_pos}-{end_pos}")
 
     def _detect_assignment_operators(
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None
@@ -655,18 +715,56 @@ class CodePatternConverter:
         return f"{formatted_filename}.{extension}"
 
     def convert_increment_operator(self, entity: Entity) -> str:
-        """Convert increment operators like 'i plus plus' -> 'i++'"""
-        # Extract variable name and convert to increment
+        """Convert increment operators using language-specific keywords."""
+        # Get language-specific resources
+        resources = get_resources(self.language)
+        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        
+        # Find the increment operator keyword (++ symbol)
+        increment_keywords = [k for k, v in operators.items() if v == "++"]
+        
+        if increment_keywords:
+            # Try each possible increment keyword pattern
+            for keyword in increment_keywords:
+                # Build dynamic pattern - escape keyword for regex
+                escaped_keyword = re.escape(keyword)
+                pattern = rf"(\w+)\s+{escaped_keyword}"
+                match = re.match(pattern, entity.text, re.IGNORECASE)
+                if match:
+                    variable = match.group(1).lower()  # Keep variable lowercase for code
+                    return f"{variable}++"
+        
+        # Fallback for backward compatibility
         match = re.match(r"(\w+)\s+plus\s+plus", entity.text, re.IGNORECASE)
         if match:
-            variable = match.group(1).lower()  # Keep variable lowercase for code
+            variable = match.group(1).lower()
             return f"{variable}++"
+        
         return entity.text
 
     def convert_decrement_operator(self, entity: Entity) -> str:
-        """Convert decrement operators like 'counter minus minus' -> 'counter--'"""
+        """Convert decrement operators using language-specific keywords."""
         if entity.metadata and "variable" in entity.metadata:
             return f"{entity.metadata['variable'].lower()}--"
+            
+        # Get language-specific resources
+        resources = get_resources(self.language)
+        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        
+        # Find the decrement operator keyword (-- symbol)
+        decrement_keywords = [k for k, v in operators.items() if v == "--"]
+        
+        if decrement_keywords:
+            # Try each possible decrement keyword pattern
+            for keyword in decrement_keywords:
+                # Build dynamic pattern - escape keyword for regex
+                escaped_keyword = re.escape(keyword)
+                pattern = rf"(\w+)\s+{escaped_keyword}"
+                match = re.match(pattern, entity.text, re.IGNORECASE)
+                if match:
+                    variable = match.group(1).lower()  # Keep variable lowercase for code
+                    return f"{variable}--"
+        
         # Fallback for older detection logic
         match = re.match(r"(\w+)\s+minus\s+minus", entity.text, re.IGNORECASE)
         if match:
