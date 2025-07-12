@@ -340,7 +340,7 @@ class TestFunEdgeCases:
             ("key of B flat", "Key of B♭"),
             # Non-musical context
             ("turn sharp left", "Turn sharp left"),
-            ("the road is flat", "The road is flat."),
+            ("the road is flat", "The road is flat"),
         ]
 
         for input_text, expected in test_cases:

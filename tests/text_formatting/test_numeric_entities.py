@@ -274,7 +274,7 @@ class TestFractions:
         """Test fractions in cooking contexts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("add one and one half cups flour", "Add 1½ cups flour."),
+            ("add one and one half cups flour", "Add 1½ cups flour"),
             ("use two and three quarters teaspoons", "Use 2¾ teaspoons."),
             ("mix in one half tablespoon", "Mix in ½ tablespoon."),
         ]

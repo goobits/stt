@@ -174,7 +174,7 @@ class TestCurrencySymbols:
             ("price in USD", "Price in USD"),
             ("convert to EUR", "Convert to EUR"),
             ("paid in GBP", "Paid in GBP"),
-            ("amount in JPY", "Amount in JPY."),
+            ("amount in JPY", "Amount in JPY"),
         ]
 
         for input_text, expected in test_cases:

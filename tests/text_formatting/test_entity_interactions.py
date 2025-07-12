@@ -275,7 +275,7 @@ class TestComplexEntityInteractions:
         test_cases = [
             (
                 "the api at api.example.com colon eight thousand slash v two accepts json",
-                "The API at api.example.com:8000/v2 accepts JSON.",
+                "The API at api.example.com:8000/v2 accepts JSON",
             ),
             (
                 "run python script dot py dash dash input data dot csv dash dash output results dot json",

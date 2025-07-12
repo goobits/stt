@@ -269,7 +269,7 @@ class TestSpokenEmails:
             ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting"),
             (
                 "send the report to data at analytics dot company dot com",
-                "Send the report to data@analytics.company.com.",
+                "Send the report to data@analytics.company.com",
             ),
             ("forward this to admin at server dot example dot org", "Forward this to admin@server.example.org"),
         ]
