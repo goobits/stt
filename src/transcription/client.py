@@ -512,7 +512,7 @@ class StreamingAudioClient:
             timestamp = int(time.time())
             # Use cross-platform temporary directory
             temp_dir = tempfile.gettempdir()
-            debug_dir = os.path.join(temp_dir, f"stt-debug-{timestamp}")
+            debug_dir = os.path.join(temp_dir, f"matilda-debug-{timestamp}")
             os.makedirs(debug_dir, exist_ok=True)
 
             # Save raw audio chunks
