@@ -670,11 +670,11 @@ class SmartCapitalizer:
             letter = match.group(2)
             letter_pos = match.start() + len(punctuation_and_space)
 
-            # Check if the letter is inside a protected entity
+            # Check if the letter is inside ANY entity - entities should control their own formatting
             if entities:
                 for entity in entities:
-                    if entity.start <= letter_pos < entity.end and entity.type in self.STRICTLY_PROTECTED_TYPES:
-                        return match.group(0)  # Don't capitalize
+                    if entity.start <= letter_pos < entity.end:
+                        return match.group(0)  # Don't capitalize - let entity handle formatting
 
             # Check the text before the match to see if it's an abbreviation
             preceding_text = text[: match.start()].lower()
@@ -709,54 +709,41 @@ class SmartCapitalizer:
                 is_protected = False
                 if entities:
                     for entity in entities:
-                        # Check if the first letter is inside a strictly protected entity
+                        # Check if the first letter is inside ANY entity - entities should control their own formatting
                         if entity.start <= first_letter_index < entity.end:
-                            if entity.type in self.STRICTLY_PROTECTED_TYPES:
-                                is_protected = True
-                                logger.debug(
-                                    f"Protecting first letter '{text[first_letter_index]}' from capitalization due to strict entity: {entity.type}"
-                                )
-                                break
+                            is_protected = True
+                            logger.debug(
+                                f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
+                            )
+                            break
 
                 # Abbreviations are prose entities that should follow normal sentence capitalization rules
                 # (Removed abbreviation protection logic as it was too aggressive)
 
-                # Also check if sentence starts with a technical term (like "git commit", "npm install")
+                # Manual protection for technical terms that aren't always detected as entities
+                # or where only part of the sentence is an entity (e.g., "let i equals ten")
                 if not is_protected:
                     text_lower = text.lower()
 
-                    # First check multi-word technical terms (more specific)
-                    for tech_phrase in MULTI_WORD_TECHNICAL_TERMS:
-                        if text_lower.startswith(tech_phrase):
+                    # Protect essential lowercase-only technical terms at sentence start
+                    lowercase_only_terms = {
+                        # Programming keywords that should never be capitalized
+                        "let", "const", "var", "if", "for", "while", "function", "class",
+                        "import", "export", "return", "try", "catch", "finally",
+                        # CLI tools that are always lowercase
+                        "git", "npm", "pip", "docker", "kubectl", "cargo", "yarn", 
+                        "brew", "apt", "make", "cmake",
+                        # Protocols that should be lowercase
+                        "http", "https", "ftp", "ssh", "tcp", "udp",
+                        # Math constants and single letter variables
+                        "pi", "e", "x", "y", "z", "i", "j", "k"
+                    }
+                    
+                    for term in lowercase_only_terms:
+                        if text_lower.startswith(term + " ") or text_lower == term:
                             is_protected = True
-                            logger.debug(
-                                f"Protecting first letter from capitalization due to sentence starting with multi-word technical term: {tech_phrase}"
-                            )
+                            logger.debug(f"Protecting '{term}' from capitalization (technical term)")
                             break
-
-                    # Then check single technical terms, but be more selective
-                    if not is_protected:
-                        # Only protect CLI tools/commands that are typically lowercase at sentence start
-                        cli_tools = {
-                            "git",
-                            "npm",
-                            "pip",
-                            "docker",
-                            "kubectl",
-                            "cargo",
-                            "yarn",
-                            "brew",
-                            "apt",
-                            "make",
-                            "cmake",
-                        }
-                        for tech_term in cli_tools:
-                            if text_lower.startswith(tech_term + " ") or text_lower == tech_term:
-                                is_protected = True
-                                logger.debug(
-                                    f"Protecting first letter from capitalization due to sentence starting with CLI tool: {tech_term}"
-                                )
-                                break
 
                 if not is_protected:
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
@@ -781,18 +768,11 @@ class SmartCapitalizer:
                             # Capitalize 'i' if it's being used as a pronoun (subject, conjunct, etc.)
                             # but not if it's in a code context
                             if token.pos_ == "PRON":
-                                # Also ensure it's not inside a protected code-like entity
+                                # Also ensure it's not inside ANY entity - entities should control their own formatting
                                 is_protected = False
                                 if entities:
                                     is_protected = any(
                                         entity.start <= token.idx < entity.end
-                                        and entity.type
-                                        in self.STRICTLY_PROTECTED_TYPES.union(
-                                            {
-                                                EntityType.ASSIGNMENT,
-                                                EntityType.COMPARISON,
-                                            }
-                                        )
                                         for entity in entities
                                     )
 

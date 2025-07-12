@@ -164,6 +164,7 @@ COMMON_TLDS = [
     "es",
     "it",
     "nl",
+    "local",  # Development domain
 ]
 
 # Number words for speech recognition
@@ -396,8 +397,11 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     question_mark_escaped = [re.escape(k) for k in question_mark_keywords]
     question_mark_pattern = "|".join(question_mark_escaped)
 
-    # Create number words pattern
-    number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
+    # Create number words pattern from language-specific resources
+    from .common import NumberParser
+    number_parser_instance = NumberParser(language)
+    number_words = list(number_parser_instance.all_number_words)
+    number_words_escaped = [re.escape(word) for word in number_words]
     number_words_pattern = "|".join(number_words_escaped)
 
     # Build the complete pattern using the dynamic keyword patterns
@@ -610,8 +614,11 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
     colon_escaped = [re.escape(k) for k in colon_keywords] + ["colon"]  # Include both URL_KEYWORDS and "colon"
     colon_pattern = "|".join(colon_escaped)
 
-    # Create number words pattern
-    number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
+    # Create number words pattern from language-specific resources
+    from .common import NumberParser
+    number_parser_instance = NumberParser(language)
+    number_words = list(number_parser_instance.all_number_words)
+    number_words_escaped = [re.escape(word) for word in number_words]
     number_words_pattern = "|".join(number_words_escaped)
 
     # Build the complete pattern using the dynamic keyword patterns
