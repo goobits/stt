@@ -21,23 +21,26 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Optional, Any, Tuple, Callable, Dict
 
+
 # Add project root to path for imports - cross-platform compatible
 def ensure_project_root_in_path():
     """Ensure the project root is in sys.path for imports to work."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while current_dir != os.path.dirname(current_dir):  # Stop at filesystem root
-        if (os.path.exists(os.path.join(current_dir, 'pyproject.toml')) or
-            os.path.exists(os.path.join(current_dir, 'config.jsonc'))):
+        if os.path.exists(os.path.join(current_dir, "pyproject.toml")) or os.path.exists(
+            os.path.join(current_dir, "config.jsonc")
+        ):
             if current_dir not in sys.path:
                 sys.path.insert(0, current_dir)
             return current_dir
         current_dir = os.path.dirname(current_dir)
-    
+
     # Fallback: assume we're in src/transcription/ and go up two levels
     fallback_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     if fallback_root not in sys.path:
         sys.path.insert(0, fallback_root)
     return fallback_root
+
 
 ensure_project_root_in_path()
 

@@ -489,7 +489,7 @@ class CodeEntityDetector:
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Check if preceded by a number word (likely math division)
                 if match.start() > 0:
-                    preceding_text = text[:match.start()].rstrip()
+                    preceding_text = text[: match.start()].rstrip()
                     # Get the last word before "slash"
                     if preceding_text:
                         words = preceding_text.split()
@@ -497,11 +497,12 @@ class CodeEntityDetector:
                             last_word = words[-1].lower()
                             # Check if it's a number word
                             from .common import NumberParser
+
                             parser = NumberParser()
                             if last_word in parser.all_number_words or last_word.isdigit():
                                 # Skip this - it's likely division, not a slash command
                                 continue
-                
+
                 command = match.group(1)
 
                 # Determine if this command has parameters
@@ -805,9 +806,9 @@ class CodePatternConverter:
                     if second_word.lower() in argument_words:
                         # Return just the flag and let the second word remain as argument
                         return f"--{first_word.lower()}"
-                
+
                 # Default: replace spaces with hyphens for multi-word flags
-                name = name.replace(' ', '-').lower()
+                name = name.replace(" ", "-").lower()
                 return f"--{name}"
             if flag_type == "short":
                 return f"-{name.lower()}"

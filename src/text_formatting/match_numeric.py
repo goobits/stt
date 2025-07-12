@@ -348,7 +348,7 @@ class NumericalEntityDetector:
                 end_pos = match.end()
                 unit_type = None
                 unit_text = None
-                
+
                 # Check for units after the range
                 remaining_text = text[end_pos:].lstrip()
                 if remaining_text:
@@ -356,19 +356,19 @@ class NumericalEntityDetector:
                     if remaining_text.lower().startswith("percent"):
                         unit_type = "percent"
                         unit_text = "percent"
-                        end_pos = match.end() + len(text[match.end():]) - len(remaining_text) + 7  # 7 = len("percent")
+                        end_pos = match.end() + len(text[match.end() :]) - len(remaining_text) + 7  # 7 = len("percent")
 
                 entities.append(
                     Entity(
                         start=match.start(),
                         end=end_pos,
-                        text=text[match.start():end_pos],
+                        text=text[match.start() : end_pos],
                         type=EntityType.NUMERIC_RANGE,
                         metadata={
-                            "start_word": match.group(1), 
+                            "start_word": match.group(1),
                             "end_word": match.group(2),
                             "unit_type": unit_type,
-                            "unit": unit_text
+                            "unit": unit_text,
                         },
                     )
                 )
@@ -2407,12 +2407,12 @@ class NumericalPatternConverter:
 
         if start_num and end_num:
             result = f"{start_num}-{end_num}"
-            
+
             # Add unit if present
             unit_type = entity.metadata.get("unit_type")
             if unit_type == "percent":
                 result += "%"
-            
+
             return result
 
         return entity.text
