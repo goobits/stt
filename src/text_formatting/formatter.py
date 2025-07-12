@@ -1234,7 +1234,6 @@ class TextFormatter:
         position_shift = 0
 
         for original_pos, placeholder, entity in placeholder_positions:
-            logger.debug(f"DEBUGGING: About to convert entity {entity.type}:{entity.text} at position {entity.start}-{entity.end}")
             converted_content = self.pattern_converter.convert(entity, text)
             logger.debug(f"Converting {placeholder} (entity: {entity.type}:{entity.text}) -> '{converted_content}'")
 

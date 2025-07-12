@@ -48,7 +48,15 @@
   "context_words": {
     "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export"],
     "filename_linking": ["be", "is", "are", "was", "were", "called", "named"],
-    "email_actions": ["email", "contact", "write to", "send to", "reach out to"]
+    "email_actions": ["email", "contact", "write to", "send to", "reach out to"],
+    "location_nouns": ["docs", "documentation", "api", "site", "website", "page", "server"],
+    "ambiguous_nouns": ["help", "support"],
+    "command_words": ["edit", "open", "run", "build", "play", "start", "stop", "create", "delete", "install"],
+    "currency_contexts": ["cost", "costs", "costing", "price", "priced", "pricing", "buy", "buying", "bought", "sell", "selling", "sold", "pay", "paying", "paid", "spend", "spending", "spent", "worth", "value", "valued", "charge", "charged", "charging", "bill", "billed", "invoice", "invoiced", "fee", "fees", "money", "cash"],
+    "weight_contexts": ["weigh", "weighs", "weighing", "mass", "heavy", "light", "weight", "kg", "kilogram", "kilograms", "gram", "grams", "ounce", "ounces", "ton", "tons"],
+    "programming_keywords": ["let", "const", "var", "if", "for", "while", "switch", "case", "return", "import", "export", "from", "class", "def", "function", "public", "private", "protected", "static", "new", "try", "catch", "finally", "throw"],
+    "technical_context": ["set", "get", "use", "run", "execute", "call", "invoke", "trigger", "function", "method", "variable", "parameter", "argument", "value", "command", "script", "program", "application", "service", "process", "dash", "flag", "option", "underscore", "dot", "slash", "colon"],
+    "multi_word_commands": ["git commit", "git push", "git pull", "git merge", "git branch", "git checkout", "git clone", "git fetch", "git rebase", "git stash", "git reset", "git log", "git diff", "git status", "git init", "git add", "npm install", "npm start", "npm run", "npm test", "docker build", "docker run", "docker push", "docker pull"]
   },
   "currency": {
     "units": ["dollar", "dollars", "pound", "pounds", "euro", "euros", "yen", "yuan", "won", "peso", "ruble", "franc", "shekel", "real"]
@@ -96,6 +104,28 @@
       "million": 1000000,
       "billion": 1000000000,
       "trillion": 1000000000000
+    },
+    "digit_words": {
+      "zero": "0",
+      "one": "1", 
+      "two": "2",
+      "three": "3",
+      "four": "4",
+      "five": "5",
+      "six": "6",
+      "seven": "7",
+      "eight": "8",
+      "nine": "9"
     }
+  },
+  "filtering": {
+    "transcription_artifacts": ["umm", "uh", "ah", "hm", "hmm", "er", "eh", "like", "you know", "basically", "actually", "literally", "sort of", "kind of"],
+    "profanity_words": ["damn", "hell", "crap", "shit", "fuck", "bitch", "ass", "bastard", "piss"]
+  },
+  "temporal": {
+    "month_names": ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"],
+    "relative_days": ["today", "tomorrow", "yesterday", "the day before yesterday", "the day after tomorrow"],
+    "date_keywords": ["day", "week", "month", "year", "date"],
+    "date_ordinals": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty first", "twenty second", "twenty third", "twenty fourth", "twenty fifth", "twenty sixth", "twenty seventh", "twenty eighth", "twenty ninth", "thirtieth", "thirty first"]
   }
 }

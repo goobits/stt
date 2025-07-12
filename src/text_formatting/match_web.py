@@ -7,7 +7,7 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import setup_logging
 from . import regex_patterns
-from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, DIGIT_WORDS, get_resources
+from .constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -28,6 +28,9 @@ class WebEntityDetector:
 
         self.nlp = nlp
         self.language = language
+        
+        # Load language-specific resources
+        self.resources = get_resources(language)
         
         # Build patterns dynamically for the specified language
         self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
@@ -99,23 +102,26 @@ class WebEntityDetector:
 
                             # Check if this looks like a location reference vs. an actual email address
                             # Look at the action word at the beginning of the match
+                            email_actions = self.resources.get("context_words", {}).get("email_actions", [])
                             has_email_action = any(
-                                match_text.lower().startswith(action) for action in EMAIL_ACTION_WORDS
+                                match_text.lower().startswith(action) for action in email_actions
                             )
 
-                            # Use location and ambiguous nouns from constants
+                            # Use location and ambiguous nouns from resources
+                            location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
+                            ambiguous_nouns = self.resources.get("context_words", {}).get("ambiguous_nouns", [])
 
                             words_before_at = before_at.split()
                             if words_before_at:
                                 last_word = words_before_at[-1].lower()
                                 # Skip if it's a clear location noun
-                                if last_word in LOCATION_NOUNS:
+                                if last_word in location_nouns:
                                     logger.debug(
                                         f"Skipping email match '{match.group()}' - '{last_word}' indicates location context"
                                     )
                                     continue
                                 # Skip ambiguous nouns only if there's no email action
-                                if last_word in AMBIGUOUS_NOUNS and not has_email_action:
+                                if last_word in ambiguous_nouns and not has_email_action:
                                     logger.debug(
                                         f"Skipping email match '{match.group()}' - '{last_word}' without email action indicates location context"
                                     )
@@ -356,7 +362,8 @@ class WebPatternConverter:
 
         prefix = ""
         # Handle various action prefixes from language resources
-        email_actions = get_resources(self.language).get("context_words", {}).get("email_actions", [])
+        resources = get_resources(self.language)
+        email_actions = resources.get("context_words", {}).get("email_actions", [])
         text_lower = text.lower()
         for action in email_actions:
             action_with_space = f"{action} "

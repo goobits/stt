@@ -43,7 +43,15 @@
   "context_words": {
     "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar", "cargar", "importar", "exportar", "crear", "borrar"],
     "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado", "titulado"],
-    "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a"]
+    "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a"],
+    "location_nouns": ["docs", "documentación", "api", "sitio", "website", "página", "servidor"],
+    "ambiguous_nouns": ["ayuda", "soporte"],
+    "command_words": ["editar", "abrir", "ejecutar", "construir", "reproducir", "iniciar", "parar", "crear", "borrar", "instalar"],
+    "currency_contexts": ["costo", "costos", "costando", "precio", "con precio", "precios", "comprar", "comprando", "comprado", "vender", "vendiendo", "vendido", "pagar", "pagando", "pagado", "gastar", "gastando", "gastado", "valor", "valorado", "cobrar", "cobrado", "cobrando", "factura", "facturado", "tarifa", "tarifas", "dinero", "efectivo"],
+    "weight_contexts": ["pesar", "pesa", "pesando", "masa", "pesado", "ligero", "peso", "kg", "kilogramo", "kilogramos", "gramo", "gramos", "onza", "onzas", "tonelada", "toneladas"],
+    "programming_keywords": ["let", "const", "var", "if", "for", "while", "switch", "case", "return", "import", "export", "from", "class", "def", "function", "función", "public", "private", "protected", "static", "new", "try", "catch", "finally", "throw"],
+    "technical_context": ["set", "get", "usar", "ejecutar", "execute", "llamar", "invocar", "activar", "función", "method", "variable", "parámetro", "argumento", "valor", "comando", "script", "programa", "aplicación", "servicio", "proceso", "guión", "bandera", "opción", "guión bajo", "punto", "barra", "dos puntos"],
+    "multi_word_commands": ["git commit", "git push", "git pull", "git merge", "git branch", "git checkout", "git clone", "git fetch", "git rebase", "git stash", "git reset", "git log", "git diff", "git status", "git init", "git add", "npm install", "npm start", "npm run", "npm test", "docker build", "docker run", "docker push", "docker pull"]
   },
   "currency": {
     "units": ["dólar", "dólares", "peso", "pesos", "euro", "euros", "yen", "yenes", "yuan", "yuanes", "libra", "libras", "franco", "francos", "real", "reales"]
@@ -106,6 +114,29 @@
       "millones": 1000000,
       "billón": 1000000000000,
       "billones": 1000000000000
+    },
+    "digit_words": {
+      "cero": "0",
+      "uno": "1",
+      "una": "1", 
+      "dos": "2",
+      "tres": "3",
+      "cuatro": "4",
+      "cinco": "5",
+      "seis": "6",
+      "siete": "7",
+      "ocho": "8",
+      "nueve": "9"
     }
+  },
+  "filtering": {
+    "transcription_artifacts": ["ehm", "eh", "ah", "hm", "hmm", "er", "este", "bueno", "o sea", "digamos", "básicamente", "realmente", "literalmente", "como que", "tipo"],
+    "profanity_words": ["maldito", "joder", "mierda", "carajo", "pendejo", "cabrón", "puto", "hijo de puta"]
+  },
+  "temporal": {
+    "month_names": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+    "relative_days": ["hoy", "mañana", "ayer", "anteayer", "pasado mañana"],
+    "date_keywords": ["día", "semana", "mes", "año", "fecha"],
+    "date_ordinals": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "vigésimo primero", "vigésimo segundo", "vigésimo tercero", "vigésimo cuarto", "vigésimo quinto", "vigésimo sexto", "vigésimo séptimo", "vigésimo octavo", "vigésimo noveno", "trigésimo", "trigésimo primero"]
   }
 }

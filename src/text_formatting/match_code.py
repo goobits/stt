@@ -134,9 +134,11 @@ class CodeEntityDetector:
                 is_punctuation = token.is_punct
 
                 # Check for words that clearly separate context from a filename
-                from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS
+                resources = get_resources(self.language)
+                filename_actions = resources.get("context_words", {}).get("filename_actions", [])
+                filename_linking = resources.get("context_words", {}).get("filename_linking", [])
 
-                is_context_separator = token.lemma_ in FILENAME_ACTION_VERBS or token.lemma_ in FILENAME_LINKING_VERBS
+                is_context_separator = token.lemma_ in filename_actions or token.lemma_ in filename_linking
                 
                 # Additional common separators that indicate we should stop
                 filename_separators = {"file", "document", "script", "program", "application", "the"}
@@ -564,7 +566,8 @@ class CodeEntityDetector:
         if all_entities is None:
             all_entities = entities
 
-        from .constants import MULTI_WORD_TECHNICAL_TERMS
+        resources = get_resources(self.language)
+        multi_word_commands = resources.get("context_words", {}).get("multi_word_commands", [])
 
         # Only use specific CLI tools and multi-word commands, not all technical terms
         cli_tools = {
@@ -576,7 +579,7 @@ class CodeEntityDetector:
 
         # Combine CLI tools with multi-word technical terms and sort by length
         all_commands = sorted(
-            list(MULTI_WORD_TECHNICAL_TERMS) + list(cli_tools),
+            list(multi_word_commands) + list(cli_tools),
             key=len,
             reverse=True
         )
@@ -601,9 +604,10 @@ class CodeEntityDetector:
         if all_entities is None:
             all_entities = entities
 
-        from .constants import PROGRAMMING_KEYWORD_STARTERS
+        resources = get_resources(self.language)
+        programming_keywords = resources.get("context_words", {}).get("programming_keywords", [])
 
-        for keyword in PROGRAMMING_KEYWORD_STARTERS:
+        for keyword in programming_keywords:
             # Use regex to find whole-word matches, ensuring it's not part of another word
             pattern = rf"\b{re.escape(keyword)}\b"
             for match in re.finditer(pattern, text, re.IGNORECASE):
