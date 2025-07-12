@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""WebSocket STT Server - Enables Mac clients to connect via WebSocket for speech-to-text
+"""WebSocket Matilda Server - Enables Mac clients to connect via WebSocket for speech-to-text
 Runs alongside the existing TCP server for local Ubuntu clients
 """
 import os
 import sys
 
 # Check for management token
-if os.environ.get("STT_MANAGEMENT_TOKEN") != "managed-by-stt-system":
+if os.environ.get("MATILDA_MANAGEMENT_TOKEN") != "managed-by-matilda-system":
     print("❌ This server must be started via ./server.py")
     print("   Use: ./server.py start-ws")
     sys.exit(1)
@@ -70,7 +70,7 @@ logger = setup_logging(__name__, log_filename="transcription_server.txt")
 from ..text_formatting.formatter import format_transcription
 
 
-class STTWebSocketServer:
+class MatildaWebSocketServer:
     def __init__(self):
         self.model_size = config.whisper_model
         self.host = config.websocket_bind_host
@@ -117,7 +117,7 @@ class STTWebSocketServer:
         }
 
         protocol = "wss" if self.ssl_enabled else "ws"
-        logger.info(f"Initializing WebSocket STT Server on {protocol}://{self.host}:{self.port}")
+        logger.info(f"Initializing WebSocket Matilda Server on {protocol}://{self.host}:{self.port}")
         logger.info("Self-contained session management enabled")
         if self.ssl_enabled:
             logger.info("SSL/TLS encryption enabled")
@@ -175,7 +175,7 @@ class STTWebSocketServer:
                 json.dumps(
                     {
                         "type": "welcome",
-                        "message": "Connected to STT WebSocket Server",
+                        "message": "Connected to Matilda WebSocket Server",
                         "client_id": client_id,
                         "server_ready": self.model is not None,
                     }
@@ -600,7 +600,7 @@ class STTWebSocketServer:
             server_kwargs["ssl"] = self.ssl_context
 
         async with websockets.serve(self.handle_client, server_host, server_port, **server_kwargs):
-            logger.info("WebSocket STT Server is ready for connections!")
+            logger.info("WebSocket Matilda Server is ready for connections!")
             logger.info(f"Protocol: {protocol.upper()}")
             logger.info(f"Active clients: {len(self.connected_clients)}")
 
@@ -609,7 +609,7 @@ class STTWebSocketServer:
 
 
 # Enhanced server with dual-mode support
-class EnhancedWebSocketServer(STTWebSocketServer):
+class EnhancedWebSocketServer(MatildaWebSocketServer):
     """Enhanced WebSocket server with full dual-mode support."""
 
     def __init__(self):
@@ -623,7 +623,7 @@ WebSocketTranscriptionServer = EnhancedWebSocketServer
 
 def main():
     """Main function to start the server"""
-    server = STTWebSocketServer()
+    server = MatildaWebSocketServer()
 
     try:
         asyncio.run(server.start_server())

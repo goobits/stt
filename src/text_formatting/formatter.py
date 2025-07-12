@@ -1600,7 +1600,7 @@ class TextFormatter:
             return ""
 
         # Check if punctuation is disabled for testing
-        if os.environ.get("STT_DISABLE_PUNCTUATION") == "1":
+        if os.environ.get("MATILDA_DISABLE_PUNCTUATION") == "1":
             logger.debug("Punctuation disabled for testing, returning text unchanged")
             return text
 
