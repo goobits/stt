@@ -528,14 +528,21 @@ class CodeEntityDetector:
                 first_word = match.group(1)
                 second_word = match.group(2)
 
-                # Check context - only detect if preceded by programming keywords
+                # Check context - only detect if preceded by programming keywords OR 
+                # if the first word itself is a programming context word
                 context_words = text[: match.start()].lower().split()
-                if not context_words:
-                    continue  # Skip if it's at the very beginning
-
                 preceding_word = context_words[-1] if context_words else ""
-                # Make this list much stricter
-                if preceding_word not in {"variable", "let", "const", "var", "set", "is", "check"}:
+                
+                # Valid programming context words
+                valid_context_words = {"variable", "let", "const", "var", "set", "is", "check", "mi", "my"}
+                
+                # Check if either there's a preceding context word OR the first word is a context word
+                has_valid_context = (
+                    preceding_word in valid_context_words or  # Preceding word is valid
+                    first_word.lower() in valid_context_words  # First word itself is valid context
+                )
+                
+                if not has_valid_context:
                     continue
 
                 logger.debug(f"Found simple underscore variable: '{match.group(0)}' -> '{first_word}_{second_word}'")

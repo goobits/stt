@@ -1273,12 +1273,12 @@ def build_simple_underscore_pattern(language: str = "en") -> Pattern:
     return re.compile(
         rf"""
         \b                                  # Word boundary
-        ([a-zA-Z][a-zA-Z0-9_-]*)           # First word (starts with letter)
+        ([\w][\w0-9_-]*)                   # First word (starts with letter, supports Unicode)
         \s+{underscore_pattern}\s+          # Space, underscore keyword, space
-        ([a-zA-Z][a-zA-Z0-9_-]*)           # Second word (starts with letter)
+        ([\w][\w0-9_-]*)                   # Second word (starts with letter, supports Unicode)
         \b                                  # Word boundary
         """,
-        re.VERBOSE | re.IGNORECASE,
+        re.VERBOSE | re.IGNORECASE | re.UNICODE,
     )
 
 
@@ -1323,8 +1323,19 @@ def build_short_flag_pattern(language: str = "en") -> Pattern:
     # Get dash keywords from CODE_KEYWORDS
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
-    dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
-    dash_pattern = f"(?:{'|'.join(dash_escaped)})"
+    
+    # Build individual patterns with negative lookaheads to avoid conflicts
+    # For Spanish: prevent "guión" from matching when it's part of "guión bajo" (underscore)
+    patterns = []
+    for keyword in dash_keywords_sorted:
+        escaped_keyword = re.escape(keyword)
+        if keyword == "guión":
+            # Add negative lookahead to prevent matching "guión bajo"
+            patterns.append(f"(?:{escaped_keyword}(?!\\s+bajo))")
+        else:
+            patterns.append(f"(?:{escaped_keyword})")
+    
+    dash_pattern = f"(?:{'|'.join(patterns)})"
 
     return re.compile(rf"\b{dash_pattern}\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
