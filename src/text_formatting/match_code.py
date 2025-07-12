@@ -5,11 +5,11 @@ import re
 from typing import List
 from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
-from ..core.config import get_logger, get_config
+from ..core.config import get_config, setup_logging
 from . import regex_patterns
 from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS, ABBREVIATIONS
 
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 
 class CodeEntityDetector:

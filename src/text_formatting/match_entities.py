@@ -8,9 +8,9 @@ import re
 from typing import List, Dict, Any
 from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
-from ..core.config import get_logger
+from ..core.config import setup_logging
 
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 
 class QuantityEntityDetector:

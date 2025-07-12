@@ -5,7 +5,7 @@ import re
 from typing import List, Optional, Dict, Any
 from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
-from ..core.config import get_logger
+from ..core.config import setup_logging
 from . import regex_patterns
 from .constants import (
     ORDINAL_WORDS,
@@ -22,7 +22,7 @@ from .constants import (
     CURRENCY_MAP,
 )
 
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 # Constants imported from constants.py
 

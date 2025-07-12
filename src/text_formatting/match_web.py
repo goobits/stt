@@ -5,11 +5,11 @@ import re
 from typing import List
 from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
-from ..core.config import get_logger
+from ..core.config import setup_logging
 from . import regex_patterns
 from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, URL_KEYWORDS, ACTION_PREFIXES, DIGIT_WORDS
 
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 
 class WebEntityDetector:

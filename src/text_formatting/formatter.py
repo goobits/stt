@@ -11,7 +11,7 @@ Clean architecture with 4 specialized classes:
 import os
 import re
 from typing import List
-from ..core.base import configured_module
+from ..core.config import get_config, setup_logging
 
 # Import common data structures
 from .common import EntityType, Entity, NumberParser
@@ -27,7 +27,8 @@ from .nlp_provider import get_nlp, get_punctuator
 from . import regex_patterns
 
 # Setup config and logging
-config, logger = configured_module(__name__)
+config = get_config()
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 # Import shared constants
 from .constants import (

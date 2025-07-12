@@ -53,7 +53,7 @@ config = get_config()
 from ..audio.encoder import OpusEncoder
 from ..audio.opus_batch import OpusBatchEncoder
 
-logger = setup_logging(__name__, log_filename="transcription_client.txt")
+logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
 # ========================= CUSTOM EXCEPTIONS =========================

@@ -19,12 +19,12 @@ import uuid
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
-from ..core.config import get_config, get_logger
+from ..core.config import get_config, setup_logging
 from .client import StreamingAudioClient
 from ..audio.capture import PipeBasedAudioStreamer
 
 # Setup logging and config
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="transcription.txt")
 config = get_config()
 
 

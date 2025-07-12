@@ -64,7 +64,7 @@ from ..audio.opus_batch import OpusBatchDecoder
 from ..utils.ssl import create_ssl_context
 
 # Setup standardized logging for WebSocket server
-logger = setup_logging(__name__, log_filename="transcription_server.txt")
+logger = setup_logging(__name__, log_filename="transcription.txt")
 
 # Import centralized formatting
 from ..text_formatting.formatter import format_transcription

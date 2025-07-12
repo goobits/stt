@@ -6,9 +6,9 @@ and other AI models used by the text formatting system.
 
 import os
 import threading
-from ..core.config import get_logger
+from ..core.config import setup_logging
 
-logger = get_logger(__name__)
+logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 # Global model instances with thread-safe lazy loading
 _nlp = None
