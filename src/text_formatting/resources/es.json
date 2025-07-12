@@ -43,7 +43,7 @@
   "context_words": {
     "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar", "cargar", "importar", "exportar", "crear", "borrar"],
     "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado", "titulado"],
-    "email_actions": ["email", "correo", "contactar", "escribir a", "enviar a", "notificar"]
+    "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a"]
   },
   "currency": {
     "units": ["dólar", "dólares", "peso", "pesos", "euro", "euros", "yen", "yenes", "yuan", "yuanes", "libra", "libras", "franco", "francos", "real", "reales"]
