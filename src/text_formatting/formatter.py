@@ -1143,7 +1143,6 @@ class TextFormatter:
         self.numeric_detector = NumericalEntityDetector(nlp=self.nlp)
         self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser)
 
-
         # Complete sentence phrases that need punctuation even when short
         self.complete_sentence_phrases = COMPLETE_SENTENCE_PHRASES
 
@@ -1202,7 +1201,6 @@ class TextFormatter:
             f"Numeric entities detected: {len(numeric_entities)} - {[f'{e.type}:{e.text}' for e in numeric_entities]}"
         )
         entities.extend(numeric_entities)
-
 
         logger.debug(f"Detected {len(entities)} total entities.")
 

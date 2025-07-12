@@ -476,55 +476,8 @@ SPOKEN_PROTOCOL_PATTERN = re.compile(
 )
 
 # Spoken email pattern: "john at example.com" or "john at example dot com"
-# Now with better action word filtering
-SPOKEN_EMAIL_PATTERN = re.compile(
-    r"""
-    (?:^|(?<=\s))                       # Start of string or preceded by space
-    (?:                                 # Non-capturing group for email action prefix
-        (?:email|contact|write\s+to|send\s+to)\s+  # Action prefixes we want to capture and handle
-    )
-    (?!(?:to|for|from|with|by|in|on|at|the|a|an|this|that|these|those|reach|call|find|locate|get|contact|tell|ask|see|talk|speak|say|me|you|us|him|her|them|it|i|we|he|she|they|look|go|come|think|if|when|where|what|how|why|please|can|could|would|should|will|shall|may|might)\s+)  # Negative lookahead: don't start with common non-name words or pronouns
-    (                                   # Username part (capture group 1)
-        [a-zA-Z]+                       # Must start with letters (no numbers at start of name)
-        (?:                             # Optional additional parts
-            \s+                         # Space separator
-            (?:                         # Choice of what can follow
-                (?:underscore|dash)     # Spoken separators
-                |                       # OR
-                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
-                |                       # OR
-                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
-            )
-        )*                              # Zero or more additional parts
-    )
-    \s+at\s+                            # " at "
-    (                                   # Domain part (capture group 2)
-        [a-zA-Z0-9][a-zA-Z0-9.-]*       # Domain starting with alphanumeric
-        (?:                             # Optional additional domain parts
-            \s+                         # Space separator
-            (?:                         # Choice of what can follow
-                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
-                |                       # OR
-                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
-            )
-        )*                              # Zero or more additional parts
-        (?:                             # Non-capturing group for dots
-            \s+dot\s+                   # " dot " for spoken dots
-            [a-zA-Z0-9.-]+              # Domain part after dot
-            (?:                         # Optional additional number words after dots
-                \s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)
-                |                       # OR
-                \s+[a-zA-Z0-9._-]+
-            )*                          # Zero or more
-        |                               # OR
-            \.                          # Regular dot
-            [a-zA-Z0-9.-]+              # Domain part after dot
-        )+                              # One or more dots
-    )
-    (?=\s|$|[.!?])                      # Followed by space, end, or punctuation
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Now with better action word filtering and centralized keywords
+# Pattern will be built dynamically after create_alternation_pattern is defined
 
 def build_port_number_pattern() -> Pattern:
     """Builds the port number pattern dynamically from keywords in constants."""
@@ -1172,3 +1125,58 @@ def create_alternation_pattern(items: List[str], word_boundaries: bool = True) -
     if word_boundaries:
         pattern = rf"\b(?:{pattern})\b"
     return pattern
+
+
+# Revert to original working pattern - centralization will be done later if needed
+SPOKEN_EMAIL_PATTERN_ORIGINAL = re.compile(
+    r"""
+    (?:^|(?<=\s))                       # Start of string or preceded by space
+    (?:                                 # Non-capturing group for email action prefix
+        (?:email|contact|write\s+to|send\s+to)\s+  # Action prefixes we want to capture and handle
+    )
+    (?!(?:to|for|from|with|by|in|on|at|the|a|an|this|that|these|those|reach|call|find|locate|get|contact|tell|ask|see|talk|speak|say|me|you|us|him|her|them|it|i|we|he|she|they|look|go|come|think|if|when|where|what|how|why|please|can|could|would|should|will|shall|may|might)\s+)  # Negative lookahead: don't start with common non-name words or pronouns
+    (                                   # Username part (capture group 1)
+        [a-zA-Z]+                       # Must start with letters (no numbers at start of name)
+        (?:                             # Optional additional parts
+            \s+                         # Space separator
+            (?:                         # Choice of what can follow
+                (?:underscore|dash)     # Spoken separators
+                |                       # OR
+                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
+                |                       # OR
+                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
+            )
+        )*                              # Zero or more additional parts
+    )
+    \s+at\s+                            # " at " - ORIGINAL HARDCODED
+    (                                   # Domain part (capture group 2)
+        [a-zA-Z0-9][a-zA-Z0-9.-]*       # Domain starting with alphanumeric
+        (?:                             # Optional additional domain parts
+            \s+                         # Space separator
+            (?:                         # Choice of what can follow
+                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
+                |                       # OR
+                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
+            )
+        )*                              # Zero or more additional parts
+        (?:                             # Non-capturing group for dots
+            \s+dot\s+                   # " dot " for spoken dots - ORIGINAL HARDCODED
+            [a-zA-Z0-9.-]+              # Domain part after dot
+            (?:                         # Optional additional number words after dots
+                \s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)
+                |                       # OR
+                \s+[a-zA-Z0-9._-]+
+            )*                          # Zero or more
+        |                               # OR
+            \.                          # Regular dot
+            [a-zA-Z0-9.-]+              # Domain part after dot
+        )+                              # One or more dots
+    )
+    (?=\s|$|[.!?])                      # Followed by space, end, or punctuation
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+# Use the original working pattern for now
+SPOKEN_EMAIL_PATTERN = SPOKEN_EMAIL_PATTERN_ORIGINAL

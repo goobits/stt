@@ -815,6 +815,7 @@ URL_KEYWORDS = {
     "ampersand": "&",
     "and": "&",
     "at sign": "@",
+    "at": "@",  # Add simple "at" for emails
     "underscore": "_",
     "hyphen": "-",
     "dash": "-",
