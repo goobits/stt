@@ -11,6 +11,7 @@ explaining each component.
 
 import re
 from typing import List, Pattern, Optional
+from .constants import URL_KEYWORDS
 
 
 # ==============================================================================
@@ -373,67 +374,72 @@ TECHNICAL_CONTENT_PATTERNS = [
 # WEB-RELATED PATTERNS
 # ==============================================================================
 
-# Spoken URL pattern: "example dot com slash path" or "example.com slash path"
-# Also supports spoken numbers: "one one one one dot com"
-SPOKEN_URL_PATTERN = re.compile(
-    r"""
+def build_spoken_url_pattern() -> Pattern:
+    """Builds the spoken URL pattern dynamically from keywords in constants."""
+    
+    # Get keyword patterns from URL_KEYWORDS
+    dot_keywords = [k for k, v in URL_KEYWORDS.items() if v == "."]
+    slash_keywords = [k for k, v in URL_KEYWORDS.items() if v == "/"]
+    question_mark_keywords = [k for k, v in URL_KEYWORDS.items() if v == "?"]
+    
+    # Create alternation patterns for each keyword type (inline implementation)
+    dot_escaped = [re.escape(k) for k in dot_keywords] + [r"\."]
+    dot_pattern = "|".join(dot_escaped)
+    
+    slash_escaped = [re.escape(k) for k in slash_keywords]
+    slash_pattern = "|".join(slash_escaped)
+    
+    question_mark_escaped = [re.escape(k) for k in question_mark_keywords]
+    question_mark_pattern = "|".join(question_mark_escaped)
+    
+    # Create number words pattern
+    number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
+    number_words_pattern = "|".join(number_words_escaped)
+    
+    # Build the complete pattern using the dynamic keyword patterns
+    pattern_str = fr"""
     \b                                  # Word boundary
     (                                   # Capture group 1: full URL
         (?:                             # Non-capturing group for subdomains
             (?:                         # Domain part alternatives
                 [a-zA-Z0-9-]+           # Alphanumeric domain part
             |                           # OR
-                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
-                   eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
-                   eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
-                   eighty|ninety|hundred|thousand)
-                (?:\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
-                       eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
-                       eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
-                       eighty|ninety|hundred|thousand))*  # Multiple number words
+                (?:{number_words_pattern})
+                (?:\s+(?:{number_words_pattern}))*  # Multiple number words
             )
             (?:                         # Non-capturing group for dot
-                \s+dot\s+               # Spoken "dot"
-            |                           # OR
-                \.                      # Regular dot
+                \s+(?:{dot_pattern})\s+ # Spoken "dot" or regular dot
             )
         )*                              # Zero or more subdomains
         (?:                             # Main domain name part alternatives
             [a-zA-Z0-9-]+               # Alphanumeric domain part
         |                               # OR
-            (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
-               eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
-               eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
-               eighty|ninety|hundred|thousand)
-            (?:\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
-                   eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
-                   eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
-                   eighty|ninety|hundred|thousand))*      # Multiple number words
+            (?:{number_words_pattern})
+            (?:\s+(?:{number_words_pattern}))*      # Multiple number words
         )
         (?:                             # Non-capturing group for dot
-            \s+dot\s+                   # Spoken "dot"
-        |                               # OR
-            \.                          # Regular dot
+            \s+(?:{dot_pattern})\s+     # Spoken "dot" or regular dot
         )
-        (?:"""
-    + "|".join(COMMON_TLDS)
-    + r""")  # TLD alternatives
+        (?:{"|".join(COMMON_TLDS)})     # TLD alternatives
         (?:                             # Optional path part
-            \s+slash\s+                 # " slash "
+            \s+(?:{slash_pattern})\s+   # Spoken "slash"
             [a-zA-Z0-9-]+               # Path segment
             (?:                         # Additional path segments
                 \s+[a-zA-Z0-9-]+        # More path parts
             )*                          # Zero or more additional segments
         )*                              # Zero or more path groups
         (?:                             # Optional query string
-            \s+question\s+mark\s+       # " question mark "
+            \s+(?:{question_mark_pattern})\s+ # Spoken "question mark"
             .+                          # Query parameters
         )?                              # Optional query string
     )
     ([.!?]?)                            # Capture group 2: optional punctuation
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+    """
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+# Create the pattern instance for immediate use
+SPOKEN_URL_PATTERN = build_spoken_url_pattern()
 
 # Spoken protocol pattern: "http colon slash slash example.com" or "http colon slash slash example dot com"
 SPOKEN_PROTOCOL_PATTERN = re.compile(
@@ -520,33 +526,43 @@ SPOKEN_EMAIL_PATTERN = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# Port number pattern: "localhost colon eight zero eight zero" or "localhost colon three thousand"
-PORT_NUMBER_PATTERN = re.compile(
-    r"""
+def build_port_number_pattern() -> Pattern:
+    """Builds the port number pattern dynamically from keywords in constants."""
+    
+    # Get colon keywords from URL_KEYWORDS
+    colon_keywords = [k for k, v in URL_KEYWORDS.items() if v == ":"]
+    
+    # Create alternation pattern for colon
+    colon_escaped = [re.escape(k) for k in colon_keywords] + ["colon"]  # Include both URL_KEYWORDS and "colon"
+    colon_pattern = "|".join(colon_escaped)
+    
+    # Create number words pattern
+    number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
+    number_words_pattern = "|".join(number_words_escaped)
+    
+    # Build the complete pattern using the dynamic keyword patterns
+    pattern_str = fr"""
     \b                                  # Word boundary
     (localhost|[\w.-]+)                 # Hostname
-    \s+colon\s+                         # " colon "
+    \s+(?:{colon_pattern})\s+           # Spoken "colon"
     (                                   # Capture group: port number (allows compound numbers)
         (?:                             # Non-capturing group for number words
-            zero|one|two|three|four|five|six|seven|eight|nine|ten|
-            eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|
-            twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|
-            hundred|thousand|million
+            {number_words_pattern}
         )
         (?:                             # Additional number words
             \s+                         # Space separator
             (?:                         # Another number word
-                zero|one|two|three|four|five|six|seven|eight|nine|ten|
-                eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|
-                twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|
-                hundred|thousand|million
+                {number_words_pattern}
             )
         )*                              # Zero or more additional number words
     )
     \b                                  # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+    """
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+# Create the pattern instance for immediate use
+PORT_NUMBER_PATTERN = build_port_number_pattern()
 
 # WWW domain rescue pattern: "wwwgooglecom" -> "www.google.com"
 WWW_DOMAIN_RESCUE_PATTERN = re.compile(
