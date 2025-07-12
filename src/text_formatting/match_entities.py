@@ -76,19 +76,6 @@ class QuantityEntityDetector:
             re.IGNORECASE,
         )
 
-        # Metric unit patterns
-        self.metric_patterns = {
-            "length": re.compile(
-                r"\b\d+(?:\.\d+)?\s*(?:mm|cm|m|km|millimeters?|centimeters?|meters?|kilometres?|kilometers?)\b",
-                re.IGNORECASE,
-            ),
-            "weight": re.compile(
-                r"\b\d+(?:\.\d+)?\s*(?:mg|g|kg|t|milligrams?|grams?|kilograms?|tonnes?|tons?)\b", re.IGNORECASE
-            ),
-            "volume": re.compile(
-                r"\b\d+(?:\.\d+)?\s*(?:ml|l|milliliters?|millilitres?|liters?|litres?)\b", re.IGNORECASE
-            ),
-        }
 
         # Time duration pattern
         self.time_duration_pattern = re.compile(
@@ -135,8 +122,6 @@ class QuantityEntityDetector:
         # Detect temperatures
         entities.extend(self._detect_temperatures(text, existing_entities))
 
-        # Detect metric units
-        entities.extend(self._detect_metric_units(text, existing_entities))
 
         # Detect time durations
         entities.extend(self._detect_time_durations(text, existing_entities))
@@ -201,32 +186,6 @@ class QuantityEntityDetector:
 
         return entities
 
-    def _detect_metric_units(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect metric unit entities."""
-        entities = []
-
-        # Length units
-        for match in self.metric_patterns["length"].finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.METRIC_LENGTH)
-                )
-
-        # Weight units
-        for match in self.metric_patterns["weight"].finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.METRIC_WEIGHT)
-                )
-
-        # Volume units
-        for match in self.metric_patterns["volume"].finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.METRIC_VOLUME)
-                )
-
-        return entities
 
     def _detect_time_durations(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
         """Detect time duration entities."""
