@@ -619,6 +619,7 @@ class SmartCapitalizer:
         """Apply intelligent capitalization with entity protection"""
         if not text:
             return text
+            
 
         # Preserve all-caps words (acronyms like CPU, API, JSON) and number+unit combinations (500MB, 2.5GHz)
         # But exclude version numbers (v16.4.2)
@@ -652,6 +653,7 @@ class SmartCapitalizer:
         for i, match in enumerate(reversed(unique_matches)):
             placeholder = f"__CAPS_{len(unique_matches) - i - 1}__"
             all_caps_words[placeholder] = match.group()
+            old_len = len(text)
             text = text[: match.start()] + placeholder + text[match.end() :]
 
         # Preserve placeholders and entities
@@ -735,102 +737,39 @@ class SmartCapitalizer:
                 # Technical terms are now protected by the entity system (CLI_COMMAND, etc.)
                 # No manual checks needed - entity-based protection is sufficient
 
-                if not is_protected:
-                    text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
-
         # Fix "i" pronoun using grammatical context
         if self.nlp:
-            # Use the pre-processed doc object if available
-            doc_to_use = doc
-            if doc_to_use is None:
-                # This block only runs if the formatter failed to create a doc earlier
-                try:
-                    doc_to_use = self.nlp(text)
-                except Exception as e:
-                    logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
-                    doc_to_use = None
+            # IMPORTANT: Always create a fresh doc object on the current text
+            # The passed-in doc was created on the original text and its token indices
+            # are no longer valid after text modifications
+            try:
+                doc_to_use = self.nlp(text)
+            except Exception as e:
+                logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
+                doc_to_use = None
 
             if doc_to_use:
                 try:
-                    new_text = list(text)
+                    new_text = list(text) # Work on a list of characters to avoid slicing errors
                     for token in doc_to_use:
-                        if token.text == "i":
-                            # Capitalize 'i' if it's being used as a pronoun (subject, conjunct, etc.)
-                            # but not if it's in a code context
-                            if token.pos_ == "PRON":
-                                # Also ensure it's not inside ANY entity - entities should control their own formatting
-                                is_protected = False
-                                if entities:
-                                    is_protected = any(
-                                        entity.start <= token.idx < entity.end
-                                        for entity in entities
-                                    )
+                        # Find standalone 'i' tokens that are pronouns
+                        if token.text == "i" and token.pos_ == "PRON":
+                            # Check if this 'i' is inside a protected entity (like a filename)
+                            is_protected = False
+                            if entities:
+                                is_protected = any(
+                                    entity.start <= token.idx < entity.end
+                                    for entity in entities
+                                )
 
-                                # Check if next token is 'e' (for i.e. pattern)
-                                is_abbreviation = False
-                                if token.i + 1 < len(doc_to_use) and doc_to_use[token.i + 1].text.lower() == "e":
-                                    is_abbreviation = True
-
-                                # Check for variable context clues
-                                is_likely_variable = False
-                                # Look at the token before the 'i'
-                                if token.i > 0:
-                                    prev_token = doc_to_use[token.i - 1]
-                                    # Common patterns indicating 'i' is a variable
-                                    if prev_token.text.lower() in [
-                                        "variable",
-                                        "counter",
-                                        "iterator",
-                                        "index",
-                                        "=",
-                                        "is",
-                                    ]:
-                                        # But check if 'is' is followed by a non-code word
-                                        if prev_token.text.lower() == "is":
-                                            # If "is i" is at the end or followed by punctuation, it's likely a variable
-                                            if (
-                                                token.i + 1 >= len(doc_to_use)
-                                                or doc_to_use[token.i + 1].pos_ == "PUNCT"
-                                            ):
-                                                is_likely_variable = True
-                                        else:
-                                            is_likely_variable = True
-
-                                if not is_protected and not is_likely_variable and not is_abbreviation:
-                                    new_text[token.idx] = "I"
-                    text = "".join(new_text)
+                            if not is_protected:
+                                # Safely replace the character at the correct index
+                                new_text[token.idx] = "I"
+                    text = "".join(new_text) # Re-assemble the string once at the end
                 except Exception as e:
                     logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
-                # Fallback to original regex-based approach
-                new_text = ""
-                last_end = 0
-                for match in re.finditer(r"\bi\b", text):
-                    start, end = match.span()
-                    new_text += text[last_end:start]
-
-                    is_protected = False
-                    if entities:
-                        is_protected = any(entity.start <= start < entity.end for entity in entities)
-
-                    is_part_of_identifier = (start > 0 and text[start - 1] in "_-") or (
-                        end < len(text) and text[end] in "_-"
-                    )
-
-                    # Add context check for variable 'i'
-                    preceding_text = text[max(0, start - 25) : start].lower()
-                    is_variable_context = any(
-                        keyword in preceding_text
-                        for keyword in ["variable is", "counter is", "iterator is", "for i in"]
-                    )
-
-                    if not is_protected and not is_part_of_identifier and not is_variable_context:
-                        new_text += "I"  # Capitalize
-                    else:
-                        new_text += "i"  # Keep lowercase
-                    last_end = end
-
-                new_text += text[last_end:]
-                text = new_text
+                    # If spaCy fails, do nothing. It's better to have a lowercase 'i'
+                    # than to risk corrupting the text with the old regex method.
         else:
             # No SpaCy available, use regex approach with context check
             new_text = ""
@@ -866,12 +805,15 @@ class SmartCapitalizer:
         # Use simple string replacement to avoid regex complications
         for old, new in self.abbreviation_fixes.items():
             # Replace mid-text instances but preserve true sentence starts
+            old_text = text
             text = text.replace(f" {old}", f" {new}")
             text = text.replace(f": {old}", f": {new}")
             text = text.replace(f", {old}", f", {new}")
+            
 
             # Fix at start only if not truly the beginning of input
             if text.startswith(old) and len(text) > len(old) + 5:
+                old_text = text
                 text = new + text[len(old) :]
 
         # Apply uppercase abbreviations (case-insensitive matching)
@@ -888,6 +830,9 @@ class SmartCapitalizer:
                 # Process in reverse order to maintain positions
                 for match in reversed(matches):
                     match_start, match_end = match.span()
+                    matched_text = text[match_start:match_end]
+                    
+                    
                     # Check if this match overlaps with any protected entity
                     is_protected = any(
                         match_start < entity.end
@@ -910,7 +855,9 @@ class SmartCapitalizer:
 
                     if not is_protected:
                         # Safe to replace this match
+                        old_text = text
                         text = text[:match_start] + upper_abbrev + text[match_end:]
+                        
             else:
                 # No entities to protect, do normal replacement
                 text = re.sub(pattern, upper_abbrev, text, flags=re.IGNORECASE)
@@ -923,6 +870,7 @@ class SmartCapitalizer:
         for placeholder, caps_word in all_caps_words.items():
             text = re.sub(rf"\b{re.escape(placeholder)}\b", caps_word, text)
 
+            
         return text
 
     def _capitalize_proper_nouns(self, text: str, entities: List[Entity] = None, doc=None) -> str:
@@ -1219,6 +1167,7 @@ class TextFormatter:
         processed_text = "".join(result_parts)
 
         logger.debug(f"Processed text after entity conversion: '{processed_text}'")
+        
 
         # Step 4: Apply punctuation and capitalization LAST (Phase 2 refactoring)
         is_standalone_technical = self._is_standalone_technical(text, filtered_entities)
@@ -1250,16 +1199,19 @@ class TextFormatter:
                     converted_entities.append(converted_entity)
                     current_pos = entity_start + len(converted_text)
             
+                
             final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
             logger.debug(f"Text after capitalization: '{final_text}'")
 
         text = final_text
         logger.debug(f"Text after processing: '{text}'")
+        
 
         # Step 6: Clean up formatting artifacts
         text = re.sub(r"\.\.+", ".", text)
         text = re.sub(r"\?\?+", "?", text)
         text = re.sub(r"!!+", "!", text)
+        
 
         # Step 7: Restore abbreviations that the punctuation model may have mangled
         text = self._restore_abbreviations(text)
@@ -1920,9 +1872,21 @@ class TextFormatter:
         if not text:
             return ""
 
+        # Debug: Check for entity position misalignment
+        for entity in entities:
+            if entity.start < len(text) and entity.end <= len(text):
+                actual_text = text[entity.start:entity.end]
+                logger.debug(f"Entity {entity.type} at [{entity.start}:{entity.end}] text='{entity.text}' actual='{actual_text}'")
+                if actual_text != entity.text:
+                    logger.warning(f"Entity position mismatch! Expected '{entity.text}' but found '{actual_text}'")
+            else:
+                logger.warning(f"Entity {entity.type} position out of bounds: [{entity.start}:{entity.end}] for text length {len(text)}")
+
         # Phase 1: Use the converted entities with their correct positions in the final text
         # Pass the entities directly to the capitalizer for protection
         logger.debug(f"Sending to capitalizer: '{text}'")
+        
+        
         # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
         capitalized_text = self.smart_capitalizer.capitalize(text, entities, doc=doc)
         logger.debug(f"Received from capitalizer: '{capitalized_text}'")

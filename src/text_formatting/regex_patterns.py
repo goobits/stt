@@ -1160,7 +1160,7 @@ ENTITY_BOUNDARY_PATTERN = re.compile(r"\b(?=\w)")
 
 def create_artifact_patterns(artifacts: List[str]) -> List[Pattern]:
     """Create and cache compiled patterns for transcription artifacts."""
-    return [re.compile(re.escape(artifact), re.IGNORECASE) for artifact in artifacts]
+    return [re.compile(r'\b' + re.escape(artifact) + r'\b', re.IGNORECASE) for artifact in artifacts]
 
 
 def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
