@@ -721,30 +721,8 @@ class SmartCapitalizer:
                 # Abbreviations are prose entities that should follow normal sentence capitalization rules
                 # (Removed abbreviation protection logic as it was too aggressive)
 
-                # Manual protection for technical terms that aren't always detected as entities
-                # or where only part of the sentence is an entity (e.g., "let i equals ten")
-                if not is_protected:
-                    text_lower = text.lower()
-
-                    # Protect essential lowercase-only technical terms at sentence start
-                    lowercase_only_terms = {
-                        # Programming keywords that should never be capitalized
-                        "let", "const", "var", "if", "for", "while", "function", "class",
-                        "import", "export", "return", "try", "catch", "finally",
-                        # CLI tools that are always lowercase
-                        "git", "npm", "pip", "docker", "kubectl", "cargo", "yarn", 
-                        "brew", "apt", "make", "cmake",
-                        # Protocols that should be lowercase
-                        "http", "https", "ftp", "ssh", "tcp", "udp",
-                        # Math constants and single letter variables
-                        "pi", "e", "x", "y", "z", "i", "j", "k"
-                    }
-                    
-                    for term in lowercase_only_terms:
-                        if text_lower.startswith(term + " ") or text_lower == term:
-                            is_protected = True
-                            logger.debug(f"Protecting '{term}' from capitalization (technical term)")
-                            break
+                # Technical terms are now protected by the entity system (CLI_COMMAND, etc.)
+                # No manual checks needed - entity-based protection is sufficient
 
                 if not is_protected:
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
