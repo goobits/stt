@@ -40,7 +40,10 @@ class CodeEntityDetector:
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all code-related entities."""
         code_entities = []
-        # Pass all existing entities for overlap checking
+        # Add the new detector call here
+        all_entities = entities + code_entities
+        self._detect_cli_commands(text, code_entities, all_entities)
+        # ... (rest of the existing detector calls)
         all_entities = entities + code_entities
         self._detect_filenames(text, code_entities, all_entities)
         all_entities = entities + code_entities
@@ -487,6 +490,43 @@ class CodeEntityDetector:
                     )
                 )
 
+    def _detect_cli_commands(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+        """Detects standalone CLI commands and keywords."""
+        if all_entities is None:
+            all_entities = entities
+
+        from .constants import MULTI_WORD_TECHNICAL_TERMS
+
+        # Only use specific CLI tools and multi-word commands, not all technical terms
+        cli_tools = {
+            "git", "npm", "pip", "docker", "kubectl", "cargo", "yarn", 
+            "brew", "apt", "make", "cmake", "node", "python", "java",
+            "mvn", "gradle", "composer", "gem", "conda", "helm",
+            "terraform", "ansible", "vagrant"
+        }
+
+        # Combine CLI tools with multi-word technical terms and sort by length
+        all_commands = sorted(
+            list(MULTI_WORD_TECHNICAL_TERMS) + list(cli_tools),
+            key=len,
+            reverse=True
+        )
+
+        for command in all_commands:
+            # Use regex to find whole-word matches
+            pattern = rf"\b{re.escape(command)}\b"
+            for match in re.finditer(pattern, text, re.IGNORECASE):
+                if not is_inside_entity(match.start(), match.end(), all_entities):
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.CLI_COMMAND,
+                            metadata={'command': match.group(0)}
+                        )
+                    )
+
 
 class CodePatternConverter:
     def __init__(self, number_parser: NumberParser, language: str = "en"):
@@ -495,6 +535,7 @@ class CodePatternConverter:
         self.config = get_config()
 
         self.converters = {
+            EntityType.CLI_COMMAND: self.convert_cli_command,
             EntityType.FILENAME: self.convert_filename,
             EntityType.INCREMENT_OPERATOR: self.convert_increment_operator,
             EntityType.DECREMENT_OPERATOR: self.convert_decrement_operator,
@@ -506,6 +547,10 @@ class CodePatternConverter:
             EntityType.UNDERSCORE_DELIMITER: self.convert_underscore_delimiter,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: self.convert_simple_underscore_variable,
         }
+
+    def convert_cli_command(self, entity: Entity) -> str:
+        """Preserve the original text of a CLI command."""
+        return entity.text
 
     def convert_filename(self, entity: Entity, full_text: str = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
