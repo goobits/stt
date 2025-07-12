@@ -41,15 +41,6 @@ class QuantityEntityDetector:
 
     def _setup_patterns(self):
         """Set up regex patterns for quantity detection."""
-        # Currency patterns
-        self.currency_pattern = re.compile(
-            r"\b(?:"
-            r"(?:[$£€])\s*\d+(?:,\d{3})*(?:\.\d{2})?|"  # $123.45, £1,234.56
-            r"\d+(?:,\d{3})*(?:\.\d{2})?\s*(?:dollars?|pounds?|euros?)|"  # 123 dollars
-            r"\d+\s+cents?"  # 50 cents
-            r")\b",
-            re.IGNORECASE,
-        )
 
 
 
@@ -110,8 +101,8 @@ class QuantityEntityDetector:
         entities = []
         existing_entities = existing_entities or []
 
-        # Detect currency
-        entities.extend(self._detect_currency(text, existing_entities))
+        # Detect currency - COMMENTED OUT: Consolidating into NumericalEntityDetector
+        # entities.extend(self._detect_currency(text, existing_entities))
 
 
 
@@ -131,30 +122,6 @@ class QuantityEntityDetector:
 
         return entities
 
-    def _detect_currency(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect currency entities."""
-        entities = []
-
-        for match in self.currency_pattern.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                value = match.group()
-
-                # Determine specific currency type
-                if "$" in value:
-                    if "cent" in value.lower():
-                        entity_type = EntityType.CENTS
-                    else:
-                        entity_type = EntityType.DOLLARS
-                elif "£" in value:
-                    entity_type = EntityType.POUNDS
-                elif "€" in value:
-                    entity_type = EntityType.EUROS
-                else:
-                    entity_type = EntityType.CURRENCY
-
-                entities.append(Entity(start=match.start(), end=match.end(), text=value, type=entity_type))
-
-        return entities
 
 
 
