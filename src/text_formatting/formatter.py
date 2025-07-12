@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Text formatter for STT transcriptions.
+"""Text formatter for Matilda transcriptions.
 
 Clean architecture with 4 specialized classes:
 - EntityDetector: SpaCy-powered entity detection

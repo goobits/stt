@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Code-related entity detection and conversion for STT transcriptions."""
+"""Code-related entity detection and conversion for Matilda transcriptions."""
 
 import re
 from typing import List

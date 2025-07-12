@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Numeric, mathematical, time, and financial entity detection and conversion for STT transcriptions."""
+"""Numeric, mathematical, time, and financial entity detection and conversion for Matilda transcriptions."""
 
 import re
 from typing import List, Optional, Dict, Any

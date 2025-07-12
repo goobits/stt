@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Web-related entity detection and conversion for STT transcriptions."""
+"""Web-related entity detection and conversion for Matilda transcriptions."""
 
 import re
 from typing import List
