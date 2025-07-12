@@ -1177,113 +1177,82 @@ class TextFormatter:
         filtered_entities = self._filter_overlapping_entities(entities)
         logger.debug(f"Filtered to {len(filtered_entities)} non-overlapping entities.")
 
-        # Step 3: Create a "Punctuation-Safe" string using a robust assembly approach.
-        # This gives the punctuation model full context without letting it mangle entities.
-        entity_map = {}
-        punctuated_parts = []
+        # Step 3: Assemble final string WITHOUT placeholders (Phase 2 refactoring)
+        # Build the new string from scratch by processing entities in order
+        result_parts = []
         last_end = 0
-        # Sort entities by their start position to process the string in order.
-        for i, entity in enumerate(sorted(filtered_entities, key=lambda e: e.start)):
-            placeholder = f"__ENTITY_{i}__"
-            entity_map[placeholder] = entity
-
-            # Add the text gap before this entity.
-            punctuated_parts.append(text[last_end : entity.start])
-            # Add the placeholder for the current entity.
-            punctuated_parts.append(placeholder)
-
+        
+        # Sort entities by start position to process in sequence
+        sorted_entities = sorted(filtered_entities, key=lambda e: e.start)
+        
+        for entity in sorted_entities:
+            # Add the plain text gap before this entity
+            result_parts.append(text[last_end:entity.start])
+            
+            # Convert the entity to its final form and add it
+            converted_text = self.pattern_converter.convert(entity, text)
+            result_parts.append(converted_text)
+            
             last_end = entity.end
+            
+        # Add any remaining text after the last entity
+        result_parts.append(text[last_end:])
+        
+        # Join everything into a single string
+        processed_text = "".join(result_parts)
 
-        # Add any remaining text after the last entity.
-        punctuated_parts.append(text[last_end:])
+        logger.debug(f"Processed text after entity conversion: '{processed_text}'")
 
-        # Join all the parts to create the final, safe string for the punctuation model.
-        punctuated_text = "".join(punctuated_parts)
-
-        logger.debug(f"Punctuation-safe string: '{punctuated_text}'")
-
-        # Step 4: Apply punctuation to the placeholder-protected string.
+        # Step 4: Apply punctuation and capitalization LAST (Phase 2 refactoring)
         is_standalone_technical = self._is_standalone_technical(text, filtered_entities)
-        punctuated_text = self._add_punctuation(
-            punctuated_text, original_had_punctuation, is_standalone_technical, filtered_entities
+        final_text = self._add_punctuation(
+            processed_text, original_had_punctuation, is_standalone_technical, filtered_entities
         )
-        logger.debug(f"Punctuated placeholder string: '{punctuated_text}'")
+        logger.debug(f"Text after punctuation: '{final_text}'")
 
-        # The punctuation model adds colons after action verbs when followed by entities
-        # This is grammatically correct, so we'll keep them
+        # Step 5: Apply capitalization to the final text (entities already converted)
+        # Skip capitalization for standalone technical content
+        if not is_standalone_technical:
+            logger.debug(f"Text before capitalization: '{final_text}'")
+            # Build converted entities list for capitalization protection
+            converted_entities = []
+            current_pos = 0
+            for entity in sorted_entities:
+                # Calculate where the converted entity now appears in final text
+                converted_text = self.pattern_converter.convert(entity, text)
+                # Find the entity in the final text (this is approximate but sufficient for protection)
+                entity_start = final_text.find(converted_text, current_pos)
+                if entity_start != -1:
+                    converted_entity = Entity(
+                        start=entity_start,
+                        end=entity_start + len(converted_text),
+                        text=converted_text,
+                        type=entity.type,
+                        metadata=entity.metadata,
+                    )
+                    converted_entities.append(converted_entity)
+                    current_pos = entity_start + len(converted_text)
+            
+            final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
+            logger.debug(f"Text after capitalization: '{final_text}'")
 
-        # Step 5: Assemble the final string by converting entities and restoring them.
-        # This replaces placeholders with their final, converted text.
-        text = punctuated_text
-        logger.debug(f"Starting assembly with: '{text}'")
-        logger.debug(f"Entity map: {entity_map}")
+        text = final_text
+        logger.debug(f"Text after processing: '{text}'")
 
-        # Track entity positions in final text for capitalization protection
-        converted_entities = []
-
-        # Sort placeholders by their position in text to handle replacements in order
-        # This ensures that position tracking remains accurate as text changes
-        placeholder_positions = [
-            (text.find(placeholder), placeholder, entity)
-            for placeholder, entity in entity_map.items()
-            if text.find(placeholder) != -1
-        ]
-        placeholder_positions.sort(key=lambda x: x[0])
-
-        # Track cumulative position shift due to replacements
-        position_shift = 0
-
-        for original_pos, placeholder, entity in placeholder_positions:
-            converted_content = self.pattern_converter.convert(entity, text)
-            logger.debug(f"Converting {placeholder} (entity: {entity.type}:{entity.text}) -> '{converted_content}'")
-
-            # Calculate current position accounting for previous replacements
-            current_placeholder_start = text.find(placeholder)
-            if current_placeholder_start != -1:
-                # Create a new entity with correct position for the converted content
-                converted_entity = Entity(
-                    start=current_placeholder_start,
-                    end=current_placeholder_start + len(converted_content),
-                    text=converted_content,
-                    type=entity.type,
-                    metadata=entity.metadata,
-                )
-                converted_entities.append(converted_entity)
-                logger.debug(
-                    f"Added converted entity: {entity.type}:{converted_content} at pos {current_placeholder_start}-{current_placeholder_start + len(converted_content)}"
-                )
-
-            text = text.replace(placeholder, converted_content)
-            logger.debug(f"After replacing {placeholder}: '{text}'")
-
-        logger.debug(f"Text after all conversions and assembly: '{text}'")
-
-        # Step 3.4: Fix double periods that can occur when abbreviations are substituted back
+        # Step 6: Clean up formatting artifacts
         text = re.sub(r"\.\.+", ".", text)
         text = re.sub(r"\?\?+", "?", text)
         text = re.sub(r"!!+", "!", text)
 
-        # Step 3.5: Restore abbreviations that the punctuation model may have mangled
+        # Step 7: Restore abbreviations that the punctuation model may have mangled
         text = self._restore_abbreviations(text)
 
-        # Step 4: Final capitalization pass
-        # This runs AFTER punctuation since new sentence boundaries may have been added
-        # Skip capitalization for standalone technical content
-        if not is_standalone_technical:
-            logger.debug(f"Text before capitalization: '{text}'")
-            # --- CHANGE 1: Pass the `doc` object to the helper method ---
-            text = self._apply_capitalization_with_entity_protection(text, converted_entities, doc=doc)
-            logger.debug(f"Text after capitalization: '{text}'")
-
-        # Step 4.5: Removed hardcoded period addition for filenames and version numbers
-        # Technical content should not be forced to have periods
-
-        # Step 5: Domain rescue (improved version without brittle word lists)
+        # Step 8: Domain rescue (improved version without brittle word lists)
         logger.debug(f"Text before domain rescue: '{text}'")
         text = self._rescue_mangled_domains(text)
         logger.debug(f"Text after domain rescue: '{text}'")
 
-        # Step 6: Apply smart quotes
+        # Step 9: Apply smart quotes
         logger.debug(f"Text before smart quotes: '{text}'")
         text = self._apply_smart_quotes(text)
         logger.debug(f"Text after smart quotes: '{text}'")
