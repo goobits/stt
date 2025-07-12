@@ -190,38 +190,37 @@ class CodeEntityDetector:
             if i + 1 < len(doc):
                 two_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()}"
                 if two_word_pattern in operator_patterns:
-                logger.debug(f"Found '{two_word_pattern}' pattern at token {i}")
+                    logger.debug(f"Found '{two_word_pattern}' pattern at token {i}")
 
-                # Check if there's a preceding token that could be a variable
-                if i > 0:
-                    prev_token = doc[i - 1]
-                    # Check if the preceding token is a valid variable name
-                    # Include single letter pronouns like 'i' which SpaCy tags as PRON
-                    if (
-                        (
-                            prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB"]
-                            or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
-                        )  # Single letter like 'i'
-                        and prev_token.text.isalpha()
-                        and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
-                    ):
+                    # Check if there's a preceding token that could be a variable
+                    if i > 0:
+                        prev_token = doc[i - 1]
+                        # Check if the preceding token is a valid variable name
+                        # Include single letter pronouns like 'i' which SpaCy tags as PRON
+                        if (
+                            (
+                                prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB"]
+                                or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
+                            )  # Single letter like 'i'
+                            and prev_token.text.isalpha()
+                            and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
+                        ):
+                            # Create entity spanning variable and operator
+                            start_pos = prev_token.idx
+                            end_pos = doc[i + 1].idx + len(doc[i + 1].text)
+                            entity_text = text[start_pos:end_pos]
 
-                        # Create entity spanning variable and operator
-                        start_pos = prev_token.idx
-                        end_pos = doc[i + 1].idx + len(doc[i + 1].text)
-                        entity_text = text[start_pos:end_pos]
-
-                        check_entities = all_entities if all_entities else entities
-                        if not is_inside_entity(start_pos, end_pos, check_entities):
-                            entities.append(
-                                Entity(
-                                    start=start_pos,
-                                    end=end_pos,
-                                    text=entity_text,
-                                    type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.SPOKEN_OPERATOR,
-                                    metadata={"variable": prev_token.text, "operator": operator_patterns[two_word_pattern]},
+                            check_entities = all_entities if all_entities else entities
+                            if not is_inside_entity(start_pos, end_pos, check_entities):
+                                entities.append(
+                                    Entity(
+                                        start=start_pos,
+                                        end=end_pos,
+                                        text=entity_text,
+                                        type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.SPOKEN_OPERATOR,
+                                        metadata={"variable": prev_token.text, "operator": operator_patterns[two_word_pattern]},
+                                    )
                                 )
-                            )
                 
                 # Also check for three-word operators if present
                 elif i + 2 < len(doc):

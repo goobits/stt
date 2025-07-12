@@ -7,7 +7,7 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import setup_logging
 from . import regex_patterns
-from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, ACTION_PREFIXES, DIGIT_WORDS, get_resources
+from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, DIGIT_WORDS, get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -347,16 +347,21 @@ class WebPatternConverter:
             text = text[:-1]
 
         prefix = ""
-        # Handle various action prefixes from constants
+        # Handle various action prefixes from language resources
+        email_actions = get_resources(self.language).get("context_words", {}).get("email_actions", [])
         text_lower = text.lower()
-        for action, formatted_action in ACTION_PREFIXES.items():
-            if text_lower.startswith(action):
-                prefix = formatted_action
-                text = text[len(action) :]
+        for action in email_actions:
+            action_with_space = f"{action} "
+            if text_lower.startswith(action_with_space):
+                # Capitalize first letter of action for prefix
+                prefix = action.capitalize() + " "
+                text = text[len(action_with_space):]
                 break
 
-        # Split at the "at" to isolate the username part
-        parts = re.split(r"\s+at\s+", text, flags=re.IGNORECASE)
+        # Split at the language-specific "at" keyword to isolate the username part
+        at_keywords = [k for k, v in self.url_keywords.items() if v == "@"]
+        at_pattern = "|".join(re.escape(k) for k in at_keywords)
+        parts = re.split(rf"\s+(?:{at_pattern})\s+", text, flags=re.IGNORECASE)
         if len(parts) == 2:
             username, domain = parts
             # Process username: convert number words first, then handle spoken separators
@@ -463,16 +468,20 @@ class WebPatternConverter:
 
             # Rejoin domain parts with spaces, then convert dots
             domain = " ".join(converted_domain_parts)
-            domain = re.sub(r"\s+dot\s+", ".", domain, flags=re.IGNORECASE)
+            dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
+            for dot_keyword in dot_keywords:
+                domain = re.sub(rf"\s+{re.escape(dot_keyword)}\s+", ".", domain, flags=re.IGNORECASE)
 
             # Remove spaces around domain components (but preserve dots)
             domain = re.sub(r"\s+", "", domain)
 
             return f"{prefix}{username}@{domain}{trailing_punct}"
 
-        # Fallback: use case-insensitive regex replacement for "at" symbol
-        text = re.sub(r"\s+dot\s+", ".", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s+at\s+", "@", text, flags=re.IGNORECASE)
+        # Fallback: use case-insensitive regex replacement for language-specific keywords
+        for dot_keyword in dot_keywords:
+            text = re.sub(rf"\s+{re.escape(dot_keyword)}\s+", ".", text, flags=re.IGNORECASE)
+        for at_keyword in at_keywords:
+            text = re.sub(rf"\s+{re.escape(at_keyword)}\s+", "@", text, flags=re.IGNORECASE)
         text = text.replace(" ", "")
         return prefix + text + trailing_punct
 
@@ -480,9 +489,17 @@ class WebPatternConverter:
         """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'"""
         text = entity.text.lower()
 
-        # Extract host and port parts
-        if " colon " in text:
-            host_part, port_part = text.split(" colon ", 1)
+        # Extract host and port parts using language-specific colon keyword
+        colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
+        colon_pattern = None
+        for colon_keyword in colon_keywords:
+            colon_sep = f" {colon_keyword} "
+            if colon_sep in text:
+                host_part, port_part = text.split(colon_sep, 1)
+                colon_pattern = colon_keyword
+                break
+        
+        if colon_pattern:
 
             # Use digit words from constants
 
@@ -503,4 +520,7 @@ class WebPatternConverter:
                 return f"{host_part}:{parsed_port}"
 
         # Fallback: replace colon word even if parsing fails
-        return entity.text.replace(" colon ", ":")
+        result = entity.text
+        for colon_keyword in colon_keywords:
+            result = result.replace(f" {colon_keyword} ", ":")
+        return result
