@@ -92,13 +92,19 @@ class CodeEntityDetector:
 
         # --- Part 2: Handle spoken filenames ("my file dot py") with a robust, non-greedy method ---
         if not self.nlp:
-            logger.debug("Skipping spoken filename detection: spaCy model not available.")
+            logger.debug("SpaCy model not available. Using regex fallback for spoken filename detection.")
+            self._detect_filenames_regex_fallback(text, entities, all_entities)
             return
+
+        # Count entities before spaCy detection
+        entities_before_spacy = len(entities)
 
         try:
             doc = self.nlp(text)
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy filename detection failed: {e}")
+            logger.debug("Falling back to regex-based filename detection")
+            self._detect_filenames_regex_fallback(text, entities, all_entities)
             return
 
         # Create a reverse map from a token's end position to the token itself.
@@ -109,6 +115,8 @@ class CodeEntityDetector:
             if is_inside_entity(match.start(), match.end(), all_entities):
                 continue
 
+            logger.debug(f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}")
+
             # Check for email conflict
             if " at " in text[max(0, match.start() - 10) : match.start()]:
                 continue
@@ -116,9 +124,11 @@ class CodeEntityDetector:
             # Find the token immediately preceding the " dot " match
             start_of_dot = match.start()
             if start_of_dot not in end_char_to_token:
+                logger.debug(f"SPACY FILENAME: No token ends at position {start_of_dot}, skipping")
                 continue  # No token ends exactly where " dot " begins, weird spacing.
 
             current_token = end_char_to_token[start_of_dot]
+            logger.debug(f"SPACY FILENAME: Token before 'dot': '{current_token.text}' at {current_token.idx}-{current_token.idx + len(current_token.text)}")
 
             filename_tokens = []
             # Walk backwards from the token before "dot"
@@ -156,7 +166,10 @@ class CodeEntityDetector:
                 filename_tokens.insert(0, token)
 
             if not filename_tokens:
+                logger.debug(f"SPACY FILENAME: No filename tokens collected, skipping")
                 continue
+
+            logger.debug(f"SPACY FILENAME: Collected filename tokens: {[t.text for t in filename_tokens]}")
 
             # Construct the final entity
             start_pos = filename_tokens[0].idx
@@ -164,9 +177,21 @@ class CodeEntityDetector:
             end_pos = match.end()
             entity_text = text[start_pos:end_pos]
 
+            logger.debug(f"SPACY FILENAME: Entity text: '{entity_text}' at {start_pos}-{end_pos}")
+
             # Final check to ensure we don't create an overlapping entity
             if not is_inside_entity(start_pos, end_pos, all_entities):
                 entities.append(Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME))
+                logger.debug(f"SPACY FILENAME: Created filename entity: '{entity_text}'")
+            else:
+                logger.debug(f"SPACY FILENAME: Entity overlaps with existing entity, skipping")
+
+        # Check if spaCy detection found any new entities, if not, fall back to regex
+        entities_after_spacy = len(entities)
+        if entities_after_spacy == entities_before_spacy:
+            # spaCy didn't find any filename entities, try regex fallback
+            logger.debug("SpaCy filename detection found no entities, trying regex fallback")
+            self._detect_filenames_regex_fallback(text, entities, all_entities)
 
     def _detect_spoken_operators(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detect spoken operators using SpaCy token context analysis.
@@ -598,6 +623,77 @@ class CodeEntityDetector:
                             metadata={'command': match.group(0)}
                         )
                     )
+
+    def _detect_filenames_regex_fallback(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+        """Regex-based fallback for filename detection when spaCy is not available."""
+        if all_entities is None:
+            all_entities = entities
+        
+        logger.debug(f"REGEX FALLBACK: Processing text '{text}' for filename detection")
+        
+        # Use the comprehensive pattern that captures both filename and extension
+        for match in regex_patterns.FULL_SPOKEN_FILENAME_PATTERN.finditer(text):
+            if is_inside_entity(match.start(), match.end(), all_entities):
+                continue
+                
+            full_filename = match.group(0)  # e.g., "my script dot py"
+            filename_part = match.group(1)  # e.g., "my script"  
+            extension = match.group(2)      # e.g., "py"
+            
+            # Skip if this looks like it includes command verbs
+            # Get the context before the match to check for command patterns
+            context_start = max(0, match.start() - 20)
+            before_context = text[context_start:match.start()].strip().lower()
+            
+            # Known filename action words that should not be part of the filename
+            resources = get_resources(self.language)
+            filename_actions = resources.get("context_words", {}).get("filename_actions", [])
+            
+            # Check if the filename part starts with a command verb
+            filename_words = filename_part.split()
+            if filename_words and filename_words[0].lower() in filename_actions:
+                # Skip the command verb and only use the remaining words as filename
+                actual_filename_words = filename_words[1:]
+                if actual_filename_words:
+                    # Recalculate the match boundaries to exclude the command verb
+                    actual_filename = " ".join(actual_filename_words)
+                    # Find where the actual filename starts
+                    actual_start = text.find(actual_filename, match.start())
+                    if actual_start != -1:
+                        actual_match_text = f"{actual_filename} dot {extension}"
+                        actual_end = actual_start + len(actual_match_text)
+                        
+                        entities.append(
+                            Entity(
+                                start=actual_start,
+                                end=actual_end,
+                                text=actual_match_text,
+                                type=EntityType.FILENAME,
+                                metadata={
+                                    "filename": actual_filename,
+                                    "extension": extension,
+                                    "method": "regex_fallback"
+                                }
+                            )
+                        )
+                        logger.debug(f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'")
+                        continue
+            
+            # If no command verb detected, use the full match
+            entities.append(
+                Entity(
+                    start=match.start(),
+                    end=match.end(),
+                    text=full_filename,
+                    type=EntityType.FILENAME,
+                    metadata={
+                        "filename": filename_part,
+                        "extension": extension,
+                        "method": "regex_fallback"
+                    }
+                )
+            )
+            logger.debug(f"Detected filename (regex fallback): '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'")
 
     def _detect_programming_keywords(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detects standalone programming keywords like 'let', 'const', 'if'."""

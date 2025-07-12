@@ -1104,6 +1104,20 @@ TIME_AM_PM_SPACE_PATTERN = re.compile(r"\b(\d+)\s+([ap])\s+m\b", re.IGNORECASE)
 
 # Filename patterns (pre-compiled)
 SPOKEN_DOT_FILENAME_PATTERN = re.compile(r"\s+dot\s+(" + "|".join(ALL_FILE_EXTENSIONS) + r")\b", re.IGNORECASE)
+
+# Comprehensive spoken filename pattern that captures the full filename
+# Matches patterns like "my script dot py", "config loader dot json", etc.
+# Uses capture groups to separate filename and extension
+FULL_SPOKEN_FILENAME_PATTERN = re.compile(
+    rf"""
+    \b                                          # Word boundary
+    ([a-z]\w*(?:\s+[a-z]\w*)*)                 # Capture filename part (one or more words)
+    \s+dot\s+                                   # " dot "
+    ({"|".join(ALL_FILE_EXTENSIONS)})           # Capture file extension
+    \b                                          # Word boundary
+    """,
+    re.VERBOSE | re.IGNORECASE
+)
 JAVA_PACKAGE_PATTERN = re.compile(r"\b([a-zA-Z]\w*(?:\s+dot\s+[a-zA-Z]\w*){2,})\b", re.IGNORECASE)
 
 # Now assign the simple anchor pattern to SPOKEN_FILENAME_PATTERN
@@ -1168,6 +1182,7 @@ def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
         "time_am_pm_colon": TIME_AM_PM_COLON_PATTERN,
         "time_am_pm_space": TIME_AM_PM_SPACE_PATTERN,
         "spoken_dot_filename": SPOKEN_DOT_FILENAME_PATTERN,
+        "full_spoken_filename": FULL_SPOKEN_FILENAME_PATTERN,
         "java_package": JAVA_PACKAGE_PATTERN,
         "dollar": DOLLAR_PATTERN,
         "cents": CENTS_PATTERN,
