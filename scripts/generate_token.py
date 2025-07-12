@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate JWT tokens for STT transcription service clients.
+"""Generate JWT tokens for Matilda transcription service clients.
 
 Usage:
     python scripts/generate_token.py <client_name> [--days DAYS]

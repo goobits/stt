@@ -63,18 +63,6 @@ from .constants import (
     COMMON_ABBREVIATIONS,
 )
 
-# Backward compatibility for any remaining imports
-
-
-def _get_nlp():
-    """Deprecated: Use nlp_provider.get_nlp() instead"""
-    return get_nlp()
-
-
-def _get_punctuator():
-    """Deprecated: Use nlp_provider.get_punctuator() instead"""
-    return get_punctuator()
-
 
 class EntityDetector:
     """Detects various entities using SpaCy and custom patterns"""
@@ -548,7 +536,7 @@ class SmartCapitalizer:
     """Intelligent capitalization using SpaCy POS tagging"""
 
     def __init__(self):
-        self.nlp = _get_nlp()
+        self.nlp = get_nlp()
 
         # Entity types that must have their casing preserved under all circumstances
         self.STRICTLY_PROTECTED_TYPES = {
@@ -1616,7 +1604,7 @@ class TextFormatter:
             return text
 
         # All other text is treated as a sentence - use punctuation model
-        punctuator = _get_punctuator()
+        punctuator = get_punctuator()
         if punctuator:
             try:
                 # Protect URLs and technical terms from the punctuation model by temporarily replacing them

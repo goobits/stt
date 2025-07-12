@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate self-signed SSL certificates for STT WebSocket server development.
+"""Generate self-signed SSL certificates for Matilda WebSocket server development.
 This script creates certificates suitable for development and testing purposes.
 """
 import os
@@ -193,7 +193,7 @@ def main() -> None:
     """Main certificate generation function"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Generate SSL certificates for STT WebSocket server")
+    parser = argparse.ArgumentParser(description="Generate SSL certificates for Matilda WebSocket server")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing certificates without prompting")
     parser.add_argument("--quiet", action="store_true", help="Suppress output")
     args = parser.parse_args()
