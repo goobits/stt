@@ -2,4 +2,4 @@
 
 from .formatter import TextFormatter
 
-__all__ = ['TextFormatter']
+__all__ = ["TextFormatter"]

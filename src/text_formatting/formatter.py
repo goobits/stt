@@ -162,7 +162,7 @@ class EntityDetector:
                         metadata = {}
                         if entity_type == EntityType.PERCENT:
                             import re
-                            
+
                             # Handle decimal percentages like "zero point one percent"
                             if "point" in ent.text.lower():
                                 decimal_match = re.search(r"(\w+)\s+point\s+(\w+)", ent.text, re.IGNORECASE)
@@ -173,7 +173,9 @@ class EntityDetector:
                                 # Try multiple patterns to match different spaCy outputs
                                 percent_match = re.search(r"^(.+?)\s*percent$", ent.text, re.IGNORECASE)
                                 if not percent_match:
-                                    percent_match = re.search(r"^(.+?)$", ent.text.replace(" percent", ""), re.IGNORECASE)
+                                    percent_match = re.search(
+                                        r"^(.+?)$", ent.text.replace(" percent", ""), re.IGNORECASE
+                                    )
                                 if percent_match:
                                     number_text = percent_match.group(1).strip()
                                     metadata = {"number": number_text, "unit": "percent"}
@@ -1141,10 +1143,6 @@ class TextFormatter:
         self.numeric_detector = NumericalEntityDetector(nlp=self.nlp)
         self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser)
 
-        # Add quantity detector
-        from .match_entities import QuantityEntityDetector
-
-        self.quantity_detector = QuantityEntityDetector(nlp=self.nlp)
 
         # Complete sentence phrases that need punctuation even when short
         self.complete_sentence_phrases = COMPLETE_SENTENCE_PHRASES
@@ -1205,8 +1203,6 @@ class TextFormatter:
         )
         entities.extend(numeric_entities)
 
-        # Add quantity-related entities
-        entities.extend(self.quantity_detector.detect(text, entities))
 
         logger.debug(f"Detected {len(entities)} total entities.")
 
