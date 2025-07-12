@@ -821,6 +821,27 @@ URL_KEYWORDS = {
     "dash": "-",
 }
 
+# Code-related keywords mapping (symbols and operators used in programming)
+CODE_KEYWORDS = {
+    "underscore": "_",
+    "dash": "-",
+    "hyphen": "-",
+    "plus": "+",
+    "minus": "-",
+    "equals": "=",
+    "slash": "/",  # For slash commands and paths
+}
+
+# Operator keywords mapping (compound operators and mathematical symbols)
+OPERATOR_KEYWORDS = {
+    "plus plus": "++",
+    "minus minus": "--", 
+    "equals equals": "==",
+    "times": "×",
+    "divided by": "÷",
+    "over": "/",
+}
+
 # Action prefixes for email formatting
 ACTION_PREFIXES = {"email ": "Email ", "contact ": "Contact ", "write to ": "Write to ", "send to ": "Send to "}
 

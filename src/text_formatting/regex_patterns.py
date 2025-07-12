@@ -11,7 +11,7 @@ explaining each component.
 
 import re
 from typing import List, Pattern, Optional
-from .constants import URL_KEYWORDS
+from .constants import URL_KEYWORDS, CODE_KEYWORDS
 
 
 # ==============================================================================
@@ -550,39 +550,16 @@ URL_PARAMETER_PARSE_PATTERN = re.compile(
 # ==============================================================================
 
 # Slash command pattern: "slash commit" -> "/commit"
-SLASH_COMMAND_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    slash\s+                            # "slash "
-    ([a-zA-Z][a-zA-Z0-9_-]*)           # Command name (starts with letter, can contain letters, numbers, underscore, hyphen)
-    \b                                  # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Placeholder - pattern will be assigned after function definition
+SLASH_COMMAND_PATTERN = None
 
 # Underscore delimiter pattern: "underscore underscore blah underscore underscore" -> "__blah__"
-UNDERSCORE_DELIMITER_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    ((?:underscore\s+)+)                # One or more "underscore " patterns (captured)
-    ([a-zA-Z][a-zA-Z0-9_-]*)           # Content (starts with letter, can contain letters, numbers, underscore, hyphen)
-    ((?:\s+underscore)+)                # One or more " underscore" patterns (captured)
-    (?=\s|$)                           # Must be followed by space or end of string
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Placeholder - pattern will be assigned after function definition
+UNDERSCORE_DELIMITER_PATTERN = None
 
 # Simple underscore variable pattern: "user underscore id" -> "user_id"
-SIMPLE_UNDERSCORE_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    ([a-zA-Z][a-zA-Z0-9_-]*)           # First word (starts with letter)
-    \s+underscore\s+                    # " underscore "
-    ([a-zA-Z][a-zA-Z0-9_-]*)           # Second word (starts with letter)
-    \b                                  # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Placeholder - pattern will be assigned after function definition
+SIMPLE_UNDERSCORE_PATTERN = None
 
 # Filename detection with extension
 FILENAME_WITH_EXTENSION_PATTERN = re.compile(
@@ -631,23 +608,8 @@ SPOKEN_FILENAME_PATTERN = re.compile(
 )
 
 # Assignment pattern: "variable equals value" or "let variable equals value" etc.
-ASSIGNMENT_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
-    ((?!equals\b)[a-zA-Z_]\w*)          # Variable name (capture group 2) - not "equals"
-    \s+equals\s+                        # " equals "
-    (?!equals\b)                        # Negative lookahead: not followed by "equals" as a whole word (for ==)
-    (?!.*(?:                            # Negative lookahead: not followed by math terms
-        squared?|cubed?|                # Powers
-        times|plus|minus|               # Basic math operators
-        divided\s+by|over               # Division operators
-    ))
-    ((?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?)  # Value (capture group 3, non-greedy, stops at conjunctions)
-    (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+)  # Lookahead: end of string, punctuation, or conjunctions
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Placeholder - pattern will be assigned after function definition
+ASSIGNMENT_PATTERN = None
 
 # Latin abbreviations: "i.e.", "e.g.", etc.
 ABBREVIATION_PATTERN = re.compile(
@@ -1020,11 +982,9 @@ MIXED_CASE_TECH_PATTERN = re.compile(
 )
 
 # Command flag patterns (pre-compiled)
-LONG_FLAG_PATTERN = re.compile(
-    r"\bdash\s+dash\s+([a-zA-Z][a-zA-Z0-9]*(?:\s+(?:dev|run|dir|cache|config|output|input|quiet|force|dry))?)",
-    re.IGNORECASE,
-)
-SHORT_FLAG_PATTERN = re.compile(r"\bdash\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+# Placeholders - patterns will be assigned after function definitions
+LONG_FLAG_PATTERN = None
+SHORT_FLAG_PATTERN = None
 
 # Time formatting patterns (pre-compiled)
 TIME_AM_PM_COLON_PATTERN = re.compile(r"\b(\d+):([ap])\s+m\b", re.IGNORECASE)
@@ -1125,6 +1085,135 @@ def create_alternation_pattern(items: List[str], word_boundaries: bool = True) -
     if word_boundaries:
         pattern = rf"\b(?:{pattern})\b"
     return pattern
+
+
+def build_slash_command_pattern() -> Pattern:
+    """Builds the slash command pattern dynamically from keywords in constants."""
+    # Get slash keywords from CODE_KEYWORDS
+    slash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "/"]
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
+    slash_escaped = [re.escape(k) for k in slash_keywords_sorted]
+    slash_pattern = f"(?:{'|'.join(slash_escaped)})"
+    
+    return re.compile(
+        rf"""
+        \b                                  # Word boundary
+        {slash_pattern}\s+                  # Slash keyword followed by space
+        ([a-zA-Z][a-zA-Z0-9_-]*)           # Command name (starts with letter, can contain letters, numbers, underscore, hyphen)
+        \b                                  # Word boundary
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+
+# Build slash command pattern dynamically from centralized keywords
+SLASH_COMMAND_PATTERN = build_slash_command_pattern()
+
+
+def build_underscore_delimiter_pattern() -> Pattern:
+    """Builds the underscore delimiter pattern dynamically from keywords in constants."""
+    # Get underscore keywords from CODE_KEYWORDS
+    underscore_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "_"]
+    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
+    underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
+    underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
+    
+    return re.compile(
+        rf"""
+        \b                                  # Word boundary
+        ((?:{underscore_pattern}\s+)+)      # One or more underscore keywords followed by space (captured)
+        ([a-zA-Z][a-zA-Z0-9_-]*)           # Content (starts with letter, can contain letters, numbers, underscore, hyphen)
+        ((?:\s+{underscore_pattern})+)      # One or more space followed by underscore keywords (captured)
+        (?=\s|$)                           # Must be followed by space or end of string
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+
+def build_simple_underscore_pattern() -> Pattern:
+    """Builds the simple underscore pattern dynamically from keywords in constants."""
+    # Get underscore keywords from CODE_KEYWORDS
+    underscore_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "_"]
+    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
+    underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
+    underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
+    
+    return re.compile(
+        rf"""
+        \b                                  # Word boundary
+        ([a-zA-Z][a-zA-Z0-9_-]*)           # First word (starts with letter)
+        \s+{underscore_pattern}\s+          # Space, underscore keyword, space
+        ([a-zA-Z][a-zA-Z0-9_-]*)           # Second word (starts with letter)
+        \b                                  # Word boundary
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+
+# Build underscore patterns dynamically from centralized keywords
+UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern()
+SIMPLE_UNDERSCORE_PATTERN = build_simple_underscore_pattern()
+
+
+def build_long_flag_pattern() -> Pattern:
+    """Builds the long flag pattern dynamically from keywords in constants."""
+    # Get dash keywords from CODE_KEYWORDS
+    dash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "-"]
+    dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
+    dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
+    dash_pattern = f"(?:{'|'.join(dash_escaped)})"
+    
+    return re.compile(
+        rf"\b{dash_pattern}\s+{dash_pattern}\s+([a-zA-Z][a-zA-Z0-9]*(?:\s+(?:dev|run|dir|cache|config|output|input|quiet|force|dry))?)",
+        re.IGNORECASE,
+    )
+
+
+def build_short_flag_pattern() -> Pattern:
+    """Builds the short flag pattern dynamically from keywords in constants."""
+    # Get dash keywords from CODE_KEYWORDS
+    dash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "-"]
+    dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
+    dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
+    dash_pattern = f"(?:{'|'.join(dash_escaped)})"
+    
+    return re.compile(rf"\b{dash_pattern}\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+
+
+# Build flag patterns dynamically from centralized keywords
+LONG_FLAG_PATTERN = build_long_flag_pattern()
+SHORT_FLAG_PATTERN = build_short_flag_pattern()
+
+
+def build_assignment_pattern() -> Pattern:
+    """Builds the assignment pattern dynamically from keywords in constants."""
+    # Get equals keywords from CODE_KEYWORDS
+    equals_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "="]
+    equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
+    equals_escaped = [re.escape(k) for k in equals_keywords_sorted]
+    equals_pattern = f"(?:{'|'.join(equals_escaped)})"
+    
+    return re.compile(
+        rf"""
+        \b                                  # Word boundary
+        (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
+        ((?!{equals_pattern}\b)[a-zA-Z_]\w*)  # Variable name (capture group 2) - not equals keyword
+        \s+{equals_pattern}\s+              # Space, equals keyword, space
+        (?!{equals_pattern}\b)              # Negative lookahead: not followed by equals keyword (for ==)
+        (?!.*(?:                            # Negative lookahead: not followed by math terms
+            squared?|cubed?|                # Powers
+            times|plus|minus|               # Basic math operators
+            divided\s+by|over               # Division operators
+        ))
+        ((?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?)  # Value (capture group 3, non-greedy, stops at conjunctions)
+        (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+)  # Lookahead: end of string, punctuation, or conjunctions
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+
+# Build assignment pattern dynamically from centralized keywords
+ASSIGNMENT_PATTERN = build_assignment_pattern()
 
 
 # Revert to original working pattern - centralization will be done later if needed

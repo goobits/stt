@@ -7,7 +7,7 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import get_config, setup_logging
 from . import regex_patterns
-from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS, ABBREVIATIONS
+from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS, ABBREVIATIONS, OPERATOR_KEYWORDS
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -296,8 +296,12 @@ class CodeEntityDetector:
 
         # Iterate through tokens to find operator patterns
         for i, token in enumerate(doc):
-            # Check for "plus plus" pattern (increment operator)
-            if token.text.lower() == "plus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "plus":
+            # Check for operator patterns using centralized keywords
+            token_lower = token.text.lower()
+            
+            # Check for "plus plus" pattern (increment operator)  
+            if (token_lower == "plus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "plus" 
+                and "plus plus" in OPERATOR_KEYWORDS):
                 logger.debug(f"Found 'plus plus' pattern at token {i}")
 
                 # Check if there's a preceding token that could be a variable
@@ -332,7 +336,8 @@ class CodeEntityDetector:
                             )
 
             # Check for "minus minus" pattern (decrement operator)
-            elif token.text.lower() == "minus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "minus":
+            elif (token_lower == "minus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "minus"
+                  and "minus minus" in OPERATOR_KEYWORDS):
                 if i > 0:
                     prev_token = doc[i - 1]
                     if (
@@ -359,7 +364,8 @@ class CodeEntityDetector:
                             )
 
             # Check for "equals equals" pattern (comparison operator)
-            elif token.text.lower() == "equals" and i + 1 < len(doc) and doc[i + 1].text.lower() == "equals":
+            elif (token_lower == "equals" and i + 1 < len(doc) and doc[i + 1].text.lower() == "equals"
+                  and "equals equals" in OPERATOR_KEYWORDS):
                 if i > 0 and i + 2 < len(doc):
                     prev_token = doc[i - 1]
                     next_next_token = doc[i + 2]
@@ -601,8 +607,8 @@ class CodeEntityDetector:
                     continue  # Skip if it's at the very beginning
 
                 preceding_word = context_words[-1] if context_words else ""
-                # Make this list much stricter
-                if preceding_word not in {"variable", "let", "const", "var", "set", "is"}:
+                # Make this list much stricter  
+                if preceding_word not in {"variable", "let", "const", "var", "set", "is", "check"}:
                     continue
 
                 logger.debug(f"Found simple underscore variable: '{match.group(0)}' -> '{first_word}_{second_word}'")
