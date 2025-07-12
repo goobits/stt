@@ -765,6 +765,8 @@ ABBREVIATIONS = {
     "vs": "vs.",
     "cf": "cf.",
     "i e": "i.e.",
+    "e g": "e.g.",
+    "v s": "vs.",
     "i dot e dot": "i.e.",
     "e dot g dot": "e.g.",
 }
@@ -835,7 +837,7 @@ CODE_KEYWORDS = {
 # Operator keywords mapping (compound operators and mathematical symbols)
 OPERATOR_KEYWORDS = {
     "plus plus": "++",
-    "minus minus": "--", 
+    "minus minus": "--",
     "equals equals": "==",
     "times": "×",
     "divided by": "÷",

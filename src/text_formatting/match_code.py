@@ -7,7 +7,7 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import get_config, setup_logging
 from . import regex_patterns
-from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS, ABBREVIATIONS, OPERATOR_KEYWORDS
+from .constants import ABBREVIATIONS, OPERATOR_KEYWORDS
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -55,228 +55,100 @@ class CodeEntityDetector:
         return code_entities
 
     def _detect_filenames(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
-        """Detect filenames in text and add them to entities list using NLP-driven approach.
+        """Detect filenames using a simple regex anchor and robust spaCy context analysis."""
+        if all_entities is None:
+            all_entities = entities
 
-        Args:
-            text: The text to search for filenames
-            entities: The list to append filename entities to
+        # --- Part 1: Handle already-formatted files first (e.g., main.py, com.example.app) ---
+        # This logic is sound and should run first.
+        for match in regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text):
+            if not is_inside_entity(match.start(), match.end(), all_entities):
+                entities.append(
+                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
+                )
 
-        """
-        # New Detection Strategy: Find the anchor ("dot extension") and work backward
-
-        # This pattern finds "dot py", "dot js", etc. - the most reliable anchor
-        spoken_dot_pattern = regex_patterns.SPOKEN_DOT_FILENAME_PATTERN
-
-        # Also handle already-formatted filenames (e.g., "main.py")
-        extension_pattern = regex_patterns.FILENAME_WITH_EXTENSION_PATTERN
-
-        # Find all candidate filename anchors
-        candidates = []
-
-        # Find spoken dot patterns
-        for match in spoken_dot_pattern.finditer(text):
-            check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
-                # Check for "at" before the match to avoid email conflicts
-                if " at " in text[max(0, match.start() - 10) : match.start()]:
-                    continue
-                candidates.append(("spoken", match))
-
-        # Also detect Java package names (multiple dots without extensions)
-        # Pattern: word dot word dot word (at least 2 dots)
-        java_package_pattern = regex_patterns.JAVA_PACKAGE_PATTERN
-        for match in java_package_pattern.finditer(text):
-            check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
-                # Check if this looks like a Java package (common prefixes)
+        for match in regex_patterns.JAVA_PACKAGE_PATTERN.finditer(text):
+            if not is_inside_entity(match.start(), match.end(), all_entities):
                 package_text = match.group(1).lower()
-                if any(
-                    package_text.startswith(prefix) for prefix in ["com dot", "org dot", "net dot", "edu dot", "io dot"]
-                ):
-                    candidates.append(("java_package", match))
+                if any(package_text.startswith(prefix) for prefix in ["com dot", "org dot", "net dot"]):
+                    entities.append(
+                        Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
+                    )
 
-        # Find already-formatted filenames
-        for match in extension_pattern.finditer(text):
-            check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
-                # This logic is for already formatted filenames like `com.example.app`
-                # which should be treated as a single FILENAME entity.
-                # It has high priority.
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
-                # We add it directly and continue to avoid reprocessing
-                continue
-
+        # --- Part 2: Handle spoken filenames ("my file dot py") with a robust, non-greedy method ---
         if not self.nlp:
-            # No SpaCy available, use simple pattern matching
-            for pattern_type, match in candidates:
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
+            logger.debug("Skipping spoken filename detection: spaCy model not available.")
             return
 
         try:
             doc = self.nlp(text)
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy filename detection failed: {e}")
-            # Fall back to simple pattern matching
-            for pattern_type, match in candidates:
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
             return
 
-        # Create token index mapping for character position to token
-        char_to_token = {}
-        for token in doc:
-            for i in range(token.idx, token.idx + len(token.text)):
-                char_to_token[i] = token
+        # Create a reverse map from a token's end position to the token itself.
+        # This helps us find the token that ends right before our "dot extension" match.
+        end_char_to_token = {token.idx + len(token.text): token for token in doc}
 
-        # Process each candidate
-        for pattern_type, match in candidates:
-
-            if pattern_type == "formatted":
-                # Already formatted filenames (like "main.py") can be used directly
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
+        for match in regex_patterns.SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
+            if is_inside_entity(match.start(), match.end(), all_entities):
                 continue
 
-            if pattern_type == "java_package":
-                # Java package names can be used directly
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
+            # Check for email conflict
+            if " at " in text[max(0, match.start() - 10) : match.start()]:
                 continue
 
-            # For spoken patterns, we need to work backward from the "dot extension" anchor
+            # Find the token immediately preceding the " dot " match
+            start_of_dot = match.start()
+            if start_of_dot not in end_char_to_token:
+                continue  # No token ends exactly where " dot " begins, weird spacing.
 
-            # Find the token containing the "dot" part
-            dot_token = None
-            for i in range(match.start(), match.end()):
-                if i in char_to_token:
-                    token = char_to_token[i]
-                    if "dot" in token.text.lower():
-                        dot_token = token
-                        break
+            current_token = end_char_to_token[start_of_dot]
 
-            if not dot_token:
-                # Fallback if we can't find the dot token
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
-                continue
-
-            # Define our "Stop" conditions - simpler and more robust approach
-            def should_stop_at_token(token):
-                # Stop at clear action verbs that are unlikely to be in a filename
-                # Using lemma_ handles variations like "running", "ran", "run"
-                if token.lemma_ in FILENAME_ACTION_VERBS:
-                    return True
-
-                # Stop at linking verbs which separate the subject from the filename
-                if token.lemma_ in FILENAME_LINKING_VERBS:
-                    return True
-
-                # Stop at prepositions (e.g., "in", "on"), but allow single-letter ones like 'v'
-                if token.pos_ == "ADP" and len(token.text) > 1:
-                    return True
-
-                # Stop at determiners like "the", "a", "an" which often precede context words
-                # But not "my" when it's part of a filename like "my file underscore name"
-                if token.pos_ == "DET" and token.text.lower() != "my":
-                    return True
-
-                # Stop at conjunctions that separate clauses
-                if token.pos_ == "CCONJ":
-                    return True
-
-                # Handle the "config file settings" vs "log file 100" ambiguity
-                # This check is when we're looking at words BEFORE the current position
-                # So if we see "file" followed by a non-number, we should stop including tokens
-                # But this is checked while walking backward, so logic is inverted
-
-                return False
-
-            # Start by finding which token is the actual filename part (before "dot")
-            # Walk backwards from dot_token to find filename tokens
             filename_tokens = []
-            current_token_idx = dot_token.i
+            # Walk backwards from the token before "dot"
+            for i in range(current_token.i, -1, -1):
+                token = doc[i]
 
-            # Walk backward through preceding tokens
-            while current_token_idx > 0:
-                current_token_idx -= 1
-                prev_token = doc[current_token_idx]
+                # ** THE CRITICAL STOPPING LOGIC **
+                # Stop if we hit a clear sentence-starting verb, preposition, or conjunction.
+                # This prevents walking back across an entire sentence.
+                is_verb = token.pos_ == "VERB"
+                is_preposition = token.pos_ == "ADP" and token.text.lower() != "v"
+                is_conjunction = token.pos_ == "CCONJ"
+                is_punctuation = token.is_punct
 
-                # Check if we should stop
-                if should_stop_at_token(prev_token):
-                    break
+                # Check for words that clearly separate context from a filename
+                from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS
 
-                # Special check for the word "file" - if preceded by a determiner, stop here
-                if prev_token.text.lower() == "file" and current_token_idx > 0:
-                    prev_prev_token = doc[current_token_idx - 1]
-                    if (
-                        prev_prev_token.pos_ == "DET" and prev_prev_token.text.lower() != "my"
-                    ):  # "the file", "a file" but not "my file"
+                is_context_separator = token.lemma_ in FILENAME_ACTION_VERBS or token.lemma_ in FILENAME_LINKING_VERBS
+
+                if is_context_separator or is_preposition or is_conjunction or is_punctuation:
+                    # If we've already collected some tokens, we stop.
+                    # If not, it means the separator is RIGHT before the filename (e.g., "in file.py"),
+                    # so we don't include the separator and stop.
+                    if filename_tokens:
                         break
 
-                    # Also check if "file" is preceded by descriptor words like "config", "log"
-                    if prev_prev_token.text.lower() in ["config", "log", "data", "temp", "cache", "text"]:
-                        # Check what's already in our filename_tokens
-                        # If we haven't included anything yet, or only have one token, this is "X file Y" pattern
-                        if len(filename_tokens) <= 1:
-                            # Look ahead to see if next token after "file" is a number
-                            if current_token_idx + 1 < dot_token.i:
-                                next_after_file = doc[current_token_idx + 1]
-                                if not next_after_file.like_num:
-                                    # "X file Y" where Y is not a number - skip both X and file
-                                    break
-
-                # Special handling for "config" when followed by "file"
-                if prev_token.text.lower() in [
-                    "config",
-                    "log",
-                    "data",
-                    "temp",
-                    "cache",
-                ] and current_token_idx + 1 < len(doc):
-                    next_token = doc[current_token_idx + 1]
-                    if next_token.text.lower() == "file" and current_token_idx + 2 < dot_token.i:
-                        # Check what comes after "file"
-                        after_file_token = doc[current_token_idx + 2]
-                        if not after_file_token.like_num:
-                            # "config file" followed by non-number is context, not filename
-                            # Skip this token, don't include it
-                            continue
-
-                # Include this token as part of the filename
-                filename_tokens.insert(0, prev_token)
-
-                # Limit to reasonable filename length to avoid grabbing entire sentences
-                if len(filename_tokens) >= 6:
+                # If we've walked back more than ~5 words, it's probably not a filename.
+                if len(filename_tokens) >= 5:
                     break
 
-            # Now build the complete tokens list: filename + dot + extension
-            tokens_to_include = filename_tokens.copy()
+                # If all checks pass, this token is part of the filename
+                filename_tokens.insert(0, token)
 
-            # Add the "dot" token
-            tokens_to_include.append(dot_token)
+            if not filename_tokens:
+                continue
 
-            # Add the extension token (the one after "dot")
-            if dot_token.i + 1 < len(doc):
-                extension_token = doc[dot_token.i + 1]
-                tokens_to_include.append(extension_token)
+            # Construct the final entity
+            start_pos = filename_tokens[0].idx
+            # The end position is the end of the original "dot extension" match
+            end_pos = match.end()
+            entity_text = text[start_pos:end_pos]
 
-            # Construct the Entity with correct start and end character positions
-            if tokens_to_include:
-                start_pos = tokens_to_include[0].idx
-                end_pos = tokens_to_include[-1].idx + len(tokens_to_include[-1].text)
-                filename_text = text[start_pos:end_pos].strip(".,!?;: ")
-                end_pos = start_pos + len(filename_text)
-
-                # Add the entity
-                entities.append(Entity(start=start_pos, end=end_pos, text=filename_text, type=EntityType.FILENAME))
+            # Final check to ensure we don't create an overlapping entity
+            if not is_inside_entity(start_pos, end_pos, all_entities):
+                entities.append(Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME))
 
     def _detect_spoken_operators(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detect spoken operators using SpaCy token context analysis.
@@ -298,10 +170,14 @@ class CodeEntityDetector:
         for i, token in enumerate(doc):
             # Check for operator patterns using centralized keywords
             token_lower = token.text.lower()
-            
-            # Check for "plus plus" pattern (increment operator)  
-            if (token_lower == "plus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "plus" 
-                and "plus plus" in OPERATOR_KEYWORDS):
+
+            # Check for "plus plus" pattern (increment operator)
+            if (
+                token_lower == "plus"
+                and i + 1 < len(doc)
+                and doc[i + 1].text.lower() == "plus"
+                and "plus plus" in OPERATOR_KEYWORDS
+            ):
                 logger.debug(f"Found 'plus plus' pattern at token {i}")
 
                 # Check if there's a preceding token that could be a variable
@@ -336,8 +212,12 @@ class CodeEntityDetector:
                             )
 
             # Check for "minus minus" pattern (decrement operator)
-            elif (token_lower == "minus" and i + 1 < len(doc) and doc[i + 1].text.lower() == "minus"
-                  and "minus minus" in OPERATOR_KEYWORDS):
+            elif (
+                token_lower == "minus"
+                and i + 1 < len(doc)
+                and doc[i + 1].text.lower() == "minus"
+                and "minus minus" in OPERATOR_KEYWORDS
+            ):
                 if i > 0:
                     prev_token = doc[i - 1]
                     if (
@@ -364,8 +244,12 @@ class CodeEntityDetector:
                             )
 
             # Check for "equals equals" pattern (comparison operator)
-            elif (token_lower == "equals" and i + 1 < len(doc) and doc[i + 1].text.lower() == "equals"
-                  and "equals equals" in OPERATOR_KEYWORDS):
+            elif (
+                token_lower == "equals"
+                and i + 1 < len(doc)
+                and doc[i + 1].text.lower() == "equals"
+                and "equals equals" in OPERATOR_KEYWORDS
+            ):
                 if i > 0 and i + 2 < len(doc):
                     prev_token = doc[i - 1]
                     next_next_token = doc[i + 2]
@@ -607,7 +491,7 @@ class CodeEntityDetector:
                     continue  # Skip if it's at the very beginning
 
                 preceding_word = context_words[-1] if context_words else ""
-                # Make this list much stricter  
+                # Make this list much stricter
                 if preceding_word not in {"variable", "let", "const", "var", "set", "is", "check"}:
                     continue
 

@@ -374,30 +374,30 @@ TECHNICAL_CONTENT_PATTERNS = [
 # WEB-RELATED PATTERNS
 # ==============================================================================
 
+
 def build_spoken_url_pattern() -> Pattern:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
-    
     # Get keyword patterns from URL_KEYWORDS
     dot_keywords = [k for k, v in URL_KEYWORDS.items() if v == "."]
     slash_keywords = [k for k, v in URL_KEYWORDS.items() if v == "/"]
     question_mark_keywords = [k for k, v in URL_KEYWORDS.items() if v == "?"]
-    
+
     # Create alternation patterns for each keyword type (inline implementation)
     dot_escaped = [re.escape(k) for k in dot_keywords] + [r"\."]
     dot_pattern = "|".join(dot_escaped)
-    
+
     slash_escaped = [re.escape(k) for k in slash_keywords]
     slash_pattern = "|".join(slash_escaped)
-    
+
     question_mark_escaped = [re.escape(k) for k in question_mark_keywords]
     question_mark_pattern = "|".join(question_mark_escaped)
-    
+
     # Create number words pattern
     number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
     number_words_pattern = "|".join(number_words_escaped)
-    
+
     # Build the complete pattern using the dynamic keyword patterns
-    pattern_str = fr"""
+    pattern_str = rf"""
     \b                                  # Word boundary
     (                                   # Capture group 1: full URL
         (?:                             # Non-capturing group for subdomains
@@ -479,22 +479,22 @@ SPOKEN_PROTOCOL_PATTERN = re.compile(
 # Now with better action word filtering and centralized keywords
 # Pattern will be built dynamically after create_alternation_pattern is defined
 
+
 def build_port_number_pattern() -> Pattern:
     """Builds the port number pattern dynamically from keywords in constants."""
-    
     # Get colon keywords from URL_KEYWORDS
     colon_keywords = [k for k, v in URL_KEYWORDS.items() if v == ":"]
-    
+
     # Create alternation pattern for colon
     colon_escaped = [re.escape(k) for k in colon_keywords] + ["colon"]  # Include both URL_KEYWORDS and "colon"
     colon_pattern = "|".join(colon_escaped)
-    
+
     # Create number words pattern
     number_words_escaped = [re.escape(word) for word in NUMBER_WORDS]
     number_words_pattern = "|".join(number_words_escaped)
-    
+
     # Build the complete pattern using the dynamic keyword patterns
-    pattern_str = fr"""
+    pattern_str = rf"""
     \b                                  # Word boundary
     (localhost|[\w.-]+)                 # Hostname
     \s+(?:{colon_pattern})\s+           # Spoken "colon"
@@ -578,34 +578,11 @@ FILENAME_WITH_EXTENSION_PATTERN = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# Spoken filename pattern: "readme dot md", "my new file dot py"
-SPOKEN_FILENAME_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    (                                   # Capture group for filename
-        (?:my|the|this|that|our|your|his|her|its|their)\s+  # Possessive/descriptive words (now required when present)
-        \w+                             # First word after possessive
-        (?:                             # Additional components
-            \s+                         # Space
-            (?:underscore\s+|dash\s+)?  # Optional spoken separator
-            \w+                         # Next component
-        ){0,5}                          # 0-5 additional components
-        |                               # OR
-        \w+                             # Single word filename (no possessive)
-        (?:                             # Additional components
-            \s+                         # Space
-            (?:underscore\s+|dash\s+)?  # Optional spoken separator
-            \w+                         # Next component
-        ){0,5}                          # 0-5 additional components
-    )
-    \s+dot\s+                           # " dot "
-    ("""
-    + "|".join(ALL_FILE_EXTENSIONS)
-    + r""")  # File extension (grouped)
-    \b                                  # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# More precise spoken filename pattern: "readme dot md", "my new file dot py"
+# This pattern is designed to be less greedy than the SpaCy backward-walking approach
+# Use the simple dot pattern as the primary anchor - defined below
+# The complex detection logic is handled in match_code.py using spaCy
+SPOKEN_FILENAME_PATTERN = None  # Will be assigned after SPOKEN_DOT_FILENAME_PATTERN is defined
 
 # Assignment pattern: "variable equals value" or "let variable equals value" etc.
 # Placeholder - pattern will be assigned after function definition
@@ -620,6 +597,8 @@ ABBREVIATION_PATTERN = re.compile(
         vs\. | cf\. |                   # With periods
         ie | eg | ex |                  # Without periods
         i\s+e |                         # Spoken form "i e"
+        e\s+g |                         # Spoken form "e g"
+        v\s+s |                         # Spoken form "v s"
         i\s+dot\s+e\s+dot |             # Spoken form "i dot e dot"
         e\s+dot\s+g\s+dot               # Spoken form "e dot g dot"
     )
@@ -994,6 +973,9 @@ TIME_AM_PM_SPACE_PATTERN = re.compile(r"\b(\d+)\s+([ap])\s+m\b", re.IGNORECASE)
 SPOKEN_DOT_FILENAME_PATTERN = re.compile(r"\s+dot\s+(" + "|".join(ALL_FILE_EXTENSIONS) + r")\b", re.IGNORECASE)
 JAVA_PACKAGE_PATTERN = re.compile(r"\b([a-zA-Z]\w*(?:\s+dot\s+[a-zA-Z]\w*){2,})\b", re.IGNORECASE)
 
+# Now assign the simple anchor pattern to SPOKEN_FILENAME_PATTERN
+SPOKEN_FILENAME_PATTERN = SPOKEN_DOT_FILENAME_PATTERN
+
 # Currency and numeric patterns (pre-compiled)
 DOLLAR_PATTERN = re.compile(
     r"\b(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
@@ -1094,7 +1076,7 @@ def build_slash_command_pattern() -> Pattern:
     slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
     slash_escaped = [re.escape(k) for k in slash_keywords_sorted]
     slash_pattern = f"(?:{'|'.join(slash_escaped)})"
-    
+
     return re.compile(
         rf"""
         \b                                  # Word boundary
@@ -1117,7 +1099,7 @@ def build_underscore_delimiter_pattern() -> Pattern:
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
     underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
     underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
-    
+
     return re.compile(
         rf"""
         \b                                  # Word boundary
@@ -1137,7 +1119,7 @@ def build_simple_underscore_pattern() -> Pattern:
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
     underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
     underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
-    
+
     return re.compile(
         rf"""
         \b                                  # Word boundary
@@ -1162,7 +1144,7 @@ def build_long_flag_pattern() -> Pattern:
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
     dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
-    
+
     return re.compile(
         rf"\b{dash_pattern}\s+{dash_pattern}\s+([a-zA-Z][a-zA-Z0-9]*(?:\s+(?:dev|run|dir|cache|config|output|input|quiet|force|dry))?)",
         re.IGNORECASE,
@@ -1176,7 +1158,7 @@ def build_short_flag_pattern() -> Pattern:
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
     dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
-    
+
     return re.compile(rf"\b{dash_pattern}\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
@@ -1192,7 +1174,7 @@ def build_assignment_pattern() -> Pattern:
     equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
     equals_escaped = [re.escape(k) for k in equals_keywords_sorted]
     equals_pattern = f"(?:{'|'.join(equals_escaped)})"
-    
+
     return re.compile(
         rf"""
         \b                                  # Word boundary

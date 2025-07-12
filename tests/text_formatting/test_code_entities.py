@@ -543,9 +543,9 @@ class TestAbbreviations:
         """Test Latin abbreviation patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("that is i e very important", "That is i.e. very important"),
-            ("for example e g this case", "For example e.g. this case"),
-            ("and so on etc", "And so on etc"),
+            ("that is i e very important", "That is i.e., very important"),
+            ("for example e g this case", "For example e.g., this case"),
+            ("and so on etc", "And so on etc."),
             ("versus v s other options", "Versus vs. other options"),
         ]
 
@@ -570,11 +570,11 @@ class TestAbbreviations:
         """Test abbreviations in natural sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("use design patterns i e singleton factory", "Use design patterns i.e. singleton, factory"),
-            ("configure the tools e g linters formatters", "Configure the tools e.g. linters, formatters"),
+            ("use design patterns i e singleton factory", "Use design patterns i.e., singleton factory"),
+            ("configure the tools e g linters formatters", "Configure the tools e.g., linters formatters"),
             (
                 "and install dependencies libraries frameworks etc",
-                "And install dependencies, libraries, frameworks etc.",
+                "And install dependencies libraries frameworks etc.",
             ),
         ]
 

@@ -714,16 +714,8 @@ class SmartCapitalizer:
                                 )
                                 break
 
-                # Also check if sentence starts with an abbreviation (like "i.e. the code")
-                if not is_protected:
-                    # Don't capitalize first letter if sentence starts with an abbreviation
-                    for abbrev in COMMON_ABBREVIATIONS:
-                        if text.lower().startswith(abbrev):
-                            is_protected = True
-                            logger.debug(
-                                f"Protecting first letter from capitalization due to sentence starting with abbreviation: {abbrev}"
-                            )
-                            break
+                # Abbreviations are prose entities that should follow normal sentence capitalization rules
+                # (Removed abbreviation protection logic as it was too aggressive)
 
                 # Also check if sentence starts with a technical term (like "git commit", "npm install")
                 if not is_protected:
