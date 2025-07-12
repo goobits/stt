@@ -1,6 +1,49 @@
 #!/usr/bin/env python3
 """Shared constants for text formatting modules."""
 
+import json
+import os
+
+# ==============================================================================
+# I18N RESOURCE LOADER
+# ==============================================================================
+
+_RESOURCES = {}
+_RESOURCE_PATH = os.path.join(os.path.dirname(__file__), 'resources')
+
+def load_resources(language: str = 'en'):
+    """Loads language-specific resources from a JSON file.
+    
+    Args:
+        language: Language code (e.g., 'en', 'es', 'fr')
+        
+    Returns:
+        dict: Loaded language resources
+        
+    Raises:
+        ValueError: If language file not found or invalid JSON
+    """
+    global _RESOURCES
+    if _RESOURCES.get(language):
+        return _RESOURCES[language]
+
+    try:
+        filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
+        with open(filepath, 'r', encoding='utf-8') as f:
+            _RESOURCES[language] = json.load(f)
+        return _RESOURCES[language]
+    except FileNotFoundError:
+        raise ValueError(f"Language resource file not found: {language}.json")
+    except json.JSONDecodeError:
+        raise ValueError(f"Error decoding JSON from {language}.json")
+
+# Load default resources on import
+RESOURCES = load_resources('en')
+
+# ==============================================================================
+# LEGACY CONSTANTS (will be replaced by resource loader gradually)
+# ==============================================================================
+
 # Currency context words - used to identify when "pounds" refers to money vs weight
 CURRENCY_CONTEXTS = [
     "cost",
@@ -756,23 +799,11 @@ PROFANITY_WORDS = [
     "hell",
 ]
 
-# Abbreviations mapping
-ABBREVIATIONS = {
-    "ie": "i.e.",
-    "eg": "e.g.",
-    "ex": "e.g.",
-    "etc": "etc.",
-    "vs": "vs.",
-    "cf": "cf.",
-    "i e": "i.e.",
-    "e g": "e.g.",
-    "v s": "vs.",
-    "i dot e dot": "i.e.",
-    "e dot g dot": "e.g.",
-}
+# Abbreviations mapping (from resources)
+ABBREVIATIONS = RESOURCES['abbreviations']
 
-# Top-level domains
-TLDS = ["com", "org", "net", "edu", "gov", "io", "co", "uk", "ca", "au", "de", "fr"]
+# Top-level domains (from resources)
+TLDS = RESOURCES['top_level_domains']
 
 # Words to exclude from TLD detection
 EXCLUDE_WORDS = {
@@ -807,42 +838,18 @@ EXCLUDE_WORDS = {
 LOCATION_NOUNS = {"docs", "documentation", "api", "site", "website", "page", "server"}
 AMBIGUOUS_NOUNS = {"help", "support"}
 
-# URL keywords mapping
-URL_KEYWORDS = {
-    "dot": ".",
-    "slash": "/",
-    "colon": ":",
-    "question mark": "?",
-    "equals": "=",
-    "ampersand": "&",
-    "and": "&",
-    "at sign": "@",
-    "at": "@",  # Add simple "at" for emails
-    "underscore": "_",
-    "hyphen": "-",
-    "dash": "-",
-}
+# ==============================================================================
+# RESOURCE-LOADED DICTIONARIES (using i18n system)
+# ==============================================================================
+
+# URL keywords mapping (spoken words → symbols for URL construction)
+URL_KEYWORDS = RESOURCES['spoken_keywords']['url']
 
 # Code-related keywords mapping (symbols and operators used in programming)
-CODE_KEYWORDS = {
-    "underscore": "_",
-    "dash": "-",
-    "hyphen": "-",
-    "plus": "+",
-    "minus": "-",
-    "equals": "=",
-    "slash": "/",  # For slash commands and paths
-}
+CODE_KEYWORDS = RESOURCES['spoken_keywords']['code']
 
 # Operator keywords mapping (compound operators and mathematical symbols)
-OPERATOR_KEYWORDS = {
-    "plus plus": "++",
-    "minus minus": "--",
-    "equals equals": "==",
-    "times": "×",
-    "divided by": "÷",
-    "over": "/",
-}
+OPERATOR_KEYWORDS = RESOURCES['spoken_keywords']['operators']
 
 # Action prefixes for email formatting
 ACTION_PREFIXES = {"email ": "Email ", "contact ": "Contact ", "write to ": "Write to ", "send to ": "Send to "}

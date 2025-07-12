@@ -1,0 +1,41 @@
+{
+  "spoken_keywords": {
+    "url": {
+      "punto": ".",
+      "barra": "/",
+      "dos puntos": ":",
+      "arroba": "@",
+      "ampersand": "&",
+      "guión": "-",
+      "guión bajo": "_"
+    },
+    "code": {
+      "guión bajo": "_",
+      "guión": "-",
+      "más": "+",
+      "menos": "-",
+      "igual": "=",
+      "barra": "/"
+    },
+    "operators": {
+      "más más": "++",
+      "menos menos": "--",
+      "igual igual": "=="
+    }
+  },
+  "abbreviations": {
+    "es decir": "es decir",
+    "por ejemplo": "p. ej.",
+    "etc": "etc.",
+    "versus": "vs."
+  },
+  "context_words": {
+    "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar"],
+    "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado"],
+    "email_actions": ["email", "contactar", "escribir a", "enviar a"]
+  },
+  "currency": {
+    "units": ["euro", "euros", "dólar", "dólares", "peso", "pesos"]
+  },
+  "top_level_domains": ["com", "org", "net", "edu", "gov", "es", "mx", "co"]
+}

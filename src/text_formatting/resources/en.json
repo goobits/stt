@@ -1,0 +1,60 @@
+{
+  "spoken_keywords": {
+    "url": {
+      "dot": ".",
+      "slash": "/",
+      "colon": ":",
+      "question mark": "?",
+      "equals": "=",
+      "ampersand": "&",
+      "and": "&",
+      "at sign": "@",
+      "at": "@",
+      "underscore": "_",
+      "hyphen": "-",
+      "dash": "-"
+    },
+    "code": {
+      "underscore": "_",
+      "dash": "-",
+      "hyphen": "-",
+      "plus": "+",
+      "minus": "-",
+      "equals": "=",
+      "slash": "/"
+    },
+    "operators": {
+      "plus plus": "++",
+      "minus minus": "--",
+      "equals equals": "==",
+      "times": "×",
+      "divided by": "÷",
+      "over": "/"
+    }
+  },
+  "abbreviations": {
+    "ie": "i.e.",
+    "eg": "e.g.",
+    "ex": "e.g.",
+    "etc": "etc.",
+    "vs": "vs.",
+    "cf": "cf.",
+    "i e": "i.e.",
+    "e g": "e.g.",
+    "v s": "vs.",
+    "i dot e dot": "i.e.",
+    "e dot g dot": "e.g."
+  },
+  "context_words": {
+    "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export"],
+    "filename_linking": ["be", "is", "are", "was", "were", "called", "named"],
+    "email_actions": ["email", "contact", "write to", "send to", "reach out to"]
+  },
+  "currency": {
+    "units": ["dollar", "dollars", "pound", "pounds", "euro", "euros", "yen", "yuan", "won", "peso", "ruble", "franc", "shekel", "real"]
+  },
+  "data_units": {
+    "storage": ["byte", "bytes", "kilobyte", "kilobytes", "megabyte", "megabytes", "gigabyte", "gigabytes", "terabyte", "terabytes"]
+  },
+  "top_level_domains": ["com", "org", "net", "edu", "gov", "io", "co", "uk", "ca", "au", "de", "fr"]
+}
