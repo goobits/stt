@@ -174,12 +174,6 @@ class NumericalEntityDetector:
         # Load language-specific resources
         self.resources = get_resources(language)
         
-        # Extract unit constants from resources
-        units = self.resources.get("units", {})
-        self.LENGTH_UNITS = set(units.get("length_units", []))
-        self.WEIGHT_UNITS = set(units.get("weight_units", []))
-        self.VOLUME_UNITS = set(units.get("volume_units", []))
-        
         self.math_parser = MathExpressionParser()
         # Initialize NumberParser for robust number word detection
         self.number_parser = NumberParser(language=self.language)
@@ -1137,13 +1131,13 @@ class NumericalEntityDetector:
                     entity_type = None
                     actual_unit = compound_unit if compound_unit else unit_text
 
-                    if compound_unit in self.WEIGHT_UNITS:
+                    if compound_unit in WEIGHT_UNITS:
                         entity_type = EntityType.METRIC_WEIGHT
-                    elif unit_lemma in self.LENGTH_UNITS or unit_text in self.LENGTH_UNITS:
+                    elif unit_lemma in LENGTH_UNITS or unit_text in LENGTH_UNITS:
                         entity_type = EntityType.METRIC_LENGTH
-                    elif unit_lemma in self.WEIGHT_UNITS or unit_text in self.WEIGHT_UNITS:
+                    elif unit_lemma in WEIGHT_UNITS or unit_text in WEIGHT_UNITS:
                         entity_type = EntityType.METRIC_WEIGHT
-                    elif unit_lemma in self.VOLUME_UNITS or unit_text in self.VOLUME_UNITS:
+                    elif unit_lemma in VOLUME_UNITS or unit_text in VOLUME_UNITS:
                         entity_type = EntityType.METRIC_VOLUME
 
                     if entity_type:
@@ -1206,11 +1200,11 @@ class NumericalEntityDetector:
                 unit_text = match.group(2).lower()
 
                 # Determine entity type
-                if unit_text in self.LENGTH_UNITS:
+                if unit_text in LENGTH_UNITS:
                     entity_type = EntityType.METRIC_LENGTH
-                elif unit_text in self.WEIGHT_UNITS:
+                elif unit_text in WEIGHT_UNITS:
                     entity_type = EntityType.METRIC_WEIGHT
-                elif unit_text in self.VOLUME_UNITS:
+                elif unit_text in VOLUME_UNITS:
                     entity_type = EntityType.METRIC_VOLUME
                 else:
                     continue
