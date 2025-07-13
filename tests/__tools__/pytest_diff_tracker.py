@@ -21,7 +21,8 @@ def pytest_addoption(parser):
     """Add options to pytest command line."""
     group = parser.getgroup("test-diff-tracker")
     group.addoption("--track-diff", action="store_true", default=False, help="Run tests and show diff vs last run.")
-    group.addoption("--history", action="store_true", default=False, help="Show recent test run history.")
+    group.addoption("--history", nargs="?", const=10, type=int, metavar="N", 
+                   help="Show test run history. Optional N specifies number of runs to show (default: 10).")
     group.addoption(
         "--diff",
         dest="diff_range",
@@ -35,7 +36,7 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     """Called after command line options are parsed."""
     # If any of our options are used, register the plugin
-    if config.getoption("--track-diff") or config.getoption("--history") or config.getoption("diff_range"):
+    if config.getoption("--track-diff") or config.getoption("--history") is not None or config.getoption("diff_range"):
         plugin = DiffTracker(config)
         config.pluginmanager.register(plugin, "difftracker")
 
@@ -43,7 +44,7 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     """Modify collection to skip tests for read-only operations."""
     # If we're only showing history or diff, don't run any tests
-    if config.getoption("--history") or config.getoption("diff_range"):
+    if config.getoption("--history") is not None or config.getoption("diff_range"):
         # Clear all collected items to prevent test execution
         items.clear()
 
@@ -389,16 +390,24 @@ class DiffTracker:
         """Parse diff range list into (from_idx, to_idx).
 
         Examples:
-          ['-1'] -> compare last run vs current (which would be new)
+          ['-1'] -> compare second to last vs last run
           ['-5', '-1'] -> compare 5th last vs last
           ['0', '5'] -> compare first vs 5th
-          ['-3'] -> compare 3rd last vs current
+          ['-3'] -> compare 3rd last vs last run
 
         """
         if len(diff_range) == 1:
-            # Single index (compare with current/latest)
-            from_idx = int(diff_range[0])
-            to_idx = -1  # Latest run
+            # Single index means compare previous run with last run
+            # e.g., -1 means compare run[-2] with run[-1]
+            idx = int(diff_range[0])
+            if idx == -1:
+                # Special case: -1 means compare second to last with last
+                from_idx = -2
+                to_idx = -1
+            else:
+                # For other values, compare that index with the last run
+                from_idx = idx
+                to_idx = -1
             return from_idx, to_idx
         if len(diff_range) == 2:
             # Two indices
@@ -463,13 +472,16 @@ class DiffTracker:
                 else:
                     self._write_line("\n📊 First run recorded. No diff to show.", session)
 
-            elif self.config.getoption("--history"):
+            elif self.config.getoption("--history") is not None:
                 # For history and diff commands, we also need to detect the test path
                 if not self.test_path:
                     self.test_path = self._detect_test_path(session)
                     self.history_file = self._get_history_file(self.test_path)
                     history = self._load_history(self.history_file)
-                self._print_history(history)
+                history_limit = self.config.getoption("--history")
+                if history_limit is None:
+                    history_limit = 10  # Default if flag used without value
+                self._print_history(history, limit=history_limit)
 
             elif self.config.getoption("diff_range"):
                 # For history and diff commands, we also need to detect the test path

@@ -475,14 +475,14 @@ class CodeEntityDetector:
                 # Get preceding characters to check for another "dash"
                 preceding_text = text[max(0, match.start() - 10) : match.start()].strip()
                 if not preceding_text.endswith("dash"):
-                    logger.debug(f"Found short flag: '{match.group(0)}' -> '-{match.group(1)}'")
+                    logger.debug(f"Found short flag: '{match.group(0)}' -> '-{match.group(2)}'")
                     entities.append(
                         Entity(
                             start=match.start(),
                             end=match.end(),
                             text=match.group(0),
                             type=EntityType.COMMAND_FLAG,
-                            metadata={"type": "short", "name": match.group(1)},
+                            metadata={"type": "short", "name": match.group(2)},
                         )
                     )
 
