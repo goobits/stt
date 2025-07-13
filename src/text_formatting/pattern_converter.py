@@ -271,26 +271,17 @@ class PatternConverter:
         # For clean SpaCy-detected emails, just return the text as-is
         return text + trailing_punct
 
-    def convert_spoken_email(self, entity: Entity) -> str:
-        """Convert 'user at example dot com' or 'email user at example dot com' to 'user@example.com'."""
+    def convert_spoken_email(self, entity: Entity, full_text: str = None) -> str:
+        """Convert 'user at example dot com' to 'user@example.com'.
+        
+        Note: The entity text should contain only the email part, not action phrases.
+        Action phrases are handled separately by the formatter.
+        """
         text = entity.text.strip()  # Strip leading/trailing spaces
         trailing_punct = ""
         if text and text[-1] in ".!?":
             trailing_punct = text[-1]
             text = text[:-1]
-
-        prefix = ""
-        # Handle various action prefixes from language resources
-        resources = get_resources(self.language)
-        email_actions = resources.get("context_words", {}).get("email_actions", [])
-        text_lower = text.lower()
-        for action in email_actions:
-            action_with_space = f"{action} "
-            if text_lower.startswith(action_with_space):
-                # Capitalize first letter of action for prefix
-                prefix = action.capitalize() + " "
-                text = text[len(action_with_space) :]
-                break
 
         # Split at the language-specific "at" keyword to isolate the username part
         at_keywords = [k for k, v in self.url_keywords.items() if v == "@"]
@@ -409,7 +400,7 @@ class PatternConverter:
             # Remove spaces around domain components (but preserve dots)
             domain = re.sub(r"\s+", "", domain)
 
-            return f"{prefix}{username}@{domain}{trailing_punct}"
+            return f"{username}@{domain}{trailing_punct}"
 
         # Fallback: use case-insensitive regex replacement for language-specific keywords
         dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
@@ -419,7 +410,7 @@ class PatternConverter:
         for at_keyword in at_keywords:
             text = re.sub(rf"\s+{re.escape(at_keyword)}\s+", "@", text, flags=re.IGNORECASE)
         text = text.replace(" ", "")
-        return prefix + text + trailing_punct
+        return text + trailing_punct
 
     def convert_port_number(self, entity: Entity) -> str:
         """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'"""

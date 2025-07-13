@@ -483,31 +483,59 @@ def build_spoken_email_pattern(language: str = "en") -> Pattern:
     email_actions = resources.get("context_words", {}).get("email_actions", ["email", "contact", "write to", "send to"])
     action_pattern = "|".join(re.escape(action) for action in email_actions)
 
+    # More restrictive pattern that doesn't capture action phrases
+    # This pattern looks for actual email-like structures
     pattern_str = rf"""
-    (?:^|(?<=\s))                       # Start of string or preceded by space
-    (?:                                 # Non-capturing group for email action prefix
-        (?:{action_pattern})\s+         # Action prefixes we want to capture and handle
-    )?
-    (?!(?:to|for|from|with|by|in|on|at|the|a|an|this|that|these|those|reach|call|find|locate|get|contact|tell|ask|see|talk|speak|say|me|you|us|him|her|them|it|i|we|he|she|they|look|go|come|think|if|when|where|what|how|why|please|can|could|would|should|will|shall|may|might)\s+)  # Negative lookahead
-    (                                   # Username part (capture group 1)
-        [a-zA-Z]+                       # Must start with letters
-        (?:                             # Optional additional parts
-            \s+                         # Space separator
-            [a-zA-Z0-9._-]+             # Regular alphanumeric parts
-        )*                              # Zero or more additional parts
+    (?:                                 # Overall non-capturing group
+        # Pattern 1: With action prefix (e.g., "send to admin at...")
+        (?:^|(?<=\s))                   # Start of string or preceded by space
+        (?:                             # Non-capturing group for action phrase
+            (?:{action_pattern})        # Action word
+            (?:\s+(?:the|a|an))?\s+     # Optional article
+            (?:\w+\s+)?                 # Optional object (e.g., "report")
+            (?:to|for)\s+               # Preposition
+        )
+        (                               # Username (capture group 1)
+            [a-zA-Z][a-zA-Z0-9]*        # Simple username starting with letter
+            (?:                         # Optional parts
+                (?:\s+(?:underscore|dash)\s+|[._-])  # Separator
+                [a-zA-Z0-9]+            # Additional part
+            )*                          # Zero or more additional parts
+        )
+        \s+(?:{at_pattern})\s+          # "at" keyword
+        (                               # Domain (capture group 2)
+            [a-zA-Z0-9]+                # Domain part starting with alphanumeric
+            (?:\s+[a-zA-Z0-9]+)*        # Optional additional parts (for "server two")
+            (?:                         # Repeated domain parts
+                \s+(?:{dot_pattern})\s+ # "dot" keyword
+                [a-zA-Z0-9]+            # Next domain part
+                (?:\s+[a-zA-Z0-9]+)*    # Optional additional parts
+            )+                          # One or more dots
+        )
+        (?=\s|$|[.!?])                  # End boundary
+    |                                   # OR
+        # Pattern 2: Without action prefix (e.g., "admin at...")
+        (?:^|(?<=\s))                   # Start of string or preceded by space
+        (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by)\s+)  # Not articles/determiners/prepositions
+        (                               # Username (capture group 3)
+            [a-zA-Z][a-zA-Z0-9]*        # Simple username starting with letter
+            (?:                         # Optional parts
+                (?:\s+(?:underscore|dash)\s+|[._-])  # Separator
+                [a-zA-Z0-9]+            # Additional part
+            )*                          # Zero or more additional parts
+        )
+        \s+(?:{at_pattern})\s+          # "at" keyword
+        (                               # Domain (capture group 4)
+            [a-zA-Z0-9]+                # Domain part starting with alphanumeric
+            (?:\s+[a-zA-Z0-9]+)*        # Optional additional parts (for "server two")
+            (?:                         # Repeated domain parts
+                \s+(?:{dot_pattern})\s+ # "dot" keyword
+                [a-zA-Z0-9]+            # Next domain part
+                (?:\s+[a-zA-Z0-9]+)*    # Optional additional parts
+            )+                          # One or more dots
+        )
+        (?=\s|$|[.!?])                  # End boundary
     )
-    \s+(?:{at_pattern})\s+              # Language-specific "at" keyword
-    (                                   # Domain part (capture group 2)
-        [a-zA-Z0-9][a-zA-Z0-9.-]*       # Domain starting with alphanumeric
-        (?:                             # Non-capturing group for dots
-            \s+(?:{dot_pattern})\s+     # Language-specific "dot" keyword
-            [a-zA-Z0-9.-]+              # Domain part after dot
-        |                               # OR
-            \.                          # Regular dot
-            [a-zA-Z0-9.-]+              # Domain part after dot
-        )+                              # One or more dots
-    )
-    (?=\s|$|[.!?])                      # Followed by space, end, or punctuation
     """
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 

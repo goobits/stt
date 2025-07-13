@@ -85,51 +85,80 @@ class WebEntityDetector:
 
     def _detect_spoken_emails(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
         """Detect spoken emails like 'john at example.com' using spaCy for context."""
-        for match in self.spoken_email_pattern.finditer(text):
+        # First, let's look for email patterns with a simpler approach
+        # We'll search for patterns like "username at domain dot com"
+        
+        # Get keywords
+        at_keywords = [k for k, v in self.resources.get("spoken_keywords", {}).get("url", {}).items() if v == "@"]
+        at_pattern = "|".join(re.escape(k) for k in at_keywords)
+        
+        # More restrictive pattern: word(s) + at + domain
+        # This avoids capturing action phrases and false positives
+        simple_email_pattern = rf"""
+        (?:^|(?<=\s))                       # Start or after space
+        (                                   # Capture group for the whole email
+            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get)\s+)  # Not preceded by these words
+            [a-zA-Z][a-zA-Z0-9]*            # Username starting with letter
+            (?:                             # Optional username parts
+                (?:\s+(?:underscore|dash)\s+|[._-])
+                [a-zA-Z0-9]+
+            )*
+            \s+(?:{at_pattern})\s+          # "at" keyword
+            [a-zA-Z0-9]+                    # Domain must start with alphanumeric
+            (?:\s+[a-zA-Z0-9]+)*            # Optional number words like "two"
+            (?:\s+dot\s+[a-zA-Z0-9]+)+      # Must have at least one "dot"
+            (?:\s+[a-zA-Z0-9]+)*            # More optional parts
+            (?:\s+dot\s+[a-zA-Z0-9]+)*      # More dots optional
+        )
+        (?=\s|$|[.!?])                      # End boundary
+        """
+        
+        simple_pattern = re.compile(simple_email_pattern, re.VERBOSE | re.IGNORECASE)
+        
+        for match in simple_pattern.finditer(text):
+            email_text = match.group(1)
+            
+            # Check if it's inside an existing entity
             if is_inside_entity(match.start(), match.end(), existing_entities):
                 continue
-
-            # CONTEXT CHECK to avoid misinterpreting "docs at python.org" 
-            # This works with or without spaCy
-            match_text = match.group()
-            at_pos = match_text.lower().find(" at ")
+            
+            # Extract username from the email text
+            at_match = re.search(rf"\s+(?:{at_pattern})\s+", email_text, re.IGNORECASE)
+            if not at_match:
+                continue
+                
+            username = email_text[:at_match.start()].strip()
+            domain = email_text[at_match.end():].strip()
+            
+            # CONTEXT CHECK to avoid misinterpreting "docs at python.org"
+            username_lower = username.lower()
+            
+            # Use location and ambiguous nouns from resources
+            location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
+            ambiguous_nouns = self.resources.get("context_words", {}).get("ambiguous_nouns", [])
+            
+            # Common email username patterns that should be treated as emails
+            common_email_usernames = {"support", "help", "info", "admin", "contact", "sales", "hello"}
             
             should_skip = False
-            if at_pos > 0:
-                # Get the part before "at"
-                before_at = match_text[:at_pos].strip()
-                # Remove "email" prefix if present
-                if before_at.lower().startswith("email "):
-                    before_at = before_at[6:].strip()
-
-                # Check if this looks like a location reference vs. an actual email address
-                # Look at the action word at the beginning of the match
+            # Skip if it's a clear location noun
+            if username_lower in location_nouns:
+                logger.debug(
+                    f"Skipping email match '{email_text}' - '{username}' indicates location context"
+                )
+                should_skip = True
+            # Skip ambiguous nouns only if it's not a common email username
+            elif username_lower in ambiguous_nouns and username_lower not in common_email_usernames:
+                # Check if there's an email action word before this match
+                before_match = text[:match.start()].lower()
                 email_actions = self.resources.get("context_words", {}).get("email_actions", [])
-                has_email_action = any(match_text.lower().startswith(action) for action in email_actions)
-
-                # Use location and ambiguous nouns from resources
-                location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
-                ambiguous_nouns = self.resources.get("context_words", {}).get("ambiguous_nouns", [])
-
-                words_before_at = before_at.split()
-                if words_before_at:
-                    last_word = words_before_at[-1].lower()
-                    
-                    # Common email username patterns that should be treated as emails
-                    common_email_usernames = {"support", "help", "info", "admin", "contact", "sales", "hello"}
-                    
-                    # Skip if it's a clear location noun
-                    if last_word in location_nouns:
-                        logger.debug(
-                            f"Skipping email match '{match.group()}' - '{last_word}' indicates location context"
-                        )
-                        should_skip = True
-                    # Skip ambiguous nouns only if there's no email action AND it's not a common email username
-                    elif last_word in ambiguous_nouns and not has_email_action and last_word not in common_email_usernames:
-                        logger.debug(
-                            f"Skipping email match '{match.group()}' - '{last_word}' without email action indicates location context"
-                        )
-                        should_skip = True
+                has_email_action = any(before_match.endswith(action + " ") for action in email_actions)
+                
+                if not has_email_action:
+                    logger.debug(
+                        f"Skipping email match '{email_text}' - '{username}' without email action indicates location context"
+                    )
+                    should_skip = True
 
             # Additional spaCy-based analysis if available
             if not should_skip and self.nlp:
@@ -141,8 +170,14 @@ class WebEntityDetector:
                     logger.warning("SpaCy context check for email failed, using basic checks.")
 
             if not should_skip:
+                # Create an entity for just the email part, not including the action phrase
                 web_entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.SPOKEN_EMAIL)
+                    Entity(
+                        start=match.start(1),  # Start of the email text
+                        end=match.end(1),      # End of the email text
+                        text=email_text,
+                        type=EntityType.SPOKEN_EMAIL
+                    )
                 )
 
     def _detect_port_numbers(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
