@@ -58,7 +58,10 @@ class WebEntityDetector:
         self._detect_port_numbers(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
         
-        self._detect_links(text, web_entities)
+        # Finally, use SpaCy for any remaining well-formatted links.
+        # This will catch things like "example.com" that the spoken detectors miss.
+        # Pass the combined list of all entities found so far to prevent overlap.
+        self._detect_links(text, web_entities, all_entities)
         return web_entities
 
     def _detect_spoken_protocol_urls(
@@ -188,7 +191,7 @@ class WebEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.PORT_NUMBER)
                 )
 
-    def _detect_links(self, text: str, entities: List[Entity]) -> None:
+    def _detect_links(self, text: str, entities: List[Entity], existing_entities: List[Entity]) -> None:
         """Detect URLs and emails using SpaCy's built-in token attributes.
 
         This method replaces the regex-based URL and email detection with
@@ -210,7 +213,7 @@ class WebEntityDetector:
                 start_pos = token.idx
                 end_pos = token.idx + len(token.text)
 
-                if not is_inside_entity(start_pos, end_pos, entities):
+                if not is_inside_entity(start_pos, end_pos, existing_entities):
                     entities.append(Entity(start=start_pos, end=end_pos, text=token.text, type=EntityType.URL))
 
             # Check for email tokens
@@ -219,7 +222,7 @@ class WebEntityDetector:
                 start_pos = token.idx
                 end_pos = token.idx + len(token.text)
 
-                if not is_inside_entity(start_pos, end_pos, entities):
+                if not is_inside_entity(start_pos, end_pos, existing_entities):
                     # Parse email to extract username and domain
                     parts = token.text.split("@")
                     metadata = {}
