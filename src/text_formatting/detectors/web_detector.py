@@ -4,7 +4,7 @@
 import re
 from typing import List
 from ..common import Entity, EntityType, NumberParser
-from ..utils import is_inside_entity
+from ..utils import is_inside_entity, overlaps_with_entity
 from ...core.config import setup_logging
 from .. import regex_patterns
 from ..constants import get_resources
@@ -100,18 +100,18 @@ class WebEntityDetector:
         simple_email_pattern = rf"""
         (?:^|(?<=\s))                       # Start or after space
         (                                   # Capture group for the whole email
-            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get)\s+)  # Not preceded by these words
+            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get|send|write|forward|reply|contact)\s+)  # Not preceded by these words, but allow "email"
             [a-zA-Z][a-zA-Z0-9]*            # Username starting with letter
             (?:                             # Optional username parts
                 (?:\s+(?:underscore|dash)\s+|[._-])
                 [a-zA-Z0-9]+
             )*
             \s+(?:{at_pattern})\s+          # "at" keyword
-            [a-zA-Z0-9]+                    # Domain must start with alphanumeric
-            (?:\s+[a-zA-Z0-9]+)*            # Optional number words like "two"
-            (?:\s+dot\s+[a-zA-Z0-9]+)+      # Must have at least one "dot"
-            (?:\s+[a-zA-Z0-9]+)*            # More optional parts
-            (?:\s+dot\s+[a-zA-Z0-9]+)*      # More dots optional
+            [a-zA-Z0-9-]+                   # Domain must start with alphanumeric or hyphen
+            (?:\s+[a-zA-Z0-9-]+)*           # Optional number words like "two" with hyphens
+            (?:\s+dot\s+[a-zA-Z0-9-]+)+     # Must have at least one "dot" with hyphens
+            (?:\s+[a-zA-Z0-9-]+)*           # More optional parts with hyphens
+            (?:\s+dot\s+[a-zA-Z0-9-]+)*     # More dots optional with hyphens
         )
         (?=\s|$|[.!?])                      # End boundary
         """
@@ -121,8 +121,8 @@ class WebEntityDetector:
         for match in simple_pattern.finditer(text):
             email_text = match.group(1)
             
-            # Check if it's inside an existing entity
-            if is_inside_entity(match.start(), match.end(), existing_entities):
+            # Check if it overlaps with any existing entity
+            if overlaps_with_entity(match.start(), match.end(), existing_entities):
                 continue
             
             # Extract username from the email text

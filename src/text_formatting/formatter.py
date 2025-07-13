@@ -557,13 +557,13 @@ class TextFormatter:
         # create new entities that overlap with existing ones.
 
         # Code and Web entities are highly specific and should run first.
-        code_entities = self.code_detector.detect(text, final_entities)
-        final_entities.extend(code_entities)
-        logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
-
         web_entities = self.web_detector.detect(text, final_entities)
         final_entities.extend(web_entities)
         logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
+
+        code_entities = self.code_detector.detect(text, final_entities)
+        final_entities.extend(code_entities)
+        logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
 
         # Numeric entities are next, as they are more specific than base SpaCy entities.
         numeric_entities = self.numeric_detector.detect(text, final_entities)
