@@ -3,11 +3,11 @@
 
 import re
 from typing import List
-from .common import Entity, EntityType, NumberParser
-from .utils import is_inside_entity
-from ..core.config import get_config, setup_logging
-from . import regex_patterns
-from .constants import get_resources
+from ..common import Entity, EntityType, NumberParser
+from ..utils import is_inside_entity
+from ...core.config import get_config, setup_logging
+from .. import regex_patterns
+from ..constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -43,27 +43,37 @@ class CodeEntityDetector:
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all code-related entities."""
         code_entities = []
-        # Add the new detector call here
-        all_entities = entities + code_entities
+        
+        # Start with existing entities and build cumulatively
+        all_entities = entities[:]  # Start with copy of existing entities
+        
         self._detect_cli_commands(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_programming_keywords(text, code_entities, all_entities)
-        # ... (rest of the existing detector calls)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_filenames(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_assignment_operators(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_spoken_operators(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_abbreviations(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_command_flags(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_slash_commands(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_underscore_delimiters(text, code_entities, all_entities)
-        all_entities = entities + code_entities
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_simple_underscore_variables(text, code_entities, all_entities)
 
         logger.debug(f"CodeEntityDetector found {len(code_entities)} entities in '{text}'")
@@ -88,9 +98,17 @@ class CodeEntityDetector:
         for match in regex_patterns.JAVA_PACKAGE_PATTERN.finditer(text):
             if not is_inside_entity(match.start(), match.end(), all_entities):
                 package_text = match.group(1).lower()
-                if any(package_text.startswith(prefix) for prefix in ["com dot", "org dot", "net dot"]):
+                # Expanded to include more common package prefixes
+                common_prefixes = ["com dot", "org dot", "net dot", "io dot", "gov dot", "edu dot"]
+                if any(package_text.startswith(prefix) for prefix in common_prefixes):
                     entities.append(
-                        Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
+                        Entity(
+                            start=match.start(), 
+                            end=match.end(), 
+                            text=match.group(0), 
+                            type=EntityType.FILENAME,
+                            metadata={"is_package": True}
+                        )
                     )
 
         # --- Part 2: Handle spoken filenames ("my file dot py") with a robust, non-greedy method ---
@@ -159,8 +177,18 @@ class CodeEntityDetector:
                 is_context_separator = token.lemma_ in filename_actions or token.lemma_ in filename_linking
 
                 # Additional common separators that indicate we should stop
+                # Be more conservative - only stop at clear document type separators
                 filename_separators = {"document", "script", "program", "application"}
                 is_filename_separator = token.text.lower() in filename_separators
+
+                # Enhanced stopping conditions for greedy filename detection
+                # Get language-specific filename stop words from i18n resources
+                filename_stop_words = resources.get("context_words", {}).get("filename_stop_words", [])
+                is_stop_word = token.text.lower() in filename_stop_words
+
+                # Stop at prepositions that clearly indicate context separation
+                context_prepositions = {"in", "on", "at", "for", "with", "from", "to", "of"}
+                is_context_preposition = token.text.lower() in context_prepositions
 
                 # Special case: handle "the file" pattern
                 # If we encounter "file" and the previous token was "the", exclude both
@@ -177,6 +205,8 @@ class CodeEntityDetector:
                     or is_conjunction
                     or is_punctuation
                     or is_filename_separator
+                    or is_stop_word
+                    or is_context_preposition
                 ):
                     logger.debug(
                         f"SPACY FILENAME: Stopping at token '{token.text}' - verb:{is_verb}, context:{is_context_separator}, prep:{is_preposition}, conj:{is_conjunction}, punct:{is_punctuation}, sep:{is_filename_separator}"
@@ -811,6 +841,11 @@ class CodePatternConverter:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
 
+        # Check for Java package metadata
+        if entity.metadata and entity.metadata.get("is_package"):
+            # For Java packages, simply replace " dot " with "." and remove spaces
+            return re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE).replace(" ", "").lower()
+
         # Check for and handle explicit underscore usage first
         # Check both the entity text and the full text context if available
         has_spoken_underscores = " underscore " in entity.text.lower()
@@ -959,8 +994,9 @@ class CodePatternConverter:
         """Convert abbreviations to proper lowercase format"""
         text = entity.text.lower()
 
-        # Use abbreviations from constants
-        return ABBREVIATIONS.get(text, text)
+        # Use abbreviations from resources
+        abbreviations = self.resources.get("abbreviations", {})
+        return abbreviations.get(text, text)
 
     def convert_assignment(self, entity: Entity) -> str:
         """Convert assignment patterns like 'a equals b' -> 'a=b' or 'let a equals b' -> 'let a=b'"""

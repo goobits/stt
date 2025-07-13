@@ -48,7 +48,8 @@
   "context_words": {
     "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export", "view", "read", "create", "delete", "execute"],
     "filename_linking": ["be", "is", "are", "was", "were", "called", "named"],
-    "email_actions": ["email", "contact", "write to", "send to", "reach out to"],
+    "filename_stop_words": ["the", "a", "an", "this", "that", "file", "script", "document"],
+    "email_actions": ["email", "send", "write", "mail", "contact", "notify", "reach", "write to", "send to", "reach out to"],
     "location_nouns": ["docs", "documentation", "api", "site", "website", "page", "server"],
     "ambiguous_nouns": ["help", "support"],
     "command_words": ["edit", "open", "run", "build", "play", "start", "stop", "create", "delete", "install"],
@@ -63,7 +64,10 @@
     "measurement_verbs": ["is", "are", "was", "were", "measures", "weighs"],
     "preserve_colon": ["contact", "email", "phone", "fax", "website", "address", "from", "to", "subject"],
     "tech_patterns": ["google", "github", "stack", "reddit", "amazon", "face", "open", "micro", "apple"],
-    "exclude_words": ["become", "income", "welcome", "outcome", "overcome", "inform", "perform", "transform", "platform", "uniform", "internet", "cabinet", "planet", "magnet", "helmet", "video", "radio", "studio", "ratio", "audio", "to", "do", "go", "so", "no"]
+    "exclude_words": ["become", "income", "welcome", "outcome", "overcome", "inform", "perform", "transform", "platform", "uniform", "internet", "cabinet", "planet", "magnet", "helmet", "video", "radio", "studio", "ratio", "audio", "to", "do", "go", "so", "no"],
+    "idiomatic_over_patterns": ["game over", "over par", "it's over", "start over", "do over", "all over", "fight over", "argue over", "debate over", "think over", "over the", "over there", "over here", "over it", "over him", "over her", "over them", "get over", "be over", "i'm over", "i am over", "getting over"],
+    "filename_action_verbs": ["open", "edit", "create", "run", "save", "load", "check", "view", "update", "visit", "import", "export", "define", "call"],
+    "filename_linking_verbs": ["be", "is", "are", "was", "were"]
   },
   "currency": {
     "units": ["dollar", "dollars", "pound", "pounds", "euro", "euros", "yen", "yuan", "won", "peso", "ruble", "franc", "shekel", "real"]
@@ -126,8 +130,8 @@
     }
   },
   "filtering": {
-    "transcription_artifacts": ["umm", "uh", "ah", "hm", "hmm", "er", "eh", "like", "you know", "basically", "actually", "literally", "sort of", "kind of"],
-    "profanity_words": ["damn", "hell", "crap", "shit", "fuck", "bitch", "ass", "bastard", "piss"]
+    "transcription_artifacts": ["umm", "uh", "ah", "hm", "hmm", "er", "eh", "like", "you know", "basically", "actually", "literally", "sort of", "kind of", "thanks for watching", "thank you for watching", "please subscribe", "like and subscribe", "don't forget to subscribe", "see you next time", "in the next video", "we'll be right back"],
+    "profanity_words": ["fuck", "shit", "damn", "bitch", "ass", "bastard", "cunt", "dick", "piss", "cock", "hell"]
   },
   "temporal": {
     "month_names": ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
@@ -168,7 +172,14 @@
     "percent_units": ["percent", "percentage"],
     "length_units": ["millimeter", "millimeters", "millimetre", "millimetres", "mm", "centimeter", "centimeters", "centimetre", "centimetres", "cm", "meter", "meters", "metre", "metres", "m", "kilometer", "kilometers", "kilometre", "kilometres", "km"],
     "weight_units": ["milligram", "milligrams", "mg", "gram", "grams", "g", "kilogram", "kilograms", "kg", "metric ton", "metric tons", "tonne", "tonnes"],
-    "volume_units": ["milliliter", "milliliters", "millilitre", "millilitres", "ml", "liter", "liters", "litre", "litres", "l"]
+    "volume_units": ["milliliter", "milliliters", "millilitre", "millilitres", "ml", "liter", "liters", "litre", "litres", "l"],
+    "known_units": ["megabytes", "megabyte", "mb", "gigabytes", "gigabyte", "gb", "kilobytes", "kilobyte", "kb", "terabytes", "terabyte", "tb", "dollars", "dollar", "cents", "cent", "pounds", "pound", "percent", "percentage", "hertz", "hz", "khz", "mhz", "ghz", "degrees", "celsius", "fahrenheit", "millimeters", "millimeter", "centimeters", "centimeter", "meters", "meter", "kilometers", "kilometer", "grams", "gram", "kilograms", "kilogram", "liters", "liter", "milliliters", "milliliter"],
+    "action_prefixes": {
+      "email ": "Email ",
+      "contact ": "Contact ",
+      "write to ": "Write to ",
+      "send to ": "Send to "
+    }
   },
   "technical": {
     "terms": ["git", "commit", "push", "pull", "merge", "branch", "checkout", "clone", "fetch", "rebase", "stash", "reset", "log", "diff", "status", "init", "add", "rm", "npm", "yarn", "pip", "cargo", "composer", "gem", "brew", "apt", "yum", "conda", "docker", "kubectl", "helm", "terraform", "ansible", "vagrant", "make", "cmake", "max", "min", "sum", "count", "avg", "len", "size", "width", "height", "start", "end", "begin", "stop", "pause", "run", "execute", "build", "test", "debug", "compile", "deploy", "install", "update", "delete", "create", "save", "load", "read", "write", "copy", "move", "sort", "filter", "user", "admin", "guest", "root", "config", "settings", "options", "params", "data", "info", "result", "output", "input", "temp", "cache", "buffer", "file", "folder", "directory", "path", "backup", "restore", "sync"],

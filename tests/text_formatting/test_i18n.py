@@ -2,7 +2,7 @@
 """Tests for internationalization (i18n) support in text formatting."""
 
 import pytest
-from src.text_formatting.constants import load_resources
+from src.text_formatting.constants import get_resources
 
 
 class TestI18nResourceLoader:
@@ -10,7 +10,7 @@ class TestI18nResourceLoader:
 
     def test_load_english_resources(self):
         """Test loading English resources (default)."""
-        resources = load_resources("en")
+        resources = get_resources("en")
 
         # Test that key sections exist
         assert "spoken_keywords" in resources
@@ -25,7 +25,7 @@ class TestI18nResourceLoader:
 
     def test_load_spanish_resources(self):
         """Test loading Spanish resources."""
-        resources = load_resources("es")
+        resources = get_resources("es")
 
         # Test that key sections exist
         assert "spoken_keywords" in resources
@@ -35,29 +35,33 @@ class TestI18nResourceLoader:
         # Test specific Spanish keywords
         assert resources["spoken_keywords"]["url"]["punto"] == "."
         assert resources["spoken_keywords"]["url"]["arroba"] == "@"
-        assert resources["abbreviations"]["es decir"] == "es decir"
+        assert resources["abbreviations"]["es decir"] == "es decir,"
         assert "es" in resources["top_level_domains"]
 
     def test_resource_caching(self):
         """Test that resources are cached after first load."""
         # Load English twice - should be cached
-        resources1 = load_resources("en")
-        resources2 = load_resources("en")
+        resources1 = get_resources("en")
+        resources2 = get_resources("en")
 
         # Should be the same object (cached)
         assert resources1 is resources2
 
-    def test_invalid_language_file(self):
-        """Test error handling for invalid language file."""
-        with pytest.raises(ValueError, match="Language resource file not found"):
-            load_resources("invalid_lang")
+    def test_invalid_language_fallback(self):
+        """Test fallback to English for invalid language file."""
+        # Should fallback to English without raising an error
+        resources = get_resources("invalid_lang")
+        
+        # Should be the same as English resources
+        en_resources = get_resources("en")
+        assert resources == en_resources
 
     def test_spanish_url_keywords_proof_of_concept(self):
         """Proof of concept: Spanish URL keywords could be used."""
         # This demonstrates how Spanish resources could be used
         # In a full implementation, the formatter would accept a language parameter
 
-        es_resources = load_resources("es")
+        es_resources = get_resources("es")
         url_keywords = es_resources["spoken_keywords"]["url"]
 
         # Example: Spanish spoken URL conversion

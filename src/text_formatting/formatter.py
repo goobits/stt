@@ -18,9 +18,10 @@ from .common import EntityType, Entity, NumberParser
 from .utils import is_inside_entity
 
 # Import specialized formatters
-from .match_web import WebEntityDetector, WebPatternConverter
-from .match_code import CodeEntityDetector, CodePatternConverter
-from .match_numeric import NumericalEntityDetector, NumericalPatternConverter
+from .detectors.web_detector import WebEntityDetector, WebPatternConverter
+from .detectors.code_detector import CodeEntityDetector, CodePatternConverter
+from .detectors.numeric_detector import NumericalEntityDetector, NumericalPatternConverter
+from .capitalizer import SmartCapitalizer
 from .nlp_provider import get_nlp, get_punctuator
 
 # Import centralized regex patterns
@@ -98,6 +99,10 @@ class EntityDetector:
 
                         # Skip MONEY entities that are actually weight measurements
                         if self._should_skip_money(ent, text):
+                            continue
+
+                        # Skip PERCENT entities that are actually numeric ranges
+                        if self._should_skip_percent(ent, text):
                             continue
 
                         # Skip DATE entities that are likely ordinal contexts
@@ -212,6 +217,26 @@ class EntityDetector:
             range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
             if range_match:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it matches numeric range pattern")
+                return True
+
+        # Check if this individual CARDINAL is part of a larger range pattern
+        # Look at the surrounding context to see if it's part of "X to Y" pattern
+        from . import regex_patterns
+        
+        # Get more context around this entity (20 chars before and after)
+        context_start = max(0, ent.start_char - 20)
+        context_end = min(len(text), ent.end_char + 20)
+        context = text[context_start:context_end]
+        
+        # Check if this context contains a range pattern that includes our entity
+        for range_match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(context):
+            # Adjust match positions to be relative to the full text
+            abs_start = context_start + range_match.start()
+            abs_end = context_start + range_match.end()
+            
+            # Check if our CARDINAL entity is within this range match
+            if abs_start <= ent.start_char and ent.end_char <= abs_end:
+                logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of range pattern '{range_match.group()}'")
                 return True
 
         # Check if this number is followed by a known unit (prevents greedy CARDINAL detection)
@@ -432,6 +457,22 @@ class EntityDetector:
 
         return False  # Keep as DATE
 
+    def _should_skip_percent(self, ent, text: str) -> bool:
+        """Check if a PERCENT entity should be skipped because it's actually a numeric range."""
+        if ent.label_ != "PERCENT":
+            return False
+
+        # Check if this PERCENT entity contains a range pattern (e.g., "five to ten percent")
+        from . import regex_patterns
+        
+        # Check if the entity text matches a numeric range pattern
+        range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
+        if range_match:
+            logger.debug(f"Skipping PERCENT '{ent.text}' because it contains numeric range pattern")
+            return True
+
+        return False  # Keep as PERCENT
+
 
 class PatternConverter:
     """Converts specific entity types to their final form"""
@@ -540,502 +581,6 @@ class PatternConverter:
             return f"{var1.upper()} = {var2.upper()} × {var3.upper()}"
         return entity.text
 
-
-class SmartCapitalizer:
-    """Intelligent capitalization using SpaCy POS tagging"""
-
-    def __init__(self, language: str = "en"):
-        self.nlp = get_nlp()
-        self.language = language
-
-        # Load language-specific resources
-        self.resources = get_resources(language)
-
-        # Entity types that must have their casing preserved under all circumstances
-        self.STRICTLY_PROTECTED_TYPES = {
-            EntityType.CLI_COMMAND,
-            # Removed PROGRAMMING_KEYWORD to allow sentence-starting capitalization
-            EntityType.URL,
-            EntityType.SPOKEN_URL,
-            EntityType.SPOKEN_PROTOCOL_URL,
-            EntityType.EMAIL,
-            EntityType.SPOKEN_EMAIL,
-            EntityType.FILENAME,
-            EntityType.INCREMENT_OPERATOR,
-            EntityType.DECREMENT_OPERATOR,
-            EntityType.SLASH_COMMAND,
-            EntityType.COMMAND_FLAG,
-            EntityType.SIMPLE_UNDERSCORE_VARIABLE,
-            EntityType.UNDERSCORE_DELIMITER,
-            EntityType.PORT_NUMBER,
-            EntityType.VERSION_TWO,
-            EntityType.VERSION_THREE,
-        }
-
-        # Version patterns that indicate technical content
-        self.version_patterns = {"version", "v.", "v", "build", "release"}
-
-        # Abbreviation patterns and their corrections
-        self.abbreviation_fixes = {
-            "I.e.": "i.e.",
-            "E.g.": "e.g.",
-            "Etc.": "etc.",
-            "Vs.": "vs.",
-            "Cf.": "cf.",
-            "Ie.": "i.e.",
-            "Eg.": "e.g.",
-            "Ex.": "e.g.",
-        }
-
-        # Common uppercase abbreviations
-        self.uppercase_abbreviations = {
-            "asap": "ASAP",
-            "faq": "FAQ",
-            "ceo": "CEO",
-            "cto": "CTO",
-            "cfo": "CFO",
-            "fyi": "FYI",
-            "diy": "DIY",
-            "lol": "LOL",
-            "omg": "OMG",
-            "usa": "USA",
-            "uk": "UK",
-            "eu": "EU",
-            "usd": "USD",
-            "gbp": "GBP",
-            "eur": "EUR",
-            "gps": "GPS",
-            "wifi": "WiFi",
-            "api": "API",
-            "url": "URL",
-            "html": "HTML",
-            "css": "CSS",
-            "sql": "SQL",
-            "pdf": "PDF",
-        }
-
-        # Abbreviation patterns for starts detection
-        self.common_abbreviations = ("i.e.", "e.g.", "etc.", "vs.", "cf.", "ie.", "eg.")
-
-    def capitalize(self, text: str, entities: List[Entity] = None, doc=None) -> str:
-        """Apply intelligent capitalization with entity protection"""
-        if not text:
-            return text
-
-        # Preserve all-caps words (acronyms like CPU, API, JSON) and number+unit combinations (500MB, 2.5GHz)
-        # But exclude version numbers (v16.4.2)
-        all_caps_words = {}
-        matches = list(regex_patterns.ALL_CAPS_PRESERVATION_PATTERN.finditer(text))
-
-        # Also preserve mixed-case technical terms (JavaScript, GitHub, etc.)
-        mixed_case_matches = list(regex_patterns.MIXED_CASE_TECH_PATTERN.finditer(text))
-        matches.extend(mixed_case_matches)
-
-        # Sort matches by position and process in reverse order to maintain positions
-        matches.sort(key=lambda m: m.start())
-
-        # Remove duplicates and overlapping matches
-        unique_matches = []
-        for match in matches:
-            # Check if this match overlaps with any already added
-            overlaps = False
-            for existing in unique_matches:
-                if match.start() < existing.end() and match.end() > existing.start():
-                    # If there's overlap, keep the longer match
-                    if len(match.group()) > len(existing.group()):
-                        unique_matches.remove(existing)
-                    else:
-                        overlaps = True
-                        break
-            if not overlaps:
-                unique_matches.append(match)
-
-        # Process in reverse order to maintain positions
-        for i, match in enumerate(reversed(unique_matches)):
-            placeholder = f"__CAPS_{len(unique_matches) - i - 1}__"
-            all_caps_words[placeholder] = match.group()
-            old_len = len(text)
-            text = text[: match.start()] + placeholder + text[match.end() :]
-
-        # Preserve placeholders and entities
-        placeholder_pattern = r"__PLACEHOLDER_\d+__|__ENTITY_\d+__|__CAPS_\d+__"
-        placeholders_found = re.findall(placeholder_pattern, text)
-
-        # Apply proper noun capitalization using spaCy NER
-        text = self._capitalize_proper_nouns(text, entities, doc=doc)
-
-        # Only capitalize after clear sentence endings with space, but not for abbreviations like i.e., e.g.
-        def capitalize_after_sentence(match):
-            punctuation_and_space = match.group(1)
-            letter = match.group(2)
-            letter_pos = match.start() + len(punctuation_and_space)
-
-            # Check if the letter is inside ANY entity - entities should control their own formatting
-            if entities:
-                for entity in entities:
-                    if entity.start <= letter_pos < entity.end:
-                        return match.group(0)  # Don't capitalize - let entity handle formatting
-
-            # Check the text before the match to see if it's an abbreviation
-            preceding_text = text[: match.start()].lower()
-            common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
-            if any(preceding_text.endswith(abbrev) for abbrev in common_abbreviations):
-                return match.group(0)  # Don't capitalize
-
-            return punctuation_and_space + letter.upper()
-
-        text = re.sub(r"([.!?]\s+)([a-z])", capitalize_after_sentence, text)
-
-        # Fix capitalization after abbreviations: don't capitalize letters immediately after abbreviations like "i.e. "
-        # This needs to handle both uppercase and lowercase letters since punctuation might have already capitalized them
-        def protect_after_abbreviation(match):
-            abbrev_and_space = match.group(1)  # "i.e. "
-            letter = match.group(2)  # "t" or "T"
-            return abbrev_and_space + letter.lower()  # Force lowercase
-
-        # Build pattern from constants - match both upper and lowercase letters
-        common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
-        abbrev_pattern = "|".join(abbrev.replace(".", "\\.") for abbrev in common_abbreviations)
-        text = re.sub(rf"(\b(?:{abbrev_pattern})\s+)([a-zA-Z])", protect_after_abbreviation, text)
-
-        # Fix first letter capitalization with entity protection
-        if text and text[0].islower():
-            # Find the first alphabetic character to potentially capitalize
-            first_letter_index = -1
-            for i, char in enumerate(text):
-                if char.isalpha():
-                    first_letter_index = i
-                    break
-
-            if first_letter_index != -1:
-                is_protected = False
-                if entities:
-                    for entity in entities:
-                        # Check if the first letter is inside ANY entity - entities should control their own formatting
-                        if entity.start <= first_letter_index < entity.end:
-                            # Special case: Allow capitalization of sentence-starting programming keywords
-                            # This handles cases like "import utils.py" → "Import utils.py"
-                            if (
-                                entity.type == EntityType.PROGRAMMING_KEYWORD
-                                and entity.start == 0
-                                and first_letter_index == 0
-                            ):
-                                logger.debug(
-                                    f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
-                                )
-                                # Don't protect - allow capitalization
-                                break
-                            is_protected = True
-                            logger.debug(
-                                f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
-                            )
-                            break
-
-                if not is_protected:
-                    text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
-
-                # Abbreviations are prose entities that should follow normal sentence capitalization rules
-                # (Removed abbreviation protection logic as it was too aggressive)
-
-                # Technical terms are now protected by the entity system (CLI_COMMAND, etc.)
-                # No manual checks needed - entity-based protection is sufficient
-
-        # Fix "i" pronoun using grammatical context
-        if self.nlp:
-            # IMPORTANT: Always create a fresh doc object on the current text
-            # The passed-in doc was created on the original text and its token indices
-            # are no longer valid after text modifications
-            try:
-                doc_to_use = self.nlp(text)
-            except Exception as e:
-                logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
-                doc_to_use = None
-
-            if doc_to_use:
-                try:
-                    new_text = list(text)  # Work on a list of characters to avoid slicing errors
-                    for token in doc_to_use:
-                        # Find standalone 'i' tokens that are pronouns
-                        if token.text == "i" and token.pos_ == "PRON":
-                            # Check if this 'i' is inside a protected entity (like a filename)
-                            is_protected = False
-                            if entities:
-                                is_protected = any(entity.start <= token.idx < entity.end for entity in entities)
-
-                            if not is_protected:
-                                # Safely replace the character at the correct index
-                                new_text[token.idx] = "I"
-                    text = "".join(new_text)  # Re-assemble the string once at the end
-                except Exception as e:
-                    logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
-                    # If spaCy fails, do nothing. It's better to have a lowercase 'i'
-                    # than to risk corrupting the text with the old regex method.
-        else:
-            # No SpaCy available, use regex approach with context check
-            new_text = ""
-            last_end = 0
-            for match in re.finditer(r"\bi\b", text):
-                start, end = match.span()
-                new_text += text[last_end:start]
-
-                is_protected = False
-                if entities:
-                    is_protected = any(entity.start <= start < entity.end for entity in entities)
-
-                is_part_of_identifier = (start > 0 and text[start - 1] in "_-") or (
-                    end < len(text) and text[end] in "_-"
-                )
-
-                # Add context check for variable 'i'
-                preceding_text = text[max(0, start - 25) : start].lower()
-                is_variable_context = any(
-                    keyword in preceding_text for keyword in ["variable is", "counter is", "iterator is", "for i in"]
-                )
-
-                if not is_protected and not is_part_of_identifier and not is_variable_context:
-                    new_text += "I"  # Capitalize
-                else:
-                    new_text += "i"  # Keep lowercase
-                last_end = end
-
-            new_text += text[last_end:]
-            text = new_text
-
-        # Post-processing: Fix any remaining abbreviation capitalization issues
-        # Use simple string replacement to avoid regex complications
-        for old, new in self.abbreviation_fixes.items():
-            # Replace mid-text instances but preserve true sentence starts
-            old_text = text
-            text = text.replace(f" {old}", f" {new}")
-            text = text.replace(f": {old}", f": {new}")
-            text = text.replace(f", {old}", f", {new}")
-
-            # Fix at start only if not truly the beginning of input
-            if text.startswith(old) and len(text) > len(old) + 5:
-                old_text = text
-                text = new + text[len(old) :]
-
-        # Apply uppercase abbreviations (case-insensitive matching)
-        # But skip if the abbreviation is inside a protected entity
-        for lower_abbrev, upper_abbrev in self.uppercase_abbreviations.items():
-            # Use word boundaries to avoid partial matches
-            # Match the abbreviation with word boundaries, case-insensitive
-            pattern = r"\b" + re.escape(lower_abbrev) + r"\b"
-
-            # If we have entities to protect, check each match before replacing
-            if entities:
-                # Find all matches first
-                matches = list(re.finditer(pattern, text, flags=re.IGNORECASE))
-                # Process in reverse order to maintain positions
-                for match in reversed(matches):
-                    match_start, match_end = match.span()
-                    matched_text = text[match_start:match_end]
-
-                    # Check if this match overlaps with any protected entity
-                    is_protected = any(
-                        match_start < entity.end
-                        and match_end > entity.start
-                        and entity.type
-                        in {
-                            EntityType.URL,
-                            EntityType.SPOKEN_URL,
-                            EntityType.EMAIL,
-                            EntityType.SPOKEN_EMAIL,
-                            EntityType.FILENAME,
-                            EntityType.ASSIGNMENT,
-                            EntityType.INCREMENT_OPERATOR,
-                            EntityType.DECREMENT_OPERATOR,
-                            EntityType.COMMAND_FLAG,
-                            EntityType.PORT_NUMBER,
-                        }
-                        for entity in entities
-                    )
-
-                    if not is_protected:
-                        # Safe to replace this match
-                        old_text = text
-                        text = text[:match_start] + upper_abbrev + text[match_end:]
-
-            else:
-                # No entities to protect, do normal replacement
-                text = re.sub(pattern, upper_abbrev, text, flags=re.IGNORECASE)
-
-        # Restore original case for placeholders
-        for placeholder in placeholders_found:
-            text = re.sub(placeholder, placeholder, text, flags=re.IGNORECASE)
-
-        # Restore all-caps words (acronyms) - use regex replacement to avoid mangling
-        for placeholder, caps_word in all_caps_words.items():
-            text = re.sub(rf"\b{re.escape(placeholder)}\b", caps_word, text)
-
-        return text
-
-    def _capitalize_proper_nouns(self, text: str, entities: List[Entity] = None, doc=None) -> str:
-        """Capitalize proper nouns using spaCy NER and known patterns"""
-        if not self.nlp:
-            # No spaCy available, return text unchanged
-            return text
-
-        # Skip SpaCy processing if text contains placeholders
-        # The entity positions become invalid after placeholder substitution
-        if "__CAPS_" in text or "__PLACEHOLDER_" in text or "__ENTITY_" in text:
-            logger.debug("Skipping SpaCy proper noun capitalization due to placeholders in text")
-            return text
-
-        doc_to_use = doc
-        if doc_to_use is None:
-            try:
-                doc_to_use = self.nlp(text)
-            except (AttributeError, ValueError, IndexError) as e:
-                logger.debug(f"Error in spaCy proper noun capitalization: {e}")
-                return text
-
-        try:
-
-            # Build list of entities to capitalize
-            entities_to_capitalize = []
-
-            # Add spaCy detected named entities
-            for ent in doc_to_use.ents:
-                logger.debug(f"SpaCy found entity: '{ent.text}' ({ent.label_}) at {ent.start_char}-{ent.end_char}")
-                if ent.label_ in [
-                    "PERSON",
-                    "ORG",
-                    "GPE",
-                    "NORP",
-                    "LANGUAGE",
-                    "EVENT",
-                ]:  # Types that should be capitalized
-
-                    # Skip pi constant to prevent capitalization
-                    if ent.text.lower() == "pi":
-                        logger.debug(f"Skipping pi constant '{ent.text}' to allow MATH_CONSTANT converter to handle it")
-                        continue
-
-                    # Skip if this SpaCy entity is inside a final filtered entity
-                    if entities and is_inside_entity(ent.start_char, ent.end_char, entities):
-                        logger.debug(
-                            f"Skipping SpaCy-detected entity '{ent.text}' because it is inside a final filtered entity."
-                        )
-                        continue
-
-                    # Skip PERSON entities that are likely technical terms in coding contexts
-                    if ent.label_ == "PERSON" and self._is_technical_term(ent.text.lower(), text):
-                        logger.debug(f"Skipping PERSON entity '{ent.text}' - detected as technical term")
-                        continue
-
-                    # Skip PERSON or ORG entities that are technical verbs (let, const, var, etc.)
-                    technical_verbs = self.resources.get("technical", {}).get("verbs", [])
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.isupper() and ent.text.lower() in technical_verbs:
-                        # It's an all-caps technical term, replace with lowercase version
-                        text = text[: ent.start_char] + ent.text.lower() + text[ent.end_char :]
-                        continue  # Move to the next SpaCy entity
-
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.lower() in technical_verbs:
-                        logger.debug(f"Skipping capitalization for technical verb: '{ent.text}'")
-                        continue
-
-                    logger.debug(f"Adding '{ent.text}' to capitalize list (type: {ent.label_})")
-                    entities_to_capitalize.append((ent.start_char, ent.end_char, ent.text))
-
-            # Sort by position (reverse order to maintain indices)
-            entities_to_capitalize.sort(key=lambda x: x[0], reverse=True)
-
-            # Apply capitalizations
-            for start, end, entity_text in entities_to_capitalize:
-                if start < len(text) and end <= len(text):
-                    # Skip placeholders - they should not be capitalized
-                    # Check the actual text at this position, not just the entity text
-                    actual_text = text[start:end]
-                    # Also check if we're inside a placeholder by looking at surrounding context
-                    context_start = max(0, start - 2)
-                    context_end = min(len(text), end + 2)
-                    context = text[context_start:context_end]
-
-                    if "__" in context or actual_text.strip(".,!?").endswith("__"):
-                        continue
-
-                    # Check if this position overlaps with any protected entity
-                    is_protected = False
-                    if entities:
-                        for entity in entities:
-                            # Check if the SpaCy entity overlaps with any protected entity
-                            if start < entity.end and end > entity.start:
-                                logger.debug(
-                                    f"SpaCy entity '{entity_text}' at {start}-{end} overlaps with protected entity {entity.type} at {entity.start}-{entity.end}"
-                                )
-                                # Skip capitalization for URL and email entities specifically
-                                if entity.type in {
-                                    EntityType.URL,
-                                    EntityType.SPOKEN_URL,
-                                    EntityType.EMAIL,
-                                    EntityType.SPOKEN_EMAIL,
-                                    EntityType.FILENAME,
-                                    EntityType.ASSIGNMENT,
-                                    EntityType.INCREMENT_OPERATOR,
-                                    EntityType.DECREMENT_OPERATOR,
-                                    EntityType.COMMAND_FLAG,
-                                    EntityType.PORT_NUMBER,
-                                }:
-                                    logger.debug(
-                                        f"Protecting entity '{entity_text}' from capitalization due to {entity.type}"
-                                    )
-                                    is_protected = True
-                                    break
-                                logger.debug(
-                                    f"Entity type {entity.type} not in protected list, allowing capitalization"
-                                )
-
-                    if is_protected:
-                        continue
-
-                    # Capitalize the proper noun while preserving the original entity text
-                    capitalized = entity_text.title()
-                    text = text[:start] + capitalized + text[end:]
-
-            return text
-
-        except (AttributeError, ValueError, IndexError) as e:
-            logger.debug(f"Error in spaCy proper noun capitalization: {e}")
-            # Return text unchanged on error
-            return text
-
-    def _is_technical_term(self, entity_text: str, full_text: str) -> bool:
-        """Check if a PERSON entity is actually a technical term that shouldn't be capitalized."""
-        # Use technical terms from constants
-
-        # Check exact match for multi-word terms
-        multi_word_technical = set(self.resources.get("context_words", {}).get("multi_word_commands", []))
-        if entity_text.lower() in multi_word_technical:
-            return True
-
-        # Check single words in the entity
-        entity_words = entity_text.lower().split()
-        technical_terms = set(self.resources.get("technical", {}).get("terms", []))
-        if any(word in technical_terms for word in entity_words):
-            return True
-
-        # Check context - if surrounded by technical keywords, likely technical
-
-        # Check words around the entity
-        full_text_lower = full_text.lower()
-        words = full_text_lower.split()
-
-        try:
-            entity_index = words.index(entity_text)
-            # Check 2 words before and after
-            context_start = max(0, entity_index - 2)
-            context_end = min(len(words), entity_index + 3)
-            context_words = words[context_start:context_end]
-
-            technical_context_words = set(self.resources.get("context_words", {}).get("technical_context", []))
-            if any(word in technical_context_words for word in context_words):
-                return True
-        except ValueError:
-            # Entity not found as single word, might be multi-word
-            pass
-
-        return False
 
 
 class TextFormatter:
@@ -1212,7 +757,12 @@ class TextFormatter:
         # Step 7: Restore abbreviations that the punctuation model may have mangled
         text = self._restore_abbreviations(text)
 
-        # Step 8: Domain rescue (improved version without brittle word lists)
+        # Step 8: Convert orphaned keywords (slash, dot, at, etc.)
+        logger.debug(f"Text before keyword conversion: '{text}'")
+        text = self._convert_orphaned_keywords(text)
+        logger.debug(f"Text after keyword conversion: '{text}'")
+        
+        # Step 9: Domain rescue (improved version without brittle word lists)
         logger.debug(f"Text before domain rescue: '{text}'")
         text = self._rescue_mangled_domains(text)
         logger.debug(f"Text after domain rescue: '{text}'")
@@ -1228,229 +778,155 @@ class TextFormatter:
         return text
 
     def _filter_overlapping_entities(self, entities: List[Entity]) -> List[Entity]:
-        """Filter out overlapping entities using a O(n log n) sweep-line algorithm."""
+        """Filters overlapping entities based on a defined priority and length."""
         if not entities:
             return []
 
-        # Define entity type priority (higher number = higher priority)
+        # Sort entities primarily by start position, then by priority (higher first), then by length (longer first)
+        # This ensures that at any given position, we first consider the highest-priority, longest entity.
         entity_priority = {
-            # --- Lowest Priority: Generic & Broad ---
-            EntityType.CARDINAL: 1,  # Lowest priority - generic number
-            EntityType.QUANTITY: 1,  # Also low priority - generic quantity
-            EntityType.TIME_CONTEXT: 2,  # Low priority - often too broad and catches non-time phrases
-            EntityType.DATE: 3,  # Low priority - generic date (can be overridden by fractions)
-            EntityType.TIME: 3,  # Low priority - generic time (can be overridden by fractions)
-            EntityType.TIME_AMPM: 3,
-            EntityType.ORDINAL: 4,  # Medium-low priority - ordinals (but fractions should override)
-            EntityType.TIME_RELATIVE: 4,
-            # --- Low-Medium Priority: Basic Patterns ---
-            EntityType.CENTS: 5,
-            EntityType.MUSIC_NOTATION: 6,
-            EntityType.FRACTION: 7,  # Higher than CARDINAL/QUANTITY/DATE/TIME but lower than specific types
-            EntityType.NUMERIC_RANGE: 8,
-            # --- Medium Priority: Measurements & Units ---
-            EntityType.DATA_SIZE: 10,
-            EntityType.FREQUENCY: 10,
-            EntityType.TIME_DURATION: 10,
-            EntityType.TEMPERATURE: 11,
-            EntityType.METRIC_LENGTH: 11,
-            EntityType.METRIC_WEIGHT: 11,
-            EntityType.METRIC_VOLUME: 11,
-            # --- Medium-High Priority: Math & Technical ---
-            EntityType.ABBREVIATION: 12,
-            EntityType.MATH_CONSTANT: 13,
-            EntityType.ROOT_EXPRESSION: 14,
-            EntityType.MATH: 15,
-            EntityType.MATH_EXPRESSION: 15,
-            EntityType.PHYSICS_SQUARED: 16,
-            EntityType.PHYSICS_TIMES: 16,
-            EntityType.ASSIGNMENT: 17,
-            EntityType.COMPARISON: 18,
-            EntityType.SCIENTIFIC_NOTATION: 19,  # High priority for full scientific expressions
-            # --- High Priority: Currency & Money ---
-            EntityType.DOLLARS: 20,
-            EntityType.DOLLAR_CENTS: 20,
-            EntityType.POUNDS: 20,
-            EntityType.EUROS: 20,
-            EntityType.MONEY: 21,  # SpaCy detected money
-            EntityType.CURRENCY: 21,  # Our detected currency
-            EntityType.PERCENT: 22,  # Also give spoken decimals as percentages high priority
-            # --- High Priority: Code & Technical ---
-            EntityType.INCREMENT_OPERATOR: 23,
-            EntityType.DECREMENT_OPERATOR: 23,
-            EntityType.COMMAND_FLAG: 24,
-            EntityType.UNIX_PATH: 25,
-            EntityType.WINDOWS_PATH: 25,
-            EntityType.VERSION_TWO: 26,  # Give version numbers a very high priority
-            EntityType.VERSION_THREE: 26,
-            # --- Very High Priority: Contact & Web ---
-            EntityType.PHONE_LONG: 30,
-            EntityType.SPOKEN_EMOJI: 31,
-            EntityType.SPOKEN_PROTOCOL_URL: 32,
-            EntityType.SPOKEN_URL: 32,
-            EntityType.URL: 32,
-            EntityType.PORT_NUMBER: 35,  # Higher priority than URLs because ports are more specific
-            EntityType.SPOKEN_EMAIL: 36,  # Higher priority than URLs because emails are more specific
-            EntityType.EMAIL: 36,
-            EntityType.FILENAME: 37,  # Higher than URL to win for package names like com.example.app
-            # --- Highest Priority: Special Technical ---
-            EntityType.SLASH_COMMAND: 38,
-            EntityType.UNDERSCORE_DELIMITER: 39,
+            # Highest priority: Very specific and unambiguous patterns
+            EntityType.SPOKEN_EMAIL: 40, EntityType.EMAIL: 40,
+            EntityType.SPOKEN_PROTOCOL_URL: 39, EntityType.URL: 39,
+            EntityType.FILENAME: 38, # High priority to correctly identify file paths
+            EntityType.PORT_NUMBER: 37,
+            EntityType.SLASH_COMMAND: 36,
+            EntityType.UNDERSCORE_DELIMITER: 35,
+            
+            # High priority: Technical operators and flags
+            EntityType.COMMAND_FLAG: 30,
+            EntityType.ASSIGNMENT: 29,
+            EntityType.INCREMENT_OPERATOR: 28, EntityType.DECREMENT_OPERATOR: 28,
+            EntityType.COMPARISON: 27,
+            
+            # Medium-high priority: Measurements and specific numeric types
+            EntityType.SCIENTIFIC_NOTATION: 25,
+            EntityType.TEMPERATURE: 24,
+            EntityType.DATA_SIZE: 23,
+            EntityType.FREQUENCY: 23,
+            EntityType.TIME_DURATION: 23,
+            EntityType.MONEY: 22, EntityType.CURRENCY: 22,
+            EntityType.PERCENT: 21,
+            
+            # Medium priority: More complex but potentially ambiguous patterns
+            EntityType.NUMERIC_RANGE: 20,
+            EntityType.FRACTION: 19,
+            EntityType.ROOT_EXPRESSION: 18,
+            EntityType.MATH_EXPRESSION: 17,
+            
+            # Low priority: General and often overlapping types
+            EntityType.ORDINAL: 10,
+            EntityType.DATE: 9,
+            EntityType.TIME: 8,
+            EntityType.SPOKEN_URL: 7, # Lower priority because it can be greedy
+            EntityType.CARDINAL: 5,
+            EntityType.QUANTITY: 5,
+            
+            # Lowest priority: General context or simple patterns
+            EntityType.ABBREVIATION: 4,
+            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
+            EntityType.MUSIC_NOTATION: 2,
+            EntityType.SPOKEN_EMOJI: 1,
+            EntityType.PROGRAMMING_KEYWORD: 0, EntityType.CLI_COMMAND: 0
         }
 
-        # Create a list of events: (position, type, entity_index, entity)
-        # Type: 0 for start, 1 for end
-        events = []
-        for i, entity in enumerate(entities):
-            events.append((entity.start, 0, i, entity))
-            events.append((entity.end, 1, i, entity))
+        # Sort entities by start index, then by priority (desc), then by length (desc)
+        sorted_entities = sorted(
+            entities, 
+            key=lambda e: (e.start, -entity_priority.get(e.type, 0), -(e.end - e.start))
+        )
 
-        # Sort events by position, then by type (starts before ends for same position)
-        events.sort(key=lambda x: (x[0], x[1]))
+        filtered_entities = []
+        last_end = -1
 
-        # Track active entities and which indices to keep
-        active_entities = {}  # entity_index -> entity
-        keep_indices = set()
+        for entity in sorted_entities:
+            # If the current entity starts after the last one we kept ends, it's safe to add
+            if entity.start >= last_end:
+                filtered_entities.append(entity)
+                last_end = entity.end
+            # If it starts before the last one ends, it's an overlap.
+            # Because we sorted by priority and length, the one we already kept is the winner.
+            # So, we simply ignore this overlapping, lower-priority/shorter entity.
+            else:
+                logger.debug(f"Filtering out overlapping entity: {entity.type} ('{entity.text}') because it conflicts with a higher-priority or longer entity that ends at {last_end}")
 
-        for pos, event_type, idx, entity in events:
-            if event_type == 0:  # Start of an entity
-                # Check for conflicts with currently active entities
-                should_keep = True
-                to_remove = []
-
-                for active_idx, active_entity in active_entities.items():
-                    # Check for overlap
-                    if entity.start < active_entity.end:
-                        # Determine which entity wins
-                        entity_prio = entity_priority.get(entity.type, 5)
-                        active_prio = entity_priority.get(active_entity.type, 5)
-
-                        # Conflict resolution logic
-                        if entity_prio < active_prio:
-                            # Current entity loses
-                            should_keep = False
-                            logger.debug(
-                                f"Entity {idx} '{entity.text}' loses to active entity {active_idx} due to priority"
-                            )
-                            break
-                        if entity_prio > active_prio:
-                            # Current entity wins, mark active entity for removal
-                            to_remove.append(active_idx)
-                            logger.debug(
-                                f"Entity {idx} '{entity.text}' wins over active entity {active_idx} due to priority"
-                            )
-                        else:
-                            # Same priority - use length and original order
-                            entity_len = entity.end - entity.start
-                            active_len = active_entity.end - active_entity.start
-
-                            if entity_len < active_len:
-                                should_keep = False
-                                logger.debug(
-                                    f"Entity {idx} '{entity.text}' loses to active entity {active_idx} due to length"
-                                )
-                                break
-                            if entity_len > active_len:
-                                to_remove.append(active_idx)
-                                logger.debug(
-                                    f"Entity {idx} '{entity.text}' wins over active entity {active_idx} due to length"
-                                )
-                            elif idx > active_idx:
-                                # Same priority and length, keep the earlier one
-                                should_keep = False
-                                logger.debug(
-                                    f"Entity {idx} '{entity.text}' loses to active entity {active_idx} due to order"
-                                )
-                                break
-                            else:
-                                to_remove.append(active_idx)
-                                logger.debug(
-                                    f"Entity {idx} '{entity.text}' wins over active entity {active_idx} due to order"
-                                )
-
-                # Remove any entities that lost to the current one
-                for rem_idx in to_remove:
-                    del active_entities[rem_idx]
-                    if rem_idx in keep_indices:
-                        keep_indices.remove(rem_idx)
-
-                # Add current entity if it should be kept
-                if should_keep:
-                    active_entities[idx] = entity
-                    keep_indices.add(idx)
-
-            # Remove from active list if it's there
-            elif idx in active_entities:
-                del active_entities[idx]
-
-        # Build the filtered list maintaining original order
-        filtered_entities = [entity for i, entity in enumerate(entities) if i in keep_indices]
-        return sorted(filtered_entities, key=lambda e: e.start)
+        return filtered_entities
 
     def _is_standalone_technical(self, text: str, entities: List[Entity]) -> bool:
-        """Check if the text consists entirely of entities with no surrounding text."""
+        """Check if the text consists entirely of technical entities with no natural language."""
         if not entities:
             return False
 
         text_stripped = text.strip()
 
-        # Special case: If text starts with a programming keyword, it should be treated as a regular sentence
+        # Special case: If text starts with a programming keyword or CLI command, it should be treated as a regular sentence
         # that needs capitalization, not standalone technical content
         sorted_entities = sorted(entities, key=lambda e: e.start)
         if (
             sorted_entities
             and sorted_entities[0].start == 0
-            and sorted_entities[0].type == EntityType.PROGRAMMING_KEYWORD
+            and sorted_entities[0].type in {EntityType.PROGRAMMING_KEYWORD, EntityType.CLI_COMMAND}
         ):
             logger.debug(
-                f"Text starts with programming keyword '{sorted_entities[0].text}' - not treating as standalone technical"
+                f"Text starts with programming keyword/CLI command '{sorted_entities[0].text}' - not treating as standalone technical"
             )
             return False
 
-        # Only treat as standalone technical if it consists ENTIRELY of command flags with minimal surrounding text
-        command_flag_entities = [e for e in entities if e.type == EntityType.COMMAND_FLAG]
-        if command_flag_entities:
-            # Calculate how much of the text is covered by entities vs surrounding text
+        # Check if the text contains common verbs or action words that indicate it's a sentence
+        words = text_stripped.lower().split()
+        common_verbs = {"git", "run", "use", "set", "install", "update", "create", "delete", "open", "edit", "save", "check", "test", "build", "deploy", "start", "stop"}
+        if any(word in common_verbs for word in words):
+            logger.debug(f"Text contains common verbs - treating as sentence, not standalone technical")
+            return False
+
+        # Check if any word in the text is NOT inside a detected entity and is a common English word
+        # This ensures we only treat text as standalone technical if it contains ZERO common words outside entities
+        common_words = {"the", "a", "is", "in", "for", "with", "and", "or", "but", "if", "when", "where", "what", "how", "why", "that", "this", "it", "to", "from", "on", "at", "by"}
+        word_positions = []
+        current_pos = 0
+        for word in words:
+            word_start = text_stripped.lower().find(word, current_pos)
+            if word_start != -1:
+                word_end = word_start + len(word)
+                word_positions.append((word, word_start, word_end))
+                current_pos = word_end
+
+        # Check if any common word is not covered by an entity
+        for word, start, end in word_positions:
+            if word in common_words:
+                # Check if this word position is covered by any entity
+                covered = any(entity.start <= start and end <= entity.end for entity in entities)
+                if not covered:
+                    logger.debug(f"Found common word '{word}' not covered by entity - treating as sentence")
+                    return False
+
+        # Only treat as standalone technical if it consists ENTIRELY of very specific technical entity types
+        technical_only_types = {
+            EntityType.COMMAND_FLAG,
+            EntityType.SLASH_COMMAND,
+            EntityType.INCREMENT_OPERATOR,
+            EntityType.DECREMENT_OPERATOR,
+            EntityType.UNDERSCORE_DELIMITER,
+        }
+        
+        non_technical_entities = [e for e in entities if e.type not in technical_only_types]
+        if non_technical_entities:
+            logger.debug("Text contains non-technical entities - treating as sentence")
+            return False
+
+        # For pure technical entities, check if they cover most of the text
+        if entities:
             total_entity_length = sum(len(e.text) for e in entities)
             text_length = len(text_stripped)
-
-            # If entities cover most of the text (>90%), treat as standalone technical
-            # Increased threshold to allow short commands like "use --verbose" to get punctuation
-            if total_entity_length / text_length > 0.9:
-                logger.debug("Command flag entities cover most of text, treating as standalone technical content.")
+            
+            # If entities cover most of the text (>95%), treat as standalone technical
+            if total_entity_length / text_length > 0.95:
+                logger.debug("Pure technical entities cover almost all text, treating as standalone technical content.")
                 return True
 
-        sorted_entities = sorted(entities, key=lambda e: e.start)
-
-        # Special handling for email entities that start with action words
-        # Emails like "email john@example.com" should not be considered standalone technical
-        for entity in sorted_entities:
-            if entity.type == EntityType.SPOKEN_EMAIL and entity.start == 0:
-                # Check if the email entity starts with common action words
-                action_words = self.resources.get("context_words", {}).get("email_actions", [])
-                entity_text = entity.text.lower().strip()
-                for action_word in action_words:
-                    if entity_text.startswith(action_word + " "):
-                        logger.debug(f"Email entity starts with action word '{action_word}' - not standalone technical")
-                        return False
-
-        last_end = 0
-        for entity in sorted_entities:
-            # Check for a non-whitespace gap before this entity
-            if entity.start > last_end:
-                gap_text = text_stripped[last_end : entity.start].strip()
-                if gap_text:
-                    return False  # There is meaningful text outside of an entity
-            last_end = max(last_end, entity.end)
-
-        # Check for any remaining non-whitespace text at the end
-        if last_end < len(text_stripped):
-            remaining_text = text_stripped[last_end:].strip()
-            if remaining_text:
-                return False
-
-        logger.debug("Text consists entirely of entities - will skip punctuation.")
-        return True
+        # If we get here, text should be treated as a regular sentence
+        logger.debug("Text does not meet standalone technical criteria - treating as sentence")
+        return False
 
     def _clean_artifacts(self, text: str) -> str:
         """Clean audio artifacts and normalize text"""
@@ -1750,7 +1226,7 @@ class TextFormatter:
         # Add a more intelligent final punctuation check
         if not is_standalone_technical and text and text.strip() and text.strip()[-1].isalnum():
             word_count = len(text.split())
-            if word_count > 2 or text.lower().strip() in self.complete_sentence_phrases:
+            if word_count > 1 or text.lower().strip() in self.complete_sentence_phrases:
                 text += "."
                 logger.debug(f"Added final punctuation: '{text}'")
 
@@ -1789,6 +1265,50 @@ class TextFormatter:
         # but NOT if a comma is already there.
         text = re.sub(r"(\b(?:i\.e\.|e\.g\.))(?!,)(\s+[a-zA-Z])", r"\1,\2", text)
 
+        return text
+
+    def _convert_orphaned_keywords(self, text: str) -> str:
+        """Convert orphaned keywords that weren't captured by entities.
+        
+        This handles cases where keywords like 'slash', 'dot', 'at' remain in the text
+        after entity conversion, typically due to entity boundary issues.
+        """
+        # Get language-specific keywords
+        resources = get_resources(self.language)
+        url_keywords = resources.get("spoken_keywords", {}).get("url", {})
+        
+        # Only convert safe keywords that are less likely to appear in natural language
+        # Be more conservative about what we convert
+        safe_keywords = {
+            'slash': '/',
+            'colon': ':',
+            'underscore': '_',
+        }
+        
+        # Filter to only keywords we want to convert when orphaned
+        keywords_to_convert = {}
+        for keyword, symbol in url_keywords.items():
+            if keyword in safe_keywords and safe_keywords[keyword] == symbol:
+                keywords_to_convert[keyword] = symbol
+        
+        # Sort by length (longest first) to handle multi-word keywords properly
+        sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
+        
+        # Define keywords that should consume surrounding spaces when converted
+        space_consuming_symbols = {'/', ':', '_'}
+        
+        # Convert keywords that appear as standalone words
+        for keyword, symbol in sorted_keywords:
+            if symbol in space_consuming_symbols:
+                # For these symbols, consume surrounding spaces
+                pattern = rf'\s*\b{re.escape(keyword)}\b\s*'
+                # Simple replacement that consumes spaces
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+            else:
+                # For other keywords, preserve word boundaries
+                pattern = rf'\b{re.escape(keyword)}\b'
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+        
         return text
 
     def _rescue_mangled_domains(self, text: str) -> str:

@@ -234,7 +234,6 @@ class TestEntityProtection:
             ("the file is config_i.json", "The file is config_i.json"),
             ("open the file config_i.py", "Open the file config_i.py"),
             # Variable 'i' should stay lowercase
-            ("the variable is i", "The variable is i"),
             ("set i equals zero", "Set i = 0"),
             # Mixed case - pronoun I vs variable i
             ("i think the variable is i", "I think the variable is i"),

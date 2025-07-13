@@ -17,14 +17,8 @@ from src.text_formatting.formatter import TextFormatter
 class TestSpanishSpokenUrls:
     """Test Spanish SPOKEN_URL entity detection and formatting."""
 
-    def test_basic_spoken_urls(self, preloaded_formatter):
+    def test_basic_spoken_urls(self, spanish_formatter):
         """Test basic Spanish spoken URL patterns."""
-        # Note: preloaded_formatter doesn't support language parameter
-        # We need to create our own formatter but ensure punctuation is disabled
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("visita google punto com", "Visita google.com"),
             ("ve a ejemplo punto org", "Ve a ejemplo.org"),
@@ -34,15 +28,11 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_paths(self, preloaded_formatter):
+    def test_spoken_urls_with_paths(self, spanish_formatter):
         """Test Spanish spoken URLs with path segments."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ve a ejemplo punto com barra página", "Ve a ejemplo.com/página"),
             ("visita github punto com barra usuario barra repositorio", "Visita github.com/usuario/repositorio"),
@@ -51,15 +41,11 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_numbers(self, preloaded_formatter):
+    def test_spoken_urls_with_numbers(self, spanish_formatter):
         """Test Spanish spoken URLs containing numbers."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("visita servidor uno punto ejemplo punto com", "Visita servidor 1.ejemplo.com"),
             ("ve a api punto v dos punto servicio punto org", "Ve a api.v2.servicio.org"),
@@ -68,15 +54,11 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_query_parameters(self, preloaded_formatter):
+    def test_spoken_urls_with_query_parameters(self, spanish_formatter):
         """Test Spanish spoken URLs with query parameters."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             (
                 "ve a búsqueda punto com signo de interrogación consulta igual python",
@@ -93,19 +75,15 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishSpokenEmails:
     """Test Spanish SPOKEN_EMAIL entity detection and formatting."""
 
-    def test_basic_spoken_emails(self, preloaded_formatter):
+    def test_basic_spoken_emails(self, spanish_formatter):
         """Test basic Spanish spoken email patterns."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("mi email es usuario arroba ejemplo punto com", "Mi email es usuario@ejemplo.com"),
             ("contacta a admin arroba sitio punto org", "Contacta a admin@sitio.org"),
@@ -114,15 +92,11 @@ class TestSpanishSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_with_numbers(self, preloaded_formatter):
+    def test_spoken_emails_with_numbers(self, spanish_formatter):
         """Test Spanish spoken emails with numbers."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("envía a usuario uno dos tres arroba ejemplo punto com", "Envía a usuario123@ejemplo.com"),
             ("email juan dos mil arroba correo punto es", "Email juan2000@correo.es"),
@@ -130,19 +104,15 @@ class TestSpanishSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishCodeOperators:
     """Test Spanish code operator detection and formatting."""
 
-    def test_basic_operators(self, preloaded_formatter):
+    def test_basic_operators(self, spanish_formatter):
         """Test basic Spanish code operators."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("contador más más", "contador++"),
             ("valor menos menos", "valor--"),
@@ -152,15 +122,11 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_slash_commands(self, preloaded_formatter):
+    def test_slash_commands(self, spanish_formatter):
         """Test Spanish slash command formatting."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta barra construir", "Ejecuta /construir"),
             ("usa barra ayuda", "Usa /ayuda"),
@@ -168,15 +134,11 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_underscore_variables(self, preloaded_formatter):
+    def test_underscore_variables(self, spanish_formatter):
         """Test Spanish underscore variable formatting."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("variable guión bajo nombre", "variable_nombre"),
             ("mi guión bajo función", "mi_función"),
@@ -184,19 +146,15 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishNumericEntities:
     """Test Spanish numeric entity detection and formatting."""
 
-    def test_spanish_numbers(self, preloaded_formatter):
+    def test_spanish_numbers(self, spanish_formatter):
         """Test Spanish number word conversion."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("tengo veinte años", "Tengo 20 años"),
             ("compré treinta libros", "Compré 30 libros"),  # Changed to non-currency context
@@ -206,15 +164,11 @@ class TestSpanishNumericEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_currency_formatting(self, preloaded_formatter):
+    def test_currency_formatting(self, spanish_formatter):
         """Test Spanish currency formatting."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("cuesta cinco euros", "Cuesta €5"),
             ("precio treinta dólares", "Precio $30"),
@@ -223,7 +177,7 @@ class TestSpanishNumericEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 

@@ -3,11 +3,11 @@
 
 import re
 from typing import List
-from .common import Entity, EntityType, NumberParser
-from .utils import is_inside_entity
-from ..core.config import setup_logging
-from . import regex_patterns
-from .constants import get_resources
+from ..common import Entity, EntityType, NumberParser
+from ..utils import is_inside_entity
+from ...core.config import setup_logging
+from .. import regex_patterns
+from ..constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -77,60 +77,57 @@ class WebEntityDetector:
             if is_inside_entity(match.start(), match.end(), existing_entities):
                 continue
 
-            # spaCy CONTEXT CHECK to avoid misinterpreting "docs at python.org"
-            if self.nlp:
+            # CONTEXT CHECK to avoid misinterpreting "docs at python.org" 
+            # This works with or without spaCy
+            match_text = match.group()
+            at_pos = match_text.lower().find(" at ")
+            
+            should_skip = False
+            if at_pos > 0:
+                # Get the part before "at"
+                before_at = match_text[:at_pos].strip()
+                # Remove "email" prefix if present
+                if before_at.lower().startswith("email "):
+                    before_at = before_at[6:].strip()
+
+                # Check if this looks like a location reference vs. an actual email address
+                # Look at the action word at the beginning of the match
+                email_actions = self.resources.get("context_words", {}).get("email_actions", [])
+                has_email_action = any(match_text.lower().startswith(action) for action in email_actions)
+
+                # Use location and ambiguous nouns from resources
+                location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
+                ambiguous_nouns = self.resources.get("context_words", {}).get("ambiguous_nouns", [])
+
+                words_before_at = before_at.split()
+                if words_before_at:
+                    last_word = words_before_at[-1].lower()
+                    # Skip if it's a clear location noun
+                    if last_word in location_nouns:
+                        logger.debug(
+                            f"Skipping email match '{match.group()}' - '{last_word}' indicates location context"
+                        )
+                        should_skip = True
+                    # Skip ambiguous nouns only if there's no email action
+                    elif last_word in ambiguous_nouns and not has_email_action:
+                        logger.debug(
+                            f"Skipping email match '{match.group()}' - '{last_word}' without email action indicates location context"
+                        )
+                        should_skip = True
+
+            # Additional spaCy-based analysis if available
+            if not should_skip and self.nlp:
                 try:
                     # Analyze the text to understand the grammar around the match
                     doc = self.nlp(text)
-                    at_token = None
-                    # Find the "at" token within the matched text
-                    for token in doc:
-                        if token.text.lower() == "at" and match.start() <= token.idx < match.end():
-                            at_token = token
-                            break
-
-                    if at_token:
-                        # Find the word that comes before "at" in the match
-                        match_text = match.group()
-                        at_pos = match_text.lower().find(" at ")
-                        if at_pos > 0:
-                            # Get the part before "at"
-                            before_at = match_text[:at_pos].strip()
-                            # Remove "email" prefix if present
-                            if before_at.lower().startswith("email "):
-                                before_at = before_at[6:].strip()
-
-                            # Check if this looks like a location reference vs. an actual email address
-                            # Look at the action word at the beginning of the match
-                            email_actions = self.resources.get("context_words", {}).get("email_actions", [])
-                            has_email_action = any(match_text.lower().startswith(action) for action in email_actions)
-
-                            # Use location and ambiguous nouns from resources
-                            location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
-                            ambiguous_nouns = self.resources.get("context_words", {}).get("ambiguous_nouns", [])
-
-                            words_before_at = before_at.split()
-                            if words_before_at:
-                                last_word = words_before_at[-1].lower()
-                                # Skip if it's a clear location noun
-                                if last_word in location_nouns:
-                                    logger.debug(
-                                        f"Skipping email match '{match.group()}' - '{last_word}' indicates location context"
-                                    )
-                                    continue
-                                # Skip ambiguous nouns only if there's no email action
-                                if last_word in ambiguous_nouns and not has_email_action:
-                                    logger.debug(
-                                        f"Skipping email match '{match.group()}' - '{last_word}' without email action indicates location context"
-                                    )
-                                    continue
+                    # Additional spaCy checks can go here if needed
                 except (AttributeError, ValueError, IndexError):
-                    logger.warning("SpaCy context check for email failed, falling back to regex.")
-                    # Fallback to regex-only if spaCy fails
+                    logger.warning("SpaCy context check for email failed, using basic checks.")
 
-            web_entities.append(
-                Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.SPOKEN_EMAIL)
-            )
+            if not should_skip:
+                web_entities.append(
+                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.SPOKEN_EMAIL)
+                )
 
     def _detect_port_numbers(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
         """Detect port numbers like 'localhost colon eight zero eight zero'."""
@@ -230,7 +227,23 @@ class WebPatternConverter:
 
     def convert_spoken_protocol_url(self, entity: Entity) -> str:
         """Convert spoken protocol URLs like 'http colon slash slash www.google.com/path?query=value'"""
-        text = entity.text.lower().replace(" colon slash slash", "://")
+        text = entity.text.lower()
+        
+        # Get language-specific keywords
+        colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
+        slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
+        
+        # Try to find and replace "colon slash slash" pattern
+        for colon_kw in colon_keywords:
+            for slash_kw in slash_keywords:
+                pattern = f" {colon_kw} {slash_kw} {slash_kw}"
+                if pattern in text:
+                    text = text.replace(pattern, "://")
+                    break
+            else:
+                continue
+            break
+        
         # The rest can be handled by the robust spoken URL converter
         return self.convert_spoken_url(Entity(start=0, end=len(text), text=text, type=EntityType.SPOKEN_URL), text)
 

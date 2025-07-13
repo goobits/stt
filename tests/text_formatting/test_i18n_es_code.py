@@ -16,12 +16,8 @@ from src.text_formatting.formatter import TextFormatter
 class TestSpanishSlashCommands:
     """Test Spanish SLASH_COMMAND entity detection and formatting."""
 
-    def test_basic_slash_commands(self, preloaded_formatter):
+    def test_basic_slash_commands(self, spanish_formatter):
         """Test basic Spanish slash command patterns."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta barra ayuda", "Ejecuta /ayuda"),
             ("usa barra construir", "Usa /construir"),
@@ -30,15 +26,11 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_slash_commands_with_params(self, preloaded_formatter):
+    def test_slash_commands_with_params(self, spanish_formatter):
         """Test Spanish slash commands with parameters."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta barra crear usuario nuevo", "Ejecuta /crear usuario nuevo"),
             ("usa barra configurar servidor producción", "Usa /configurar servidor producción"),
@@ -46,15 +38,11 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_slash_commands_with_dashes(self, preloaded_formatter):
+    def test_slash_commands_with_dashes(self, spanish_formatter):
         """Test Spanish slash commands with dashed names."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta barra construir guión limpio", "Ejecuta /construir-limpio"),
             ("usa barra modo guión desarrollo", "Usa /modo-desarrollo"),
@@ -62,19 +50,15 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishCommandFlags:
     """Test Spanish COMMAND_FLAG entity detection and formatting."""
 
-    def test_short_flags(self, preloaded_formatter):
+    def test_short_flags(self, spanish_formatter):
         """Test Spanish short command flag patterns."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta con guión v", "Ejecuta con -v"),
             ("usa guión h para ayuda", "Usa -h para ayuda"),
@@ -83,15 +67,11 @@ class TestSpanishCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_long_flags(self, preloaded_formatter):
+    def test_long_flags(self, spanish_formatter):
         """Test Spanish long command flag patterns."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("ejecuta con guión guión ayuda", "Ejecuta con --ayuda"),
             ("usa guión guión versión", "Usa --versión"),
@@ -100,19 +80,15 @@ class TestSpanishCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishUnderscorePatterns:
     """Test Spanish underscore pattern detection and formatting."""
 
-    def test_simple_underscore_variables(self, preloaded_formatter):
+    def test_simple_underscore_variables(self, spanish_formatter):
         """Test Spanish simple underscore variable patterns."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("variable mi guión bajo nombre", "Variable mi_nombre"),
             ("función obtener guión bajo datos", "Función obtener_datos"),
@@ -121,15 +97,11 @@ class TestSpanishUnderscorePatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_multiple_underscores(self, preloaded_formatter):
+    def test_multiple_underscores(self, spanish_formatter):
         """Test Spanish patterns with multiple underscores."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("archivo guión bajo configuración guión bajo principal", "Archivo _configuración_principal"),
             ("función guión bajo guión bajo init guión bajo guión bajo", "Función __init__"),
@@ -137,19 +109,15 @@ class TestSpanishUnderscorePatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishCodeOperators:
     """Test Spanish code operator detection and formatting."""
 
-    def test_increment_decrement(self, preloaded_formatter):
+    def test_increment_decrement(self, spanish_formatter):
         """Test Spanish increment and decrement operators."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("contador más más", "contador++"),
             ("índice menos menos", "índice--"),
@@ -158,15 +126,11 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_comparison_operators(self, preloaded_formatter):
+    def test_comparison_operators(self, spanish_formatter):
         """Test Spanish comparison operators."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("si x igual igual cinco", "Si x == 5"),
             ("mientras a menor que b", "Mientras a menor que b"),
@@ -174,15 +138,11 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_assignment_operators(self, preloaded_formatter):
+    def test_assignment_operators(self, spanish_formatter):
         """Test Spanish assignment operators."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("x igual cinco", "x = 5"),
             ("resultado igual a más b", "resultado = a + b"),
@@ -191,19 +151,15 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishMixedPatterns:
     """Test Spanish mixed code patterns."""
 
-    def test_code_with_urls(self, preloaded_formatter):
+    def test_code_with_urls(self, spanish_formatter):
         """Test Spanish code patterns mixed with URLs."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("visita api punto ejemplo punto com barra v uno", "Visita api.ejemplo.com/v1"),
             ("conecta a servidor punto local dos puntos ocho cero ocho cero", "Conecta a servidor.local:8080"),
@@ -211,15 +167,11 @@ class TestSpanishMixedPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_code_with_numbers(self, preloaded_formatter):
+    def test_code_with_numbers(self, spanish_formatter):
         """Test Spanish code patterns with numbers."""
-        import os
-
-        os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
-        formatter = TextFormatter(language="es")
         test_cases = [
             ("array de tamaño diez", "Array de tamaño 10"),
             ("puerto tres mil", "Puerto 3000"),
@@ -228,7 +180,7 @@ class TestSpanishMixedPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = formatter.format_transcription(input_text)
+            result = spanish_formatter.format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 

@@ -628,9 +628,9 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
     # Build the complete pattern using the dynamic keyword patterns
     pattern_str = rf"""
     \b                                  # Word boundary
-    (localhost|[\w.-]+)                 # Hostname
+    (localhost|[\w.-]+)                 # Hostname (capture group 1)
     \s+(?:{colon_pattern})\s+           # Spoken "colon"
-    (                                   # Capture group: port number (allows compound numbers)
+    (                                   # Capture group 2: port number (allows compound numbers)
         (?:                             # Non-capturing group for number words
             {number_words_pattern}
         )
@@ -641,7 +641,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
             )
         )*                              # Zero or more additional number words
     )
-    \b                                  # Word boundary
+    (?=\s|$|/)                          # Lookahead: followed by space, end, or slash (not word boundary)
     """
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
@@ -795,12 +795,30 @@ COMPLEX_MATH_EXPRESSION_PATTERN = re.compile(
 SIMPLE_MATH_EXPRESSION_PATTERN = re.compile(
     r"""
     \b                                  # Word boundary
-    \w+                                 # First operand
+    (?:                                 # Non-capturing group for first operand
+        (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
+           eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
+           eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
+           eighty|ninety|hundred|thousand|million|billion)
+        |                               # OR
+        \d+                             # Digits
+        |                               # OR
+        [a-zA-Z]                        # Single letter variable
+    )
     \s+                                 # Space
-    (?:times|divided\ by|over|slash)    # Mathematical operator
+    (?:times|divided\ by|over|slash)   # Mathematical operator
     \s+                                 # Space
-    \w+                                 # Second operand
-    [.!?]?                              # Optional trailing punctuation
+    (?:                                 # Non-capturing group for second operand
+        (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|
+           eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|
+           eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|
+           eighty|ninety|hundred|thousand|million|billion)
+        |                               # OR
+        \d+                             # Digits
+        |                               # OR
+        [a-zA-Z]                        # Single letter variable
+    )
+    (?:\s|$|[.!?])                      # Followed by space, end, or punctuation
     """,
     re.VERBOSE | re.IGNORECASE,
 )

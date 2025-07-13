@@ -3,11 +3,11 @@
 
 import re
 from typing import List, Optional, Dict, Any
-from .common import Entity, EntityType, NumberParser
-from .utils import is_inside_entity
-from ..core.config import setup_logging
-from . import regex_patterns
-from .constants import get_resources
+from ..common import Entity, EntityType, NumberParser
+from ..utils import is_inside_entity
+from ...core.config import setup_logging
+from .. import regex_patterns
+from ..constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -164,7 +164,7 @@ class NumericalEntityDetector:
 
         """
         if nlp is None:
-            from .nlp_provider import get_nlp
+            from ..nlp_provider import get_nlp
 
             nlp = get_nlp()
 
@@ -328,43 +328,47 @@ class NumericalEntityDetector:
     ) -> None:
         """Detect numeric range expressions (ten to twenty, etc.)."""
         for match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(text):
-            check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
-                # Check if this is actually a time expression (e.g., "five to ten" meaning 9:55)
-                # We'll skip if it looks like a time context
-                if match.start() > 0:
-                    prefix = text[max(0, match.start() - 20) : match.start()].lower()
-                    if any(time_word in prefix for time_word in ["quarter", "half", "past", "at"]):
-                        continue
+            # Don't check for entity overlap here - let the priority system handle it
+            # This allows ranges to be detected even if individual numbers are already detected as CARDINAL
+            
+            # Check if this is actually a time expression (e.g., "five to ten" meaning 9:55)
+            # We'll skip if it looks like a time context
+            if match.start() > 0:
+                prefix = text[max(0, match.start() - 20) : match.start()].lower()
+                if any(time_word in prefix for time_word in ["quarter", "half", "past", "at"]):
+                    continue
 
-                # Check if followed by a unit (e.g., "five to ten percent")
-                end_pos = match.end()
-                unit_type = None
-                unit_text = None
+            # Check if followed by a unit (e.g., "five to ten percent")
+            end_pos = match.end()
+            unit_type = None
+            unit_text = None
 
-                # Check for units after the range
-                remaining_text = text[end_pos:].lstrip()
-                if remaining_text:
-                    # Check for percent
-                    if remaining_text.lower().startswith("percent"):
-                        unit_type = "percent"
-                        unit_text = "percent"
-                        end_pos = match.end() + len(text[match.end() :]) - len(remaining_text) + 7  # 7 = len("percent")
+            # Check for units after the range
+            remaining_text = text[end_pos:].lstrip()
+            if remaining_text:
+                # Check for percent
+                if remaining_text.lower().startswith("percent"):
+                    unit_type = "percent"
+                    unit_text = "percent"
+                    # Calculate the correct end position: find "percent" start position + length
+                    percent_start = text.find("percent", end_pos)
+                    if percent_start != -1:
+                        end_pos = percent_start + 7  # 7 = len("percent")
 
-                entities.append(
-                    Entity(
-                        start=match.start(),
-                        end=end_pos,
-                        text=text[match.start() : end_pos],
-                        type=EntityType.NUMERIC_RANGE,
-                        metadata={
-                            "start_word": match.group(1),
-                            "end_word": match.group(2),
-                            "unit_type": unit_type,
-                            "unit": unit_text,
-                        },
-                    )
+            entities.append(
+                Entity(
+                    start=match.start(),
+                    end=end_pos,
+                    text=text[match.start() : end_pos],
+                    type=EntityType.NUMERIC_RANGE,
+                    metadata={
+                        "start_word": match.group(1),
+                        "end_word": match.group(2),
+                        "unit_type": unit_type,
+                        "unit": unit_text,
+                    },
                 )
+            )
 
     def _detect_number_unit_patterns(
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None
@@ -389,7 +393,8 @@ class NumericalEntityDetector:
         )
 
         for match in compound_pattern.finditer(text):
-            check_entities = all_entities if all_entities else entities
+            # Check against both existing entities and entities being built in this detector
+            check_entities = (all_entities if all_entities else []) + entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Extract the unit from the match
                 match_text = match.group().lower()
@@ -1149,13 +1154,18 @@ class NumericalEntityDetector:
                     entity_type = None
                     actual_unit = compound_unit if compound_unit else unit_text
 
-                    if compound_unit in WEIGHT_UNITS:
+                    # Get units from resources
+                    weight_units = self.resources.get("units", {}).get("weight_units", [])
+                    length_units = self.resources.get("units", {}).get("length_units", [])
+                    volume_units = self.resources.get("units", {}).get("volume_units", [])
+                    
+                    if compound_unit in weight_units:
                         entity_type = EntityType.METRIC_WEIGHT
-                    elif unit_lemma in LENGTH_UNITS or unit_text in LENGTH_UNITS:
+                    elif unit_lemma in length_units or unit_text in length_units:
                         entity_type = EntityType.METRIC_LENGTH
-                    elif unit_lemma in WEIGHT_UNITS or unit_text in WEIGHT_UNITS:
+                    elif unit_lemma in weight_units or unit_text in weight_units:
                         entity_type = EntityType.METRIC_WEIGHT
-                    elif unit_lemma in VOLUME_UNITS or unit_text in VOLUME_UNITS:
+                    elif unit_lemma in volume_units or unit_text in volume_units:
                         entity_type = EntityType.METRIC_VOLUME
 
                     if entity_type:
@@ -1218,11 +1228,16 @@ class NumericalEntityDetector:
                 unit_text = match.group(2).lower()
 
                 # Determine entity type
-                if unit_text in LENGTH_UNITS:
+                # Get units from resources
+                length_units = self.resources.get("units", {}).get("length_units", [])
+                weight_units = self.resources.get("units", {}).get("weight_units", [])
+                volume_units = self.resources.get("units", {}).get("volume_units", [])
+                
+                if unit_text in length_units:
                     entity_type = EntityType.METRIC_LENGTH
-                elif unit_text in WEIGHT_UNITS:
+                elif unit_text in weight_units:
                     entity_type = EntityType.METRIC_WEIGHT
-                elif unit_text in VOLUME_UNITS:
+                elif unit_text in volume_units:
                     entity_type = EntityType.METRIC_VOLUME
                 else:
                     continue
@@ -1588,7 +1603,11 @@ class NumericalPatternConverter:
             result = re.sub(r"\s+", " ", result).strip()
 
             # Ensure there is a single space around binary operators for readability
-            result = re.sub(r"\s*([+\-*/=×÷])\s*", r" \1 ", result).strip()
+            # but not for division operator when it's a simple expression
+            if "/" in result and len(result_parts) == 3:  # Simple division like "10 / 5"
+                result = re.sub(r"\s*/\s*", "/", result).strip()
+            else:
+                result = re.sub(r"\s*([+\-*/=×÷])\s*", r" \1 ", result).strip()
             # Clean up potential double spaces that might result
             result = re.sub(r"\s+", " ", result)
 
@@ -2192,7 +2211,8 @@ class NumericalPatternConverter:
             if entity.start > 0 and full_text[entity.start - 1] == "-":
                 return entity.text
 
-        parsed = self.number_parser.parse_with_validation(entity.text)
+        # Use the more general parser
+        parsed = self.number_parser.parse(entity.text)
         return parsed if parsed else entity.text
 
     def convert_ordinal(self, entity: Entity) -> str:
@@ -2480,26 +2500,24 @@ class NumericalPatternConverter:
 
     def convert_numeric_range(self, entity: Entity) -> str:
         """Convert numeric range expressions (ten to twenty -> 10-20)."""
-        if not entity.metadata:
+        # Improved regex to handle number words and optional units
+        match = re.match(
+            r"(.+)\s+to\s+(.+?)(?:\s+(percent))?$", entity.text, re.IGNORECASE
+        )
+        if not match:
             return entity.text
 
-        start_word = entity.metadata.get("start_word", "").lower()
-        end_word = entity.metadata.get("end_word", "").lower()
-
-        # Use the number parser to convert words to numbers
+        start_word, end_word, unit = match.groups()
+        
         start_num = self.number_parser.parse(start_word)
         end_num = self.number_parser.parse(end_word)
 
         if start_num and end_num:
             result = f"{start_num}-{end_num}"
-
-            # Add unit if present
-            unit_type = entity.metadata.get("unit_type")
-            if unit_type == "percent":
+            if unit:
                 result += "%"
-
             return result
-
+        
         return entity.text
 
     def convert_version(self, entity: Entity) -> str:
