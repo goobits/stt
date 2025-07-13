@@ -54,17 +54,18 @@ class EntityDetector:
         self.language = language
         self.resources = get_resources(language)
 
-    def detect_entities(self, text: str, doc=None) -> List[Entity]:
+    def detect_entities(self, text: str, existing_entities: List[Entity], doc=None) -> List[Entity]:
         """Single pass entity detection"""
         entities = []
 
         # Only process SpaCy entities in the base detector
-        self._process_spacy_entities(text, entities, doc=doc)
+        # Pass the existing_entities list for the overlap check
+        self._process_spacy_entities(text, entities, existing_entities, doc=doc)
 
-        # Sort by start position, but prioritize longer entities when they overlap
-        return sorted(entities, key=lambda e: (e.start, -len(e.text)))
+        # Sorting is no longer needed here as the main formatter will sort the final list.
+        return entities
 
-    def _process_spacy_entities(self, text: str, entities: List[Entity], doc=None) -> None:
+    def _process_spacy_entities(self, text: str, entities: List[Entity], existing_entities: List[Entity], doc=None) -> None:
         """Process SpaCy-detected entities."""
         if not self.nlp:
             return
@@ -89,7 +90,7 @@ class EntityDetector:
             }
             for ent in doc.ents:
                 if ent.label_ in label_to_type:
-                    if not is_inside_entity(ent.start_char, ent.end_char, entities):
+                    if not is_inside_entity(ent.start_char, ent.end_char, existing_entities):
                         # Skip CARDINAL entities that are in idiomatic "plus" contexts
                         if self._should_skip_cardinal(ent, text):
                             continue
@@ -547,33 +548,51 @@ class TextFormatter:
             return ""
 
         # Step 2: Full formatting WITHOUT punctuation
-        # Detect and convert all entities to their final form
-        # --- CHANGE 1: Pass the pre-processed `doc` object ---
-        entities = self.entity_detector.detect_entities(text, doc=doc)
-        logger.info(f"Base entities detected: {len(entities)} - {[f'{e.type}:{e.text}' for e in entities]}")
+        # Phase 4: New ordered detection pipeline. The order determines priority.
+        # 1. Start with an empty list of final entities.
+        final_entities = []
 
-        # Add web-related entities
-        web_entities = self.web_detector.detect(text, entities)
-        logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
-        entities.extend(web_entities)
+        # 2. Run detectors from most specific to most general.
+        # Each detector is passed the list of entities found so far and should not
+        # create new entities that overlap with existing ones.
 
-        # Add code-related entities
-        code_entities = self.code_detector.detect(text, entities)
+        # Code and Web entities are highly specific and should run first.
+        code_entities = self.code_detector.detect(text, final_entities)
+        final_entities.extend(code_entities)
         logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
-        entities.extend(code_entities)
 
-        # Add numeric-related entities
-        numeric_entities = self.numeric_detector.detect(text, entities)
+        web_entities = self.web_detector.detect(text, final_entities)
+        final_entities.extend(web_entities)
+        logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
+
+        # Numeric entities are next, as they are more specific than base SpaCy entities.
+        numeric_entities = self.numeric_detector.detect(text, final_entities)
+        final_entities.extend(numeric_entities)
         logger.info(
             f"Numeric entities detected: {len(numeric_entities)} - {[f'{e.type}:{e.text}' for e in numeric_entities]}"
         )
-        entities.extend(numeric_entities)
 
-        logger.debug(f"Detected {len(entities)} total entities.")
-
-        # Filter overlapping entities to get the final, non-overlapping list.
-        filtered_entities = self._filter_overlapping_entities(entities)
-        logger.debug(f"Filtered to {len(filtered_entities)} non-overlapping entities.")
+        # Finally, run the base SpaCy detector for general entities like DATE, TIME, etc.
+        base_spacy_entities = self.entity_detector.detect_entities(text, final_entities, doc=doc)
+        final_entities.extend(base_spacy_entities)
+        logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}")
+        
+        # Phase 4 Fix: Deduplicate entities with identical boundaries to prevent text duplication
+        # This fixes cases where SpaCy and custom detectors find the same entity (e.g., "fifty percent")
+        deduplicated_entities = []
+        seen_spans = set()
+        
+        for entity in final_entities:
+            span_key = (entity.start, entity.end)
+            if span_key not in seen_spans:
+                deduplicated_entities.append(entity)
+                seen_spans.add(span_key)
+            else:
+                logger.debug(f"Skipping duplicate entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+        
+        # The deduplicated list is now our authoritative, non-overlapping list
+        filtered_entities = sorted(deduplicated_entities, key=lambda e: e.start)
+        logger.debug(f"Found {len(filtered_entities)} final non-overlapping entities.")
 
         # Step 3: Assemble final string WITHOUT placeholders (Phase 2 refactoring)
         # Build the new string from scratch by processing entities in order
@@ -665,98 +684,6 @@ class TextFormatter:
         logger.debug(f"Final formatted: '{text[:50]}...'")
         return text
 
-    def _filter_overlapping_entities(self, entities: List[Entity]) -> List[Entity]:
-        """Filters overlapping entities based on a defined priority and length."""
-        if not entities:
-            return []
-
-        # Sort entities primarily by start position, then by priority (higher first), then by length (longer first)
-        # This ensures that at any given position, we first consider the highest-priority, longest entity.
-        entity_priority = {
-            # HIGHEST: Unambiguous, already-formatted entities
-            EntityType.URL: 50,
-            EntityType.EMAIL: 50,
-            EntityType.FILENAME: 48,
-            EntityType.PORT_NUMBER: 47,
-            EntityType.UNIX_PATH: 46,
-            EntityType.WINDOWS_PATH: 46,
-            
-            # HIGH: Very specific spoken patterns with clear delimiters
-            EntityType.SPOKEN_PROTOCOL_URL: 45, # "http colon slash slash..." is very clear
-            EntityType.UNDERSCORE_DELIMITER: 42, # "__init__" is very specific
-            EntityType.SLASH_COMMAND: 41,
-            EntityType.COMMAND_FLAG: 40,
-            
-            # MEDIUM-HIGH: Technical terms and operators
-            EntityType.CLI_COMMAND: 35, # Give CLI commands a solid priority
-            EntityType.PROGRAMMING_KEYWORD: 34,
-            EntityType.ASSIGNMENT: 33,
-            EntityType.COMPARISON: 32,
-            EntityType.INCREMENT_OPERATOR: 31, EntityType.DECREMENT_OPERATOR: 31,
-            
-            # MEDIUM: Specific numeric types and measurements
-            EntityType.MONEY: 30, EntityType.CURRENCY: 30,
-            EntityType.DOLLAR_CENTS: 29, EntityType.DOLLARS: 29, EntityType.CENTS: 29,
-            EntityType.POUNDS: 29, EntityType.EUROS: 29,
-            EntityType.DATA_SIZE: 28,
-            EntityType.TEMPERATURE: 28,
-            EntityType.METRIC_LENGTH: 28, EntityType.METRIC_WEIGHT: 28, EntityType.METRIC_VOLUME: 28,
-            EntityType.SCIENTIFIC_NOTATION: 27,
-            EntityType.FREQUENCY: 26,
-            EntityType.TIME_DURATION: 26,
-            EntityType.NUMERIC_RANGE: 25, # Ranges should beat individual numbers
-            EntityType.PERCENT: 24,
-            EntityType.VERSION_TWO: 23, EntityType.VERSION_THREE: 23,
-            EntityType.PHONE_LONG: 22,
-            EntityType.TIME_CONTEXT: 21, EntityType.TIME_AMPM: 21,
-            
-            # LOWER-MEDIUM: Ambiguous spoken patterns
-            EntityType.SPOKEN_EMAIL: 20, # Lowering this to let specific terms like API win
-            EntityType.SPOKEN_URL: 19,
-            EntityType.TIME_RELATIVE: 18,
-            
-            # LOW: More complex but potentially ambiguous patterns
-            EntityType.FRACTION: 15,
-            EntityType.ROOT_EXPRESSION: 14,
-            EntityType.MATH_EXPRESSION: 13,
-            EntityType.MATH_CONSTANT: 12,
-            EntityType.PHYSICS_SQUARED: 11, EntityType.PHYSICS_TIMES: 11,
-            EntityType.PROTOCOL: 11,
-            EntityType.MATH: 11,
-            
-            # LOWEST: General, often-overlapping base types
-            EntityType.ORDINAL: 10,
-            EntityType.DATE: 9,
-            EntityType.TIME: 8,
-            EntityType.ABBREVIATION: 7,
-            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 6,
-            EntityType.CARDINAL: 5, # Should be overridden by almost everything else
-            EntityType.QUANTITY: 4,
-            EntityType.MUSIC_NOTATION: 3,
-            EntityType.SPOKEN_EMOJI: 2
-        }
-
-        # Sort entities by start index, then by priority (desc), then by length (desc)
-        sorted_entities = sorted(
-            entities, 
-            key=lambda e: (e.start, -entity_priority.get(e.type, 0), -(e.end - e.start))
-        )
-
-        filtered_entities = []
-        last_end = -1
-
-        for entity in sorted_entities:
-            # If the current entity starts after the last one we kept ends, it's safe to add
-            if entity.start >= last_end:
-                filtered_entities.append(entity)
-                last_end = entity.end
-            # If it starts before the last one ends, it's an overlap.
-            # Because we sorted by priority and length, the one we already kept is the winner.
-            # So, we simply ignore this overlapping, lower-priority/shorter entity.
-            else:
-                logger.debug(f"Filtering out overlapping entity: {entity.type} ('{entity.text}') because it conflicts with a higher-priority or longer entity that ends at {last_end}")
-
-        return filtered_entities
 
     def _is_standalone_technical(self, text: str, entities: List[Entity]) -> bool:
         """Check if the text consists entirely of technical entities with no natural language."""
