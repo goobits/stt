@@ -514,8 +514,9 @@ class NumericalEntityDetector:
                 if self._is_idiomatic_over_expression(clean_expr, text, start_pos):
                     continue
 
-                # Note: Idiomatic "plus" and "times" filtering is now handled at the CARDINAL detection stage
-                # in formatter.py._should_skip_cardinal(), preventing these from being detected as entities in the first place
+                # Use the new SpaCy-based idiomatic check for "plus" and "times"
+                if self._is_idiomatic_expression_spacy(clean_expr, text, start_pos, end_pos):
+                    continue
 
                 check_entities = all_entities if all_entities else entities
                 if not is_inside_entity(start_pos, end_pos, check_entities):
