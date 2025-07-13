@@ -28,10 +28,10 @@ class CodeEntityDetector:
 
         self.nlp = nlp
         self.language = language
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
-        
+
         # Build patterns dynamically for the specified language
         self.slash_command_pattern = regex_patterns.get_slash_command_pattern(language)
         self.underscore_delimiter_pattern = regex_patterns.get_underscore_delimiter_pattern(language)
@@ -118,7 +118,9 @@ class CodeEntityDetector:
             if is_inside_entity(match.start(), match.end(), all_entities):
                 continue
 
-            logger.debug(f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}")
+            logger.debug(
+                f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}"
+            )
 
             # Check for email conflict
             if " at " in text[max(0, match.start() - 10) : match.start()]:
@@ -131,7 +133,9 @@ class CodeEntityDetector:
                 continue  # No token ends exactly where " dot " begins, weird spacing.
 
             current_token = end_char_to_token[start_of_dot]
-            logger.debug(f"SPACY FILENAME: Token before 'dot': '{current_token.text}' at {current_token.idx}-{current_token.idx + len(current_token.text)}")
+            logger.debug(
+                f"SPACY FILENAME: Token before 'dot': '{current_token.text}' at {current_token.idx}-{current_token.idx + len(current_token.text)}"
+            )
 
             filename_tokens = []
             # Walk backwards from the token before "dot"
@@ -141,7 +145,8 @@ class CodeEntityDetector:
                 # ** THE CRITICAL STOPPING LOGIC **
                 # Stop if we hit a clear sentence-starting verb, preposition, or conjunction.
                 # This prevents walking back across an entire sentence.
-                is_verb = token.pos_ == "VERB"
+                # Special case: "underscore" is often misclassified as a verb by SpaCy
+                is_verb = token.pos_ == "VERB" and token.text.lower() != "underscore"
                 is_preposition = token.pos_ == "ADP" and token.text.lower() != "v"
                 is_conjunction = token.pos_ == "CCONJ"
                 is_punctuation = token.is_punct
@@ -152,24 +157,43 @@ class CodeEntityDetector:
                 filename_linking = resources.get("context_words", {}).get("filename_linking", [])
 
                 is_context_separator = token.lemma_ in filename_actions or token.lemma_ in filename_linking
-                
+
                 # Additional common separators that indicate we should stop
-                filename_separators = {"document", "script", "program", "application", "the"}
+                filename_separators = {"document", "script", "program", "application"}
                 is_filename_separator = token.text.lower() in filename_separators
 
-                if is_verb or is_context_separator or is_preposition or is_conjunction or is_punctuation or is_filename_separator:
+                # Special case: handle "the file" pattern
+                # If we encounter "file" and the previous token was "the", exclude both
+                if token.text.lower() == "file" and i > 0:
+                    prev_token = doc[i - 1]
+                    if prev_token.text.lower() == "the":
+                        # Stop here, don't include "the file" in the filename
+                        break
+
+                if (
+                    is_verb
+                    or is_context_separator
+                    or is_preposition
+                    or is_conjunction
+                    or is_punctuation
+                    or is_filename_separator
+                ):
+                    logger.debug(
+                        f"SPACY FILENAME: Stopping at token '{token.text}' - verb:{is_verb}, context:{is_context_separator}, prep:{is_preposition}, conj:{is_conjunction}, punct:{is_punctuation}, sep:{is_filename_separator}"
+                    )
                     # Always stop at context separators - don't include them in the filename
                     break
 
-                # If we've walked back more than ~5 words, it's probably not a filename.
-                if len(filename_tokens) >= 5:
+                # If we've walked back more than ~8 words, it's probably not a filename.
+                # Increased to 8 to accommodate dunder names like "__init__"
+                if len(filename_tokens) >= 8:
                     break
 
                 # If all checks pass, this token is part of the filename
                 filename_tokens.insert(0, token)
 
             if not filename_tokens:
-                logger.debug(f"SPACY FILENAME: No filename tokens collected, skipping")
+                logger.debug("SPACY FILENAME: No filename tokens collected, skipping")
                 continue
 
             logger.debug(f"SPACY FILENAME: Collected filename tokens: {[t.text for t in filename_tokens]}")
@@ -187,7 +211,7 @@ class CodeEntityDetector:
                 entities.append(Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME))
                 logger.debug(f"SPACY FILENAME: Created filename entity: '{entity_text}'")
             else:
-                logger.debug(f"SPACY FILENAME: Entity overlaps with existing entity, skipping")
+                logger.debug("SPACY FILENAME: Entity overlaps with existing entity, skipping")
 
         # Check if spaCy detection found any new entities, if not, fall back to regex
         entities_after_spacy = len(entities)
@@ -215,12 +239,12 @@ class CodeEntityDetector:
 
         # Get operator keywords for the current language
         operators = get_resources(self.language)["spoken_keywords"]["operators"]
-        
+
         # Build a map of operator patterns to their symbols
         operator_patterns = {}
         for pattern, symbol in operators.items():
             operator_patterns[pattern.lower()] = symbol
-        
+
         # Iterate through tokens to find operator patterns
         for i, token in enumerate(doc):
             # Check for multi-word operators
@@ -254,11 +278,22 @@ class CodeEntityDetector:
                                         start=start_pos,
                                         end=end_pos,
                                         text=entity_text,
-                                        type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.COMPARISON,
-                                        metadata={"variable": prev_token.text, "operator": operator_patterns[two_word_pattern]},
+                                        type=(
+                                            EntityType.INCREMENT_OPERATOR
+                                            if operator_patterns[two_word_pattern] == "++"
+                                            else (
+                                                EntityType.DECREMENT_OPERATOR
+                                                if operator_patterns[two_word_pattern] == "--"
+                                                else EntityType.COMPARISON
+                                            )
+                                        ),
+                                        metadata={
+                                            "variable": prev_token.text,
+                                            "operator": operator_patterns[two_word_pattern],
+                                        },
                                     )
                                 )
-                
+
                 # Also check for three-word operators if present
                 elif i + 2 < len(doc):
                     three_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()} {doc[i + 2].text.lower()}"
@@ -267,7 +302,7 @@ class CodeEntityDetector:
                         if i > 0 and i + 3 < len(doc):
                             prev_token = doc[i - 1]
                             next_token = doc[i + 3]
-                            
+
                             # Check for variable on left and value/variable on right
                             is_left_var = prev_token.is_alpha and not prev_token.is_stop
                             is_right_var = (
@@ -275,13 +310,13 @@ class CodeEntityDetector:
                                 or next_token.like_num
                                 or next_token.text.lower() in ["true", "false", "null"]
                             )
-                            
+
                             if is_left_var and is_right_var:
                                 # Check if there's an "if" before the comparison
                                 start_pos = prev_token.idx
                                 if i > 1 and doc[i - 2].text.lower() == "if":
                                     start_pos = doc[i - 2].idx
-                                
+
                                 end_pos = next_token.idx + len(next_token.text)
                                 entity_text = text[start_pos:end_pos]
                                 check_entities = all_entities if all_entities else entities
@@ -300,12 +335,14 @@ class CodeEntityDetector:
                                         )
                                     )
 
-    def _detect_spoken_operators_regex(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+    def _detect_spoken_operators_regex(
+        self, text: str, entities: List[Entity], all_entities: List[Entity] = None
+    ) -> None:
         """Regex-based fallback for operator detection when spaCy is not available."""
         # Get operator keywords for the current language
         resources = get_resources(self.language)
         operators = resources.get("spoken_keywords", {}).get("operators", {})
-        
+
         # Build patterns for all operators
         for operator_phrase, symbol in operators.items():
             if symbol in ["++", "--"]:
@@ -313,16 +350,16 @@ class CodeEntityDetector:
                 # Use word boundaries and allow for spaces in the operator phrase
                 escaped_phrase = re.escape(operator_phrase)
                 pattern = rf"\b([a-zA-Z_]\w*)\s+{escaped_phrase}\b"
-                
+
                 for match in re.finditer(pattern, text, re.IGNORECASE):
                     start_pos = match.start()
                     end_pos = match.end()
                     check_entities = all_entities if all_entities else entities
-                    
+
                     if not is_inside_entity(start_pos, end_pos, check_entities):
                         variable_name = match.group(1)
                         entity_type = EntityType.INCREMENT_OPERATOR if symbol == "++" else EntityType.DECREMENT_OPERATOR
-                        
+
                         entities.append(
                             Entity(
                                 start=start_pos,
@@ -333,21 +370,21 @@ class CodeEntityDetector:
                             )
                         )
                         logger.debug(f"Regex detected {symbol} operator: '{match.group(0)}' at {start_pos}-{end_pos}")
-            
+
             elif symbol == "==":
                 # Build pattern for comparison: variable + operator phrase + value
                 escaped_phrase = re.escape(operator_phrase)
                 pattern = rf"\b([a-zA-Z_]\w*)\s+{escaped_phrase}\s+(\w+)\b"
-                
+
                 for match in re.finditer(pattern, text, re.IGNORECASE):
                     start_pos = match.start()
                     end_pos = match.end()
                     check_entities = all_entities if all_entities else entities
-                    
+
                     if not is_inside_entity(start_pos, end_pos, check_entities):
                         left_var = match.group(1)
                         right_val = match.group(2)
-                        
+
                         entities.append(
                             Entity(
                                 start=start_pos,
@@ -558,20 +595,20 @@ class CodeEntityDetector:
                 first_word = match.group(1)
                 second_word = match.group(2)
 
-                # Check context - only detect if preceded by programming keywords OR 
+                # Check context - only detect if preceded by programming keywords OR
                 # if the first word itself is a programming context word
                 context_words = text[: match.start()].lower().split()
                 preceding_word = context_words[-1] if context_words else ""
-                
+
                 # Valid programming context words
                 valid_context_words = {"variable", "let", "const", "var", "set", "is", "check", "mi", "my"}
-                
+
                 # Check if either there's a preceding context word OR the first word is a context word
                 has_valid_context = (
-                    preceding_word in valid_context_words or  # Preceding word is valid
-                    first_word.lower() in valid_context_words  # First word itself is valid context
+                    preceding_word in valid_context_words  # Preceding word is valid
+                    or first_word.lower() in valid_context_words  # First word itself is valid context
                 )
-                
+
                 if not has_valid_context:
                     continue
 
@@ -599,18 +636,33 @@ class CodeEntityDetector:
 
         # Only use specific CLI tools and multi-word commands, not all technical terms
         cli_tools = {
-            "git", "npm", "pip", "docker", "kubectl", "cargo", "yarn", 
-            "brew", "apt", "make", "cmake", "node", "python", "java",
-            "mvn", "gradle", "composer", "gem", "conda", "helm",
-            "terraform", "ansible", "vagrant"
+            "git",
+            "npm",
+            "pip",
+            "docker",
+            "kubectl",
+            "cargo",
+            "yarn",
+            "brew",
+            "apt",
+            "make",
+            "cmake",
+            "node",
+            "python",
+            "java",
+            "mvn",
+            "gradle",
+            "composer",
+            "gem",
+            "conda",
+            "helm",
+            "terraform",
+            "ansible",
+            "vagrant",
         }
 
         # Combine CLI tools with multi-word technical terms and sort by length
-        all_commands = sorted(
-            list(multi_word_commands) + list(cli_tools),
-            key=len,
-            reverse=True
-        )
+        all_commands = sorted(list(multi_word_commands) + list(cli_tools), key=len, reverse=True)
 
         for command in all_commands:
             # Use regex to find whole-word matches
@@ -623,35 +675,37 @@ class CodeEntityDetector:
                             end=match.end(),
                             text=match.group(0),
                             type=EntityType.CLI_COMMAND,
-                            metadata={'command': match.group(0)}
+                            metadata={"command": match.group(0)},
                         )
                     )
 
-    def _detect_filenames_regex_fallback(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+    def _detect_filenames_regex_fallback(
+        self, text: str, entities: List[Entity], all_entities: List[Entity] = None
+    ) -> None:
         """Regex-based fallback for filename detection when spaCy is not available."""
         if all_entities is None:
             all_entities = entities
-        
+
         logger.debug(f"REGEX FALLBACK: Processing text '{text}' for filename detection")
-        
+
         # Use the comprehensive pattern that captures both filename and extension
         for match in regex_patterns.FULL_SPOKEN_FILENAME_PATTERN.finditer(text):
             if is_inside_entity(match.start(), match.end(), all_entities):
                 continue
-                
+
             full_filename = match.group(0)  # e.g., "my script dot py"
-            filename_part = match.group(1)  # e.g., "my script"  
-            extension = match.group(2)      # e.g., "py"
-            
+            filename_part = match.group(1)  # e.g., "my script"
+            extension = match.group(2)  # e.g., "py"
+
             # Skip if this looks like it includes command verbs
             # Get the context before the match to check for command patterns
             context_start = max(0, match.start() - 20)
-            before_context = text[context_start:match.start()].strip().lower()
-            
+            before_context = text[context_start : match.start()].strip().lower()
+
             # Known filename action words that should not be part of the filename
             resources = get_resources(self.language)
             filename_actions = resources.get("context_words", {}).get("filename_actions", [])
-            
+
             # Check if the filename part starts with a command verb
             filename_words = filename_part.split()
             if filename_words and filename_words[0].lower() in filename_actions:
@@ -665,7 +719,7 @@ class CodeEntityDetector:
                     if actual_start != -1:
                         actual_match_text = f"{actual_filename} dot {extension}"
                         actual_end = actual_start + len(actual_match_text)
-                        
+
                         entities.append(
                             Entity(
                                 start=actual_start,
@@ -675,13 +729,15 @@ class CodeEntityDetector:
                                 metadata={
                                     "filename": actual_filename,
                                     "extension": extension,
-                                    "method": "regex_fallback"
-                                }
+                                    "method": "regex_fallback",
+                                },
                             )
                         )
-                        logger.debug(f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'")
+                        logger.debug(
+                            f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'"
+                        )
                         continue
-            
+
             # If no command verb detected, use the full match
             entities.append(
                 Entity(
@@ -689,16 +745,16 @@ class CodeEntityDetector:
                     end=match.end(),
                     text=full_filename,
                     type=EntityType.FILENAME,
-                    metadata={
-                        "filename": filename_part,
-                        "extension": extension,
-                        "method": "regex_fallback"
-                    }
+                    metadata={"filename": filename_part, "extension": extension, "method": "regex_fallback"},
                 )
             )
-            logger.debug(f"Detected filename (regex fallback): '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'")
+            logger.debug(
+                f"Detected filename (regex fallback): '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'"
+            )
 
-    def _detect_programming_keywords(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+    def _detect_programming_keywords(
+        self, text: str, entities: List[Entity], all_entities: List[Entity] = None
+    ) -> None:
         """Detects standalone programming keywords like 'let', 'const', 'if'."""
         if all_entities is None:
             all_entities = entities
@@ -717,7 +773,7 @@ class CodeEntityDetector:
                             end=match.end(),
                             text=match.group(0),
                             type=EntityType.PROGRAMMING_KEYWORD,
-                            metadata={'keyword': match.group(0)}
+                            metadata={"keyword": match.group(0)},
                         )
                     )
 
@@ -829,10 +885,10 @@ class CodePatternConverter:
         # Get language-specific resources
         resources = get_resources(self.language)
         operators = resources.get("spoken_keywords", {}).get("operators", {})
-        
+
         # Find the increment operator keyword (++ symbol)
         increment_keywords = [k for k, v in operators.items() if v == "++"]
-        
+
         if increment_keywords:
             # Try each possible increment keyword pattern
             for keyword in increment_keywords:
@@ -843,27 +899,27 @@ class CodePatternConverter:
                 if match:
                     variable = match.group(1).lower()  # Keep variable lowercase for code
                     return f"{variable}++"
-        
+
         # Fallback for backward compatibility
         match = re.match(r"(\w+)\s+plus\s+plus", entity.text, re.IGNORECASE)
         if match:
             variable = match.group(1).lower()
             return f"{variable}++"
-        
+
         return entity.text
 
     def convert_decrement_operator(self, entity: Entity) -> str:
         """Convert decrement operators using language-specific keywords."""
         if entity.metadata and "variable" in entity.metadata:
             return f"{entity.metadata['variable'].lower()}--"
-            
+
         # Get language-specific resources
         resources = get_resources(self.language)
         operators = resources.get("spoken_keywords", {}).get("operators", {})
-        
+
         # Find the decrement operator keyword (-- symbol)
         decrement_keywords = [k for k, v in operators.items() if v == "--"]
-        
+
         if decrement_keywords:
             # Try each possible decrement keyword pattern
             for keyword in decrement_keywords:
@@ -874,7 +930,7 @@ class CodePatternConverter:
                 if match:
                     variable = match.group(1).lower()  # Keep variable lowercase for code
                     return f"{variable}--"
-        
+
         # Fallback for older detection logic
         match = re.match(r"(\w+)\s+minus\s+minus", entity.text, re.IGNORECASE)
         if match:
