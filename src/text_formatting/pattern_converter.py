@@ -1764,7 +1764,21 @@ class PatternConverter:
                     return f"${result}"
                 if "percent" in unit:
                     return f"{result}%"
-                # Add other unit handling here if needed
+                # Handle time units
+                if unit in ["hour", "hours"]:
+                    return f"{result}h"
+                if unit in ["minute", "minutes"]:
+                    return f"{result}min"
+                if unit in ["second", "seconds"]:
+                    return f"{result}s"
+                # Handle weight units
+                if unit in ["kilogram", "kilograms", "kg"]:
+                    return f"{result} kg"
+                if unit in ["gram", "grams", "g"]:
+                    return f"{result} g"
+                # Handle other units
+                if unit:
+                    return f"{result} {unit}"
             return result
         
         return entity.text

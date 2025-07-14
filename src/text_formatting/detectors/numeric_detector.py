@@ -354,6 +354,54 @@ class NumericalEntityDetector:
                     percent_start = text.find("percent", end_pos)
                     if percent_start != -1:
                         end_pos = percent_start + 7  # 7 = len("percent")
+                
+                # Check for currency units
+                currency_units = self.resources.get("currency", {}).get("units", [])
+                for currency_unit in currency_units:
+                    if remaining_text.lower().startswith(currency_unit.lower()):
+                        unit_type = "currency"
+                        unit_text = currency_unit
+                        # Find the actual unit in the text (might be slightly different due to plural)
+                        # Look for the unit in the remaining text
+                        words = remaining_text.split()
+                        if words and words[0].lower().startswith(currency_unit.lower()[:4]):
+                            # Use the actual word from the text (handles plural forms)
+                            actual_unit = words[0]
+                            unit_text = actual_unit
+                            unit_start = text.lower().find(actual_unit.lower(), end_pos)
+                            if unit_start != -1:
+                                end_pos = unit_start + len(actual_unit)
+                        else:
+                            # Fallback to exact match
+                            unit_start = text.lower().find(currency_unit.lower(), end_pos)
+                            if unit_start != -1:
+                                end_pos = unit_start + len(currency_unit)
+                        break
+                
+                # Check for other units (time, weight, etc.)
+                if not unit_text:
+                    # Time units
+                    time_units = self.resources.get("units", {}).get("time_units", [])
+                    for time_unit in time_units:
+                        if remaining_text.lower().startswith(time_unit.lower()):
+                            unit_type = "time"
+                            unit_text = time_unit
+                            unit_start = text.lower().find(time_unit.lower(), end_pos)
+                            if unit_start != -1:
+                                end_pos = unit_start + len(time_unit)
+                            break
+                
+                if not unit_text:
+                    # Weight units
+                    weight_units = self.resources.get("units", {}).get("weight_units", [])
+                    for weight_unit in weight_units:
+                        if remaining_text.lower().startswith(weight_unit.lower()):
+                            unit_type = "weight"
+                            unit_text = weight_unit
+                            unit_start = text.lower().find(weight_unit.lower(), end_pos)
+                            if unit_start != -1:
+                                end_pos = unit_start + len(weight_unit)
+                            break
 
             entities.append(
                 Entity(
