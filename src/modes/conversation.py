@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""
+Conversation Mode - Continuous VAD-based listening for hands-free operation
+
+This mode enables continuous, hands-free listening with:
+- Voice Activity Detection (VAD) to detect speech
+- Automatic transcription of each utterance
+- Immediate return to listening state after transcription
+- Interruption support for new speech while processing
+"""
+
+import asyncio
+import threading
+import time
+import json
+import numpy as np
+from typing import Optional, Dict, Any
+from pathlib import Path
+import sys
+
+# Add project root to path for imports
+current_dir = Path(__file__).parent.parent.parent.absolute()
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
+from src.core.config import get_config, setup_logging
+from src.audio.capture import PipeBasedAudioStreamer
+
+
+class ConversationMode:
+    """Continuous conversation mode with VAD-based utterance detection."""
+    
+    def __init__(self, args):
+        self.args = args
+        self.config = get_config()
+        self.logger = setup_logging(__name__, 
+                                  log_level="DEBUG" if args.debug else "INFO",
+                                  include_console=args.format != "json",
+                                  include_file=True)
+        
+        # Audio processing
+        self.audio_queue = None
+        self.audio_streamer = None
+        self.loop = None
+        
+        # VAD and transcription
+        self.is_listening = False
+        self.is_processing = False
+        self.current_utterance = []
+        self.silence_threshold = 0.01  # RMS threshold for silence detection
+        self.min_speech_duration = 0.5  # Minimum speech duration in seconds
+        self.max_silence_duration = 1.5  # Maximum silence before utterance end
+        
+        # Whisper model
+        self.model = None
+        
+        # Threading
+        self.processing_thread = None
+        self.stop_event = threading.Event()
+        
+        self.logger.info("Conversation mode initialized")
+    
+    async def run(self):
+        """Main conversation mode loop."""
+        try:
+            # Initialize Whisper model
+            await self._load_model()
+            
+            # Start audio streaming
+            await self._start_audio_streaming()
+            
+            # Send initial status
+            await self._send_status("listening", "Conversation mode active - speak naturally")
+            
+            # Main processing loop
+            await self._conversation_loop()
+            
+        except KeyboardInterrupt:
+            await self._send_status("interrupted", "Conversation mode stopped by user")
+        except Exception as e:
+            self.logger.exception(f"Conversation mode error: {e}")
+            await self._send_error(f"Conversation mode failed: {e}")
+        finally:
+            await self._cleanup()
+    
+    async def _load_model(self):
+        """Load Whisper model asynchronously."""
+        try:
+            from faster_whisper import WhisperModel
+            
+            self.logger.info(f"Loading Whisper model: {self.args.model}")
+            
+            # Load in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            self.model = await loop.run_in_executor(
+                None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
+            )
+            
+            self.logger.info(f"Whisper model {self.args.model} loaded successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load Whisper model: {e}")
+            raise
+    
+    async def _start_audio_streaming(self):
+        """Initialize audio streaming."""
+        try:
+            self.loop = asyncio.get_event_loop()
+            self.audio_queue = asyncio.Queue(maxsize=100)  # Buffer up to 10 seconds at 100ms chunks
+            
+            # Create audio streamer
+            self.audio_streamer = PipeBasedAudioStreamer(
+                loop=self.loop,
+                queue=self.audio_queue,
+                chunk_duration_ms=100,  # 100ms chunks for responsive VAD
+                sample_rate=self.args.sample_rate,
+                audio_device=self.args.device
+            )
+            
+            # Start recording
+            if not self.audio_streamer.start_recording():
+                raise RuntimeError("Failed to start audio recording")
+            
+            self.logger.info("Audio streaming started successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start audio streaming: {e}")
+            raise
+    
+    async def _conversation_loop(self):
+        """Main conversation processing loop."""
+        self.is_listening = True
+        silence_start = None
+        speech_start = None
+        
+        while not self.stop_event.is_set():
+            try:
+                # Get audio chunk with timeout
+                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
+                
+                # Calculate RMS for VAD
+                rms = np.sqrt(np.mean(audio_chunk.astype(np.float32) ** 2))
+                
+                # Voice Activity Detection
+                if rms > self.silence_threshold:
+                    # Speech detected
+                    if silence_start is not None:
+                        # End of silence
+                        silence_duration = time.time() - silence_start
+                        self.logger.debug(f"Silence ended after {silence_duration:.2f}s")
+                        silence_start = None
+                    
+                    if speech_start is None:
+                        # Start of new utterance
+                        speech_start = time.time()
+                        self.current_utterance = []
+                        self.logger.debug("Speech started")
+                    
+                    # Add to current utterance
+                    self.current_utterance.append(audio_chunk)
+                    
+                else:
+                    # Silence detected
+                    if speech_start is not None:
+                        # We were in speech, now silence
+                        if silence_start is None:
+                            silence_start = time.time()
+                            self.logger.debug("Silence started")
+                        else:
+                            # Check if silence is long enough to end utterance
+                            silence_duration = time.time() - silence_start
+                            speech_duration = silence_start - speech_start
+                            
+                            if (silence_duration >= self.max_silence_duration and 
+                                speech_duration >= self.min_speech_duration):
+                                # End utterance and process
+                                await self._process_utterance()
+                                speech_start = None
+                                silence_start = None
+                
+            except asyncio.TimeoutError:
+                # No audio data - continue loop
+                continue
+            except Exception as e:
+                self.logger.error(f"Error in conversation loop: {e}")
+                break
+    
+    async def _process_utterance(self):
+        """Process the current utterance in a separate thread."""
+        if not self.current_utterance or self.is_processing:
+            return
+        
+        self.is_processing = True
+        utterance_data = np.concatenate(self.current_utterance)
+        
+        try:
+            await self._send_status("processing", "Transcribing speech...")
+            
+            # Process in executor to avoid blocking the listening loop
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self._transcribe_audio, utterance_data)
+            
+            if result["success"]:
+                await self._send_transcription(result)
+            else:
+                await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
+            
+        except Exception as e:
+            self.logger.exception(f"Error processing utterance: {e}")
+            await self._send_error(f"Processing error: {e}")
+        finally:
+            self.is_processing = False
+            await self._send_status("listening", "Ready for next utterance")
+    
+    def _transcribe_audio(self, audio_data: np.ndarray) -> Dict[str, Any]:
+        """Transcribe audio data using Whisper."""
+        try:
+            import tempfile
+            import wave
+            
+            # Save audio to temporary WAV file
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                with wave.open(tmp_file.name, 'wb') as wav_file:
+                    wav_file.setnchannels(1)  # Mono
+                    wav_file.setsampwidth(2)  # 16-bit
+                    wav_file.setframerate(self.args.sample_rate)
+                    wav_file.writeframes(audio_data.astype(np.int16).tobytes())
+                
+                # Transcribe
+                segments, info = self.model.transcribe(tmp_file.name, language=self.args.language)
+                text = "".join([segment.text for segment in segments]).strip()
+                
+                self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
+                
+                return {
+                    "success": True,
+                    "text": text,
+                    "language": info.language if hasattr(info, 'language') else 'en',
+                    "duration": len(audio_data) / self.args.sample_rate,
+                    "confidence": 0.95  # Placeholder - Whisper doesn't provide confidence
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Transcription error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "text": "",
+                "duration": 0
+            }
+    
+    async def _send_status(self, status: str, message: str):
+        """Send status message."""
+        result = {
+            "type": "status",
+            "mode": "conversation",
+            "status": status,
+            "message": message,
+            "timestamp": time.time()
+        }
+        
+        if self.args.format == "json":
+            print(json.dumps(result))
+        else:
+            print(f"[{status.upper()}] {message}", file=sys.stderr)
+    
+    async def _send_transcription(self, result: Dict[str, Any]):
+        """Send transcription result."""
+        output = {
+            "type": "transcription",
+            "mode": "conversation",
+            "text": result["text"],
+            "language": result["language"],
+            "duration": result["duration"],
+            "confidence": result["confidence"],
+            "timestamp": time.time()
+        }
+        
+        if self.args.format == "json":
+            print(json.dumps(output))
+        else:
+            print(result["text"])
+    
+    async def _send_error(self, error_message: str):
+        """Send error message."""
+        result = {
+            "type": "error",
+            "mode": "conversation",
+            "error": error_message,
+            "timestamp": time.time()
+        }
+        
+        if self.args.format == "json":
+            print(json.dumps(result))
+        else:
+            print(f"Error: {error_message}", file=sys.stderr)
+    
+    async def _cleanup(self):
+        """Clean up resources."""
+        self.stop_event.set()
+        
+        if self.audio_streamer:
+            self.audio_streamer.stop_recording()
+        
+        if self.processing_thread and self.processing_thread.is_alive():
+            self.processing_thread.join(timeout=2.0)
+        
+        self.logger.info("Conversation mode cleanup completed")

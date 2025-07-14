@@ -189,43 +189,67 @@ async def run_listen_once(args):
 
 async def run_conversation(args):
     """Run continuous conversation mode"""
-    # TODO: Implement actual STT logic
-    print(json.dumps({
-        "mode": "conversation",
-        "status": "starting",
-        "message": "Conversation mode not yet implemented"
-    }))
+    try:
+        from src.modes.conversation import ConversationMode
+        mode = ConversationMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Conversation mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "conversation"}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
 
 
 async def run_tap_to_talk(args):
     """Run tap-to-talk mode"""
-    print(json.dumps({
-        "mode": "tap_to_talk",
-        "key": args.tap_to_talk,
-        "status": "starting",
-        "message": "Tap-to-talk mode not yet implemented"
-    }))
+    try:
+        from src.modes.tap_to_talk import TapToTalkMode
+        mode = TapToTalkMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Tap-to-talk mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "tap_to_talk", "key": args.tap_to_talk}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
 
 
 async def run_hold_to_talk(args):
     """Run hold-to-talk mode"""
-    print(json.dumps({
-        "mode": "hold_to_talk", 
-        "key": args.hold_to_talk,
-        "status": "starting",
-        "message": "Hold-to-talk mode not yet implemented"
-    }))
+    try:
+        from src.modes.hold_to_talk import HoldToTalkMode
+        mode = HoldToTalkMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Hold-to-talk mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "hold_to_talk", "key": args.hold_to_talk}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
 
 
 async def run_server(args):
     """Run WebSocket server mode"""
-    print(json.dumps({
-        "mode": "server",
-        "host": args.host,
-        "port": args.port,
-        "status": "starting",
-        "message": "Server mode not yet implemented"
-    }))
+    try:
+        from src.transcription.server import MatildaWebSocketServer
+        
+        # Create and start server
+        server = MatildaWebSocketServer()
+        await server.start_server(host=args.host, port=args.port)
+        
+    except ImportError as e:
+        error_msg = f"Server mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "server", "host": args.host, "port": args.port}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+    except Exception as e:
+        error_msg = f"Server failed to start: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "server", "host": args.host, "port": args.port}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
 
 
 async def async_main():
