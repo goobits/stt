@@ -745,6 +745,10 @@ class CodeEntityDetector:
                             f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'"
                         )
                         continue
+                else:
+                    # If no words left after removing action verb, skip this match
+                    logger.debug(f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after removing action verb")
+                    continue
 
             # If no command verb detected, use the full match
             entities.append(

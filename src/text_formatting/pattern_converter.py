@@ -469,6 +469,13 @@ class PatternConverter:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
 
+        # Strip common leading phrases to isolate the filename
+        leading_phrases_to_strip = ["edit the file", "open the file", "check the file", "the file", "my favorite file is"]
+        for phrase in leading_phrases_to_strip:
+            if text.lower().startswith(phrase):
+                text = text[len(phrase):].lstrip()
+                break
+
         # Check for Java package metadata
         if entity.metadata and entity.metadata.get("is_package"):
             # For Java packages, simply replace " dot " with "." and remove spaces
@@ -631,6 +638,10 @@ class PatternConverter:
     def convert_abbreviation(self, entity: Entity) -> str:
         """Convert abbreviations to proper lowercase format"""
         text = entity.text.lower()
+
+        # Handle "v s" specifically
+        if text == "v s":
+            return "vs."
 
         # Use abbreviations from resources
         abbreviations = self.resources.get("abbreviations", {})
@@ -1732,14 +1743,12 @@ class PatternConverter:
 
     def convert_numeric_range(self, entity: Entity) -> str:
         """Convert numeric range expressions (ten to twenty -> 10-20)."""
-        # Improved regex to handle number words and optional units
-        match = re.match(
-            r"(.+)\s+to\s+(.+?)(?:\s+(percent))?$", entity.text, re.IGNORECASE
-        )
-        if not match:
+        if not entity.metadata:
             return entity.text
-
-        start_word, end_word, unit = match.groups()
+        
+        start_word = entity.metadata.get("start_word", "")
+        end_word = entity.metadata.get("end_word", "")
+        unit = entity.metadata.get("unit") # The detector now provides this
         
         start_num = self.number_parser.parse(start_word)
         end_num = self.number_parser.parse(end_word)
@@ -1747,7 +1756,11 @@ class PatternConverter:
         if start_num and end_num:
             result = f"{start_num}-{end_num}"
             if unit:
-                result += "%"
+                if "dollar" in unit:
+                    return f"${result}"
+                if "percent" in unit:
+                    return f"{result}%"
+                # Add other unit handling here if needed
             return result
         
         return entity.text

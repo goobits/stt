@@ -187,33 +187,30 @@ class SmartCapitalizer:
                     break
 
             if first_letter_index != -1:
-                is_protected = False
-                if entities:
-                    for entity in entities:
-                        # Check if the first letter is inside a strictly protected entity
-                        if entity.start <= first_letter_index < entity.end:
-                            if entity.type in self.STRICTLY_PROTECTED_TYPES:
-                                is_protected = True
-                                logger.debug(
-                                    f"Protecting first letter '{text[first_letter_index]}' from capitalization due to strictly protected entity: {entity.type}"
-                                )
-                                break
-                            # Special case: Allow capitalization of sentence-starting programming keywords
-                            elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
-                                logger.debug(
-                                    f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
-                                )
-                                # Don't protect - allow capitalization
-                                break
-
-                if not is_protected:
+                should_capitalize = True
+                
+                # Check for protected entities at the start
+                for entity in entities:
+                    if entity.start <= first_letter_index < entity.end:
+                        # Don't capitalize if it's a strictly protected type
+                        if entity.type in self.STRICTLY_PROTECTED_TYPES:
+                            should_capitalize = False
+                            break
+                        # Special rule for CLI commands: only keep lowercase if the *entire* text is the command
+                        if entity.type == EntityType.CLI_COMMAND:
+                            if entity.text.strip() == text.strip():
+                                should_capitalize = False
+                            break
+                        # Special case: Allow capitalization of sentence-starting programming keywords
+                        elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
+                            logger.debug(
+                                f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
+                            )
+                            # Don't protect - allow capitalization
+                            break
+                
+                if should_capitalize:
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
-
-                # Abbreviations are prose entities that should follow normal sentence capitalization rules
-                # (Removed abbreviation protection logic as it was too aggressive)
-
-                # Technical terms are now protected by the entity system (CLI_COMMAND, etc.)
-                # No manual checks needed - entity-based protection is sufficient
 
         # Fix "i" pronoun using grammatical context
         if self.nlp:
