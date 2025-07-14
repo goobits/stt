@@ -602,39 +602,7 @@ def get_spoken_protocol_pattern(language: str = "en") -> Pattern:
 # Spoken protocol pattern: "http colon slash slash example.com" or "http colon slash slash example dot com"
 SPOKEN_PROTOCOL_PATTERN = build_spoken_protocol_pattern("en")
 
-# Legacy pattern definition for backward compatibility
-_LEGACY_SPOKEN_PROTOCOL_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    (https?|ftp)                        # Protocol
-    \s+colon\s+slash\s+slash\s+         # " colon slash slash "
-    (                                   # Capture group: domain (supports both spoken and normal formats)
-        (?:                             # Non-capturing group for spoken domain
-            [a-zA-Z0-9-]+               # Domain name part
-            (?:                         # Optional spoken dots
-                \s+dot\s+               # " dot "
-                [a-zA-Z0-9-]+           # Domain part after dot
-            )+                          # One or more spoken dots
-        )
-        |                               # OR
-        (?:                             # Non-capturing group for normal domain
-            [a-zA-Z0-9.-]+              # Domain characters
-            (?:\.[a-zA-Z]{2,})?         # Optional TLD
-        )
-    )
-    (                                   # Capture group: path and query
-        (?:                             # Optional path segments
-            \s+slash\s+                 # " slash "
-            [^?\s]+                     # Path content (not ? or space)
-        )*                              # Zero or more path segments
-        (?:                             # Optional query string
-            \s+question\s+mark\s+       # " question mark "
-            .+                          # Query content
-        )?                              # Optional query
-    )
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Legacy pattern removed - now using dynamic pattern built from i18n resources
 
 # Spoken email pattern: "john at example.com" or "john at example dot com"
 # Now with better action word filtering and centralized keywords
@@ -651,7 +619,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
 
     # Create alternation pattern for colon
-    colon_escaped = [re.escape(k) for k in colon_keywords] + ["colon"]  # Include both URL_KEYWORDS and "colon"
+    colon_escaped = [re.escape(k) for k in colon_keywords]
     colon_pattern = "|".join(colon_escaped)
 
     # Create number words pattern from language-specific resources
@@ -779,17 +747,18 @@ def get_short_flag_pattern(language: str = "en") -> Pattern:
     """Builds the short command flag pattern dynamically and safely."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
-    dash_keywords = sorted([k for k, v in code_keywords.items() if v == "-"], key=len, reverse=True)
     
-    patterns = []
-    for keyword in dash_keywords:
-        escaped_keyword = re.escape(keyword)
-        if keyword == "guión" and language == "es": # Specific fix for Spanish
-             patterns.append(rf"(?:{escaped_keyword}(?!\s+bajo))")
-        else:
-            patterns.append(f"(?:{escaped_keyword})")
+    # Get all keywords that map to "-"
+    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     
-    dash_pattern = "|".join(patterns)
+    # Sort by length to match longer phrases first (e.g., "dash dash" vs "dash")
+    dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
+    
+    # Create the pattern without any language-specific if-statements
+    dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
+    
+    # This pattern now correctly handles "guión" in Spanish and "dash" in English
+    # without special casing, as long as the JSON files are correct.
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 def get_assignment_pattern(language: str = "en") -> Pattern:
@@ -1493,20 +1462,12 @@ def build_short_flag_pattern(language: str = "en") -> Pattern:
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
 
-    # Build individual patterns with negative lookaheads to avoid conflicts
-    # For Spanish: prevent "guión" from matching when it's part of "guión bajo" (underscore)
-    patterns = []
-    for keyword in dash_keywords_sorted:
-        escaped_keyword = re.escape(keyword)
-        if keyword == "guión":
-            # Add negative lookahead to prevent matching "guión bajo"
-            patterns.append(f"(?:{escaped_keyword}(?!\\s+bajo))")
-        else:
-            patterns.append(f"(?:{escaped_keyword})")
-
-    dash_pattern = f"(?:{'|'.join(patterns)})"
-
-    return re.compile(rf"\b{dash_pattern}\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+    # Create the pattern without any language-specific if-statements
+    dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
+    
+    # This pattern now correctly handles all languages without special casing,
+    # as long as the JSON files are correctly configured
+    return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
 # Build flag patterns dynamically from centralized keywords
@@ -1566,55 +1527,7 @@ def get_assignment_pattern(language: str = "en") -> Pattern:
 ASSIGNMENT_PATTERN = build_assignment_pattern("en")
 
 
-# Revert to original working pattern - centralization will be done later if needed
-SPOKEN_EMAIL_PATTERN_ORIGINAL = re.compile(
-    r"""
-    (?:^|(?<=\s))                       # Start of string or preceded by space
-    (?:                                 # Non-capturing group for email action prefix
-        (?:email|contact|write\s+to|send\s+to)\s+  # Action prefixes we want to capture and handle
-    )
-    (?!(?:to|for|from|with|by|in|on|at|the|a|an|this|that|these|those|reach|call|find|locate|get|contact|tell|ask|see|talk|speak|say|me|you|us|him|her|them|it|i|we|he|she|they|look|go|come|think|if|when|where|what|how|why|please|can|could|would|should|will|shall|may|might)\s+)  # Negative lookahead: don't start with common non-name words or pronouns
-    (                                   # Username part (capture group 1)
-        [a-zA-Z]+                       # Must start with letters (no numbers at start of name)
-        (?:                             # Optional additional parts
-            \s+                         # Space separator
-            (?:                         # Choice of what can follow
-                (?:underscore|dash)     # Spoken separators
-                |                       # OR
-                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
-                |                       # OR
-                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
-            )
-        )*                              # Zero or more additional parts
-    )
-    \s+at\s+                            # " at " - ORIGINAL HARDCODED
-    (                                   # Domain part (capture group 2)
-        [a-zA-Z0-9][a-zA-Z0-9.-]*       # Domain starting with alphanumeric
-        (?:                             # Optional additional domain parts
-            \s+                         # Space separator
-            (?:                         # Choice of what can follow
-                (?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)  # Number words
-                |                       # OR
-                [a-zA-Z0-9._-]+         # Regular alphanumeric parts
-            )
-        )*                              # Zero or more additional parts
-        (?:                             # Non-capturing group for dots
-            \s+dot\s+                   # " dot " for spoken dots - ORIGINAL HARDCODED
-            [a-zA-Z0-9.-]+              # Domain part after dot
-            (?:                         # Optional additional number words after dots
-                \s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)
-                |                       # OR
-                \s+[a-zA-Z0-9._-]+
-            )*                          # Zero or more
-        |                               # OR
-            \.                          # Regular dot
-            [a-zA-Z0-9.-]+              # Domain part after dot
-        )+                              # One or more dots
-    )
-    (?=\s|$|[.!?])                      # Followed by space, end, or punctuation
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Legacy pattern removed - now using dynamic pattern built from i18n resources
 
 
 # Use the language-aware pattern
