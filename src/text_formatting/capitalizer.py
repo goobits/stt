@@ -32,8 +32,6 @@ class SmartCapitalizer:
 
         # Entity types that must have their casing preserved under all circumstances
         self.STRICTLY_PROTECTED_TYPES = {
-            EntityType.CLI_COMMAND,
-            # Removed PROGRAMMING_KEYWORD to allow sentence-starting capitalization
             EntityType.URL,
             EntityType.SPOKEN_URL,
             EntityType.SPOKEN_PROTOCOL_URL,
@@ -50,6 +48,7 @@ class SmartCapitalizer:
             EntityType.VERSION,
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
+            EntityType.CLI_COMMAND,  # CLI commands like 'git' should remain lowercase
         }
 
         # Version patterns that indicate technical content
@@ -191,25 +190,21 @@ class SmartCapitalizer:
                 is_protected = False
                 if entities:
                     for entity in entities:
-                        # Check if the first letter is inside ANY entity - entities should control their own formatting
+                        # Check if the first letter is inside a strictly protected entity
                         if entity.start <= first_letter_index < entity.end:
+                            if entity.type in self.STRICTLY_PROTECTED_TYPES:
+                                is_protected = True
+                                logger.debug(
+                                    f"Protecting first letter '{text[first_letter_index]}' from capitalization due to strictly protected entity: {entity.type}"
+                                )
+                                break
                             # Special case: Allow capitalization of sentence-starting programming keywords
-                            # This handles cases like "import utils.py" → "Import utils.py"
-                            if (
-                                entity.type == EntityType.PROGRAMMING_KEYWORD
-                                and entity.start == 0
-                                and first_letter_index == 0
-                            ):
+                            elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
                                 logger.debug(
                                     f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
                                 )
                                 # Don't protect - allow capitalization
                                 break
-                            is_protected = True
-                            logger.debug(
-                                f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
-                            )
-                            break
 
                 if not is_protected:
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]

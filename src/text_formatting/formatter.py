@@ -657,22 +657,39 @@ class TextFormatter:
         for i, entity in enumerate(filtered_entities):
             logger.debug(f"  Final {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
 
-        # Step 3: Assemble final string WITHOUT placeholders (Phase 2 refactoring)
-        # Build the new string from scratch by processing entities in order
+        # Step 3: Assemble final string AND track converted entity positions  
         result_parts = []
+        converted_entities = []
         last_end = 0
+        current_pos_in_result = 0
 
         # Sort entities by start position to process in sequence
         sorted_entities = sorted(filtered_entities, key=lambda e: e.start)
 
         for entity in sorted_entities:
-            # Add the plain text gap before this entity
-            result_parts.append(text[last_end : entity.start])
+            if entity.start < last_end: 
+                continue  # Skip overlapping entities
+            
+            # Add plain text part
+            plain_text_part = text[last_end:entity.start]
+            result_parts.append(plain_text_part)
+            current_pos_in_result += len(plain_text_part)
 
-            # Convert the entity to its final form and add it
+            # Convert entity and track its new position
             converted_text = self.pattern_converter.convert(entity, text)
             result_parts.append(converted_text)
-
+            
+            # Create a new entity with updated position and text for capitalization protection
+            converted_entity = Entity(
+                start=current_pos_in_result,
+                end=current_pos_in_result + len(converted_text),
+                text=converted_text,
+                type=entity.type,
+                metadata=entity.metadata,
+            )
+            converted_entities.append(converted_entity)
+            
+            current_pos_in_result += len(converted_text)
             last_end = entity.end
 
         # Add any remaining text after the last entity
@@ -694,24 +711,6 @@ class TextFormatter:
         # Skip capitalization for standalone technical content
         if not is_standalone_technical:
             logger.debug(f"Text before capitalization: '{final_text}'")
-            # Build converted entities list for capitalization protection
-            converted_entities = []
-            current_pos = 0
-            for entity in sorted_entities:
-                # Calculate where the converted entity now appears in final text
-                converted_text = self.pattern_converter.convert(entity, text)
-                # Find the entity in the final text (this is approximate but sufficient for protection)
-                entity_start = final_text.find(converted_text, current_pos)
-                if entity_start != -1:
-                    converted_entity = Entity(
-                        start=entity_start,
-                        end=entity_start + len(converted_text),
-                        text=converted_text,
-                        type=entity.type,
-                        metadata=entity.metadata,
-                    )
-                    converted_entities.append(converted_entity)
-                    current_pos = entity_start + len(converted_text)
 
             final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
             logger.debug(f"Text after capitalization: '{final_text}'")
