@@ -55,6 +55,125 @@ class TestContextualNumbers:
                 f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
+class TestContextualOrdinals:
+    """Test that ordinal numbers are formatted appropriately based on context."""
+
+    def test_ordinals_that_should_be_numeric(self, preloaded_formatter):
+        """Test that ordinals in technical/formal contexts become numeric (1st, 2nd, 3rd)."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            # Technical/Formal contexts
+            ("first quarter earnings report", "1st quarter earnings report"),
+            ("second generation iPhone", "2nd generation iPhone"),
+            ("third party software", "3rd party software"),
+            ("twenty first century technology", "21st century technology"),
+            
+            # Rankings/Competition
+            ("first place winner", "1st place winner"),
+            ("second best performance", "2nd best performance"),
+            ("third fastest time", "3rd fastest time"),
+            
+            # Lists/Procedures
+            ("first item on the agenda", "1st item on the agenda"),
+            ("second step in the process", "2nd step in the process"),
+            ("third option available", "3rd option available"),
+            
+            # Dates
+            ("January first meeting", "January 1st meeting"),
+            ("March twenty third deadline", "March 23rd deadline"),
+            ("May second conference", "May 2nd conference"),
+        ]
+        
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Allow for optional punctuation at the end
+            assert result in [expected, expected + "."], \
+                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_ordinals_that_should_be_spelled_out(self, preloaded_formatter):
+        """Test that ordinals in natural speech/idiomatic contexts remain spelled out."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            # Natural speech/Idiomatic
+            ("first thing I need to do", "First thing I need to do"),
+            ("second nature to me", "Second nature to me"),
+            ("third time's the charm", "Third time's the charm"),
+            ("first of all let me say", "First of all, let me say"),
+            ("second thoughts about this", "Second thoughts about this"),
+            
+            # Common expressions
+            ("first things first", "First things first"),
+            ("second to none", "Second to none"),
+            ("third wheel in the group", "Third wheel in the group"),
+            ("first come first served", "First come, first served"),
+            
+            # Sentence beginnings (emphasis)
+            ("first we need to discuss", "First, we need to discuss"),
+            ("second the budget concerns", "Second, the budget concerns"),
+            ("third implementation timeline", "Third, implementation timeline"),
+        ]
+        
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Allow for optional punctuation at the end
+            assert result in [expected, expected + "."], \
+                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+
+class TestStandaloneEntityPunctuation:
+    """Test that standalone entities don't get unnecessary punctuation."""
+
+    def test_standalone_entities_no_punctuation(self, preloaded_formatter):
+        """Test that standalone entities have trailing punctuation removed."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            # Slash commands
+            ("slash compact.", "/compact"),
+            ("slash help.", "/help"),
+            ("slash status.", "/status"),
+            
+            # Filenames
+            ("config dot json.", "config.json"),
+            ("readme dot md.", "README.md"),
+            ("app dot py.", "app.py"),
+            
+            # URLs (if detected as single entity)
+            ("github dot com.", "github.com"),
+            ("example dot org.", "example.org"),
+            
+            # CLI commands
+            ("git status.", "git status"),
+            ("npm install.", "npm install"),
+            ("docker run.", "docker run"),
+            
+            # Version numbers
+            ("version two point one.", "Version 2.1"),
+            ("v one point zero.", "v1.0"),
+        ]
+        
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, \
+                f"Input '{input_text}' should format to '{expected}' (no period), got '{result}'"
+
+    def test_sentences_with_entities_keep_punctuation(self, preloaded_formatter):
+        """Test that real sentences containing entities keep their punctuation."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            # Sentences should keep punctuation
+            ("please run slash compact", "Please run /compact."),
+            ("the file is config dot json", "The file is config.json."),
+            ("visit github dot com for more info", "Visit github.com for more info."),
+            ("run git status to check", "Run git status to check."),
+            ("we're using version two point one", "We're using version 2.1."),
+        ]
+        
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, \
+                f"Input '{input_text}' should format to '{expected}' (with period), got '{result}'"
+
+
 class TestFillerWordPreservation:
     """Test that certain filler words are preserved when contextually important."""
 
