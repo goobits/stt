@@ -47,9 +47,17 @@ class ConversationMode:
         self.is_listening = False
         self.is_processing = False
         self.current_utterance = []
-        self.silence_threshold = 0.01  # RMS threshold for silence detection
+        self.vad = None  # Silero VAD instance
+        self.vad_threshold = 0.5  # Speech probability threshold
         self.min_speech_duration = 0.5  # Minimum speech duration in seconds
-        self.max_silence_duration = 1.5  # Maximum silence before utterance end
+        self.max_silence_duration = 1.0  # Maximum silence before utterance end
+        self.speech_pad_duration = 0.3  # Padding before/after speech
+        
+        # VAD state machine
+        self.vad_state = "silence"  # silence, speech, trailing
+        self.consecutive_speech = 0
+        self.consecutive_silence = 0
+        self.chunks_per_second = 10  # 100ms chunks
         
         # Whisper model
         self.model = None
@@ -65,6 +73,9 @@ class ConversationMode:
         try:
             # Initialize Whisper model
             await self._load_model()
+            
+            # Initialize VAD
+            await self._initialize_vad()
             
             # Start audio streaming
             await self._start_audio_streaming()
@@ -100,6 +111,29 @@ class ConversationMode:
             
         except Exception as e:
             self.logger.error(f"Failed to load Whisper model: {e}")
+            raise
+    
+    async def _initialize_vad(self):
+        """Initialize Silero VAD in executor to avoid blocking."""
+        try:
+            from src.audio.vad import SileroVAD
+            self.logger.info("Initializing Silero VAD...")
+            
+            loop = asyncio.get_event_loop()
+            self.vad = await loop.run_in_executor(
+                None, 
+                lambda: SileroVAD(
+                    sample_rate=self.args.sample_rate,
+                    threshold=self.vad_threshold,
+                    min_speech_duration=self.min_speech_duration,
+                    min_silence_duration=self.max_silence_duration,
+                    use_onnx=True  # Faster inference
+                )
+            )
+            
+            self.logger.info("Silero VAD initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize VAD: {e}")
             raise
     
     async def _start_audio_streaming(self):
@@ -138,45 +172,59 @@ class ConversationMode:
                 # Get audio chunk with timeout
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
                 
-                # Calculate RMS for VAD
-                rms = np.sqrt(np.mean(audio_chunk.astype(np.float32) ** 2))
+                # Get speech probability from Silero VAD
+                speech_prob = self.vad.process_chunk(audio_chunk)
                 
-                # Voice Activity Detection
-                if rms > self.silence_threshold:
-                    # Speech detected
-                    if silence_start is not None:
-                        # End of silence
-                        silence_duration = time.time() - silence_start
-                        self.logger.debug(f"Silence ended after {silence_duration:.2f}s")
-                        silence_start = None
+                # Advanced VAD with hysteresis and state machine
+                if speech_prob > self.vad_threshold:
+                    self.consecutive_speech += 1
+                    self.consecutive_silence = 0
                     
-                    if speech_start is None:
-                        # Start of new utterance
-                        speech_start = time.time()
-                        self.current_utterance = []
-                        self.logger.debug("Speech started")
+                    if self.vad_state == "silence" and self.consecutive_speech >= 2:
+                        # Require 2 consecutive speech chunks to start
+                        self.vad_state = "speech"
+                        if speech_start is None:
+                            speech_start = time.time() - (0.1 * self.consecutive_speech)  # Backdate start
+                            self.current_utterance = []
+                            self.logger.debug(f"Speech started (prob: {speech_prob:.3f})")
                     
-                    # Add to current utterance
-                    self.current_utterance.append(audio_chunk)
+                    # Add to utterance if in speech state
+                    if self.vad_state == "speech" and speech_start is not None:
+                        self.current_utterance.append(audio_chunk)
+                elif speech_prob < (self.vad_threshold - 0.15):  # Hysteresis
+                    self.consecutive_silence += 1
+                    self.consecutive_speech = 0
                     
+                    if self.vad_state == "speech":
+                        # We're in speech, add to utterance even during brief silence
+                        if speech_start is not None:
+                            self.current_utterance.append(audio_chunk)
+                        
+                        # Check if silence is long enough to end utterance
+                        required_silence = int(self.max_silence_duration * self.chunks_per_second)
+                        if self.consecutive_silence >= required_silence:
+                            # Calculate speech duration
+                            if speech_start is not None:
+                                speech_duration = time.time() - speech_start
+                                
+                                if speech_duration >= self.min_speech_duration:
+                                    # Valid utterance, process it
+                                    self.vad_state = "silence"
+                                    await self._process_utterance()
+                                    speech_start = None
+                                    silence_start = None
+                                    self.consecutive_speech = 0
+                                    self.consecutive_silence = 0
+                                else:
+                                    # Too short, reset
+                                    self.logger.debug(f"Speech too short ({speech_duration:.2f}s), ignoring")
+                                    self.vad_state = "silence"
+                                    speech_start = None
+                                    self.current_utterance = []
                 else:
-                    # Silence detected
-                    if speech_start is not None:
-                        # We were in speech, now silence
-                        if silence_start is None:
-                            silence_start = time.time()
-                            self.logger.debug("Silence started")
-                        else:
-                            # Check if silence is long enough to end utterance
-                            silence_duration = time.time() - silence_start
-                            speech_duration = silence_start - speech_start
-                            
-                            if (silence_duration >= self.max_silence_duration and 
-                                speech_duration >= self.min_speech_duration):
-                                # End utterance and process
-                                await self._process_utterance()
-                                speech_start = None
-                                silence_start = None
+                    # In the hysteresis zone, maintain current state
+                    if self.vad_state == "speech" and speech_start is not None:
+                        self.current_utterance.append(audio_chunk)
                 
             except asyncio.TimeoutError:
                 # No audio data - continue loop
@@ -231,6 +279,11 @@ class ConversationMode:
                 text = "".join([segment.text for segment in segments]).strip()
                 
                 self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
+            
+            # Log VAD stats
+            if self.vad:
+                vad_stats = self.vad.get_stats()
+                self.logger.debug(f"VAD stats: {vad_stats}")
                 
                 return {
                     "success": True,

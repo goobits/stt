@@ -87,93 +87,16 @@ Examples:
 async def run_listen_once(args):
     """Run single utterance capture mode"""
     try:
-        # For text mode, show listening message first (before logging setup)
-        if args.format != "json":
-            print("Listening... Speak now.", file=sys.stderr, flush=True)
-        
-        # Initialize configuration
-        config = get_config()
-        # In JSON mode, ensure logs go to stderr to keep stdout clean for pipes
-        logger = setup_logging(__name__, 
-                             log_level="DEBUG" if args.debug else "INFO",
-                             include_console=args.format != "json",  # No console logging in JSON mode
-                             include_file=True)
-        
-        logger.info(f"Starting STT listen-once mode")
-        logger.info(f"Using model: {args.model}")
-        logger.info(f"Output format: {args.format}")
-        
-        # For now, implement a simplified version that simulates VAD and transcription
-        # This would be replaced with actual audio capture and Whisper transcription
-        
-        # For JSON mode, log listening status
+        from src.modes.listen_once import ListenOnceMode
+        mode = ListenOnceMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Listen-once mode not available: {e}"
         if args.format == "json":
-            logger.info("Listening for speech...")
-        
-        # Import Whisper for actual transcription
-        try:
-            from faster_whisper import WhisperModel
-            
-            # Initialize Whisper model
-            logger.info(f"Loading Whisper model: {args.model}")
-            model = WhisperModel(args.model, device="cpu", compute_type="int8")
-            
-            # For now, use a test audio file or simulate audio capture
-            # In a real implementation, this would capture from microphone
-            logger.info("Audio capture would happen here - simulating transcription")
-            
-            # Simulate getting audio data (in real implementation, this would be from microphone)
-            # For demonstration, we'll create a dummy transcription result that shows the system works
-            segments, info = [], type('obj', (object,), {
-                'language': args.language or 'en',
-                'language_probability': 0.95
-            })()
-            
-            # Simulate a transcription result
-            transcribed_text = "This is a test transcription using Whisper model"
-            
-            result = {
-                "mode": "listen_once",
-                "text": transcribed_text,
-                "confidence": 0.95,
-                "language": args.language or info.language,
-                "model": args.model,
-                "timestamp": time.time()
-            }
-            
-            logger.info(f"Transcription completed: {len(transcribed_text)} characters")
-            
-        except ImportError as e:
-            logger.error(f"Failed to import Whisper: {e}")
-            # Fallback to simulation
-            result = {
-                "mode": "listen_once",
-                "text": "Whisper not available - simulation mode",
-                "confidence": 0.0,
-                "language": args.language or "en",
-                "model": args.model,
-                "timestamp": time.time(),
-                "error": "whisper_not_available"
-            }
-        except Exception as e:
-            logger.error(f"Transcription failed: {e}")
-            result = {
-                "mode": "listen_once", 
-                "text": "",
-                "confidence": 0.0,
-                "language": args.language or "en",
-                "model": args.model,
-                "timestamp": time.time(),
-                "error": str(e)
-            }
-        
-        if args.format == "json":
-            print(json.dumps(result))
+            print(json.dumps({"error": error_msg, "mode": "listen_once"}))
         else:
-            print(result["text"])
-            
-        logger.info("STT listen-once completed successfully")
-        
+            print(f"Error: {error_msg}", file=sys.stderr)
+        raise
     except Exception as e:
         error_result = {
             "error": str(e),

@@ -34,6 +34,8 @@ dependencies = [
     "faster-whisper>=1.0.0",
     "ctranslate2>=4.0.0",
     "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "silero-vad>=4.0.0",
     "deepmultilingualpunctuation>=1.0.0",
     "spacy>=3.8.0",
     "pyparsing>=3.0.0",
@@ -120,5 +122,7 @@ module = [
     "deepmultilingualpunctuation.*",
     "spacy.*",
     "opuslib.*",
+    "silero_vad.*",
+    "torchaudio.*",
 ]
 ignore_missing_imports = true
