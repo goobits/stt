@@ -63,9 +63,7 @@ python stt.py --tap-to-talk=f8
 python stt.py --hold-to-talk=space
 python stt.py --server --port=8769
 
-# Using installed CLI
-stt --listen-once
-stt-server --port=8769
+# Note: For development, use python stt.py directly as shown above
 ```
 
 ## Architecture
@@ -75,7 +73,13 @@ stt-server --port=8769
 - **`src/transcription/`**: WebSocket server and client implementations for STT services
 - **`src/text_formatting/`**: Advanced text formatting with entity detection and i18n support
 - **`src/audio/`**: Audio capture, streaming, and Opus encoding/decoding
-- **`src/modes/`**: Different operation modes (conversation, tap-to-talk, hold-to-talk)
+- **`src/modes/`**: Different operation modes (listen_once, conversation, tap-to-talk, hold-to-talk)
+
+### Architectural Patterns
+- **Async/Await Design**: All operation modes use asyncio with non-blocking `run()` methods
+- **Modular Components**: Each major feature is isolated with conditional imports to prevent hard dependencies
+- **Configuration-Driven**: Single `config.json` controls all behavior with auto-detection capabilities
+- **Plugin-like Modes**: Operation modes are self-contained classes that can be easily extended
 
 ### Configuration System
 The project uses a centralized configuration system:

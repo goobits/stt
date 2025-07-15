@@ -23,6 +23,7 @@ class TestBasicCapitalization:
             ("welcome to the system", "Welcome to the system"),
             ("this is a test", "This is a test"),
             ("the quick brown fox", "The quick brown fox"),
+            ("written as follows capital K lowercase I T T Y", "Written as follows Kitty"),
         ]
 
         for input_text, expected in test_cases:
