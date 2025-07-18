@@ -67,35 +67,11 @@ class SmartCapitalizer:
             "Ex.": "e.g.",
         }
 
-        # Common uppercase abbreviations
-        self.uppercase_abbreviations = {
-            "asap": "ASAP",
-            "faq": "FAQ",
-            "ceo": "CEO",
-            "cto": "CTO",
-            "cfo": "CFO",
-            "fyi": "FYI",
-            "diy": "DIY",
-            "lol": "LOL",
-            "omg": "OMG",
-            "usa": "USA",
-            "uk": "UK",
-            "eu": "EU",
-            "usd": "USD",
-            "gbp": "GBP",
-            "eur": "EUR",
-            "gps": "GPS",
-            "wifi": "WiFi",
-            "api": "API",
-            "url": "URL",
-            "html": "HTML",
-            "css": "CSS",
-            "sql": "SQL",
-            "pdf": "PDF",
-        }
+        # Load uppercase abbreviations from resources
+        self.uppercase_abbreviations = self.resources.get("technical", {}).get("uppercase_abbreviations", {})
 
-        # Abbreviation patterns for starts detection
-        self.common_abbreviations = ("i.e.", "e.g.", "etc.", "vs.", "cf.", "ie.", "eg.")
+        # Load common abbreviations from resources
+        self.common_abbreviations = tuple(self.resources.get("technical", {}).get("common_abbreviations", []))
 
     def capitalize(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
         """Apply intelligent capitalization with entity protection"""

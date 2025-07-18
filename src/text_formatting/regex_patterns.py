@@ -397,13 +397,18 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     question_mark_keywords = [k for k, v in url_keywords.items() if v == "?"]
 
     # Create alternation patterns for each keyword type (inline implementation)
-    dot_escaped = [re.escape(k) for k in dot_keywords] + [r"\."]
+    # Sort by length to match longer phrases first
+    dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True) 
+    question_mark_keywords_sorted = sorted(question_mark_keywords, key=len, reverse=True)
+    
+    dot_escaped = [re.escape(k) for k in dot_keywords_sorted] + [r"\."]
     dot_pattern = "|".join(dot_escaped)
 
-    slash_escaped = [re.escape(k) for k in slash_keywords]
+    slash_escaped = [re.escape(k) for k in slash_keywords_sorted]
     slash_pattern = "|".join(slash_escaped)
 
-    question_mark_escaped = [re.escape(k) for k in question_mark_keywords]
+    question_mark_escaped = [re.escape(k) for k in question_mark_keywords_sorted]
     question_mark_pattern = "|".join(question_mark_escaped)
 
     # Create number words pattern from language-specific resources
@@ -475,13 +480,16 @@ def build_spoken_email_pattern(language: str = "en") -> Pattern:
     at_keywords = [k for k, v in url_keywords.items() if v == "@"]
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
 
-    # Create pattern strings
-    at_pattern = "|".join(re.escape(k) for k in at_keywords)
-    dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
+    # Create pattern strings - sort by length to match longer phrases first
+    at_keywords_sorted = sorted(at_keywords, key=len, reverse=True)
+    dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
+    at_pattern = "|".join(re.escape(k) for k in at_keywords_sorted)
+    dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
 
     # Email action words from resources or defaults
     email_actions = resources.get("context_words", {}).get("email_actions", ["email", "contact", "write to", "send to"])
-    action_pattern = "|".join(re.escape(action) for action in email_actions)
+    email_actions_sorted = sorted(email_actions, key=len, reverse=True)
+    action_pattern = "|".join(re.escape(action) for action in email_actions_sorted)
 
     # More restrictive pattern that doesn't capture action phrases
     # This pattern looks for actual email-like structures
@@ -556,11 +564,16 @@ def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
     question_keywords = [k for k, v in url_keywords.items() if v == "?"]
 
-    # Create pattern strings
-    colon_pattern = "|".join(re.escape(k) for k in colon_keywords)
-    slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
-    dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
-    question_pattern = "|".join(re.escape(k) for k in question_keywords) if question_keywords else "question\\s+mark"
+    # Create pattern strings - sort by length to match longer phrases first
+    colon_keywords_sorted = sorted(colon_keywords, key=len, reverse=True)
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
+    dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
+    question_keywords_sorted = sorted(question_keywords, key=len, reverse=True)
+    
+    colon_pattern = "|".join(re.escape(k) for k in colon_keywords_sorted)
+    slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
+    dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
+    question_pattern = "|".join(re.escape(k) for k in question_keywords_sorted) if question_keywords_sorted else "question\\s+mark"
 
     pattern_str = rf"""
     \b                                  # Word boundary
@@ -618,8 +631,9 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
     # Get colon keywords from URL_KEYWORDS
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
 
-    # Create alternation pattern for colon
-    colon_escaped = [re.escape(k) for k in colon_keywords]
+    # Create alternation pattern for colon - sort by length to match longer phrases first
+    colon_keywords_sorted = sorted(colon_keywords, key=len, reverse=True)
+    colon_escaped = [re.escape(k) for k in colon_keywords_sorted]
     colon_pattern = "|".join(colon_escaped)
 
     # Create number words pattern from language-specific resources
@@ -697,7 +711,8 @@ def get_slash_command_pattern(language: str = "en") -> Pattern:
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
-    slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
+    slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
 
     return re.compile(
         rf"""
@@ -710,7 +725,8 @@ def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
-    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords)
+    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
+    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords_sorted)
 
     return re.compile(
         rf"""
@@ -726,7 +742,8 @@ def get_simple_underscore_pattern(language: str = "en") -> Pattern:
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
-    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords)
+    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
+    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords_sorted)
 
     return re.compile(
         rf"""
@@ -766,7 +783,8 @@ def get_assignment_pattern(language: str = "en") -> Pattern:
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     equals_keywords = [k for k, v in code_keywords.items() if v == "="]
-    equals_pattern = "|".join(re.escape(k) for k in equals_keywords)
+    equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
+    equals_pattern = "|".join(re.escape(k) for k in equals_keywords_sorted)
 
     return re.compile(
         rf"""
