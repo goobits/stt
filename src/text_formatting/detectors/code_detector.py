@@ -65,6 +65,12 @@ class CodeEntityDetector:
         self._detect_abbreviations(text, code_entities, all_entities)
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
+        self._detect_underscore_delimiters(text, code_entities, all_entities)
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+
+        self._detect_simple_underscore_variables(text, code_entities, all_entities)
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+
         self._detect_command_flags(text, code_entities, all_entities)
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
@@ -72,12 +78,6 @@ class CodeEntityDetector:
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
         self._detect_slash_commands(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
-
-        self._detect_underscore_delimiters(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
-
-        self._detect_simple_underscore_variables(text, code_entities, all_entities)
 
         logger.debug(f"CodeEntityDetector found {len(code_entities)} entities in '{text}'")
         for entity in code_entities:
@@ -606,8 +606,12 @@ class CodeEntityDetector:
                 context_words = text[: match.start()].lower().split()
                 preceding_word = context_words[-1] if context_words else ""
 
-                # Valid programming context words
-                valid_context_words = {"variable", "let", "const", "var", "set", "is", "check", "mi", "my"}
+                # Valid programming context words from resources
+                programming_keywords = set(self.resources.get("context_words", {}).get("programming_keywords", []))
+                technical_context = set(self.resources.get("context_words", {}).get("technical_context", []))
+                # Also include some universal words that are common across languages
+                universal_words = {"variable", "let", "const", "var", "set", "is", "check", "mi", "my"}
+                valid_context_words = programming_keywords | technical_context | universal_words
 
                 # Check if either there's a preceding context word OR the first word is a context word
                 has_valid_context = (
