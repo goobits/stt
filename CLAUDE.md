@@ -142,3 +142,6 @@ logger = setup_logging(__name__, log_level="INFO")
 - **Tests**: `tests/` - Comprehensive test suite
 - **Docker**: `docker/` - Production deployment files
 - **Logs**: `logs/` - Runtime log files (auto-created)
+
+### Temporary Files
+When creating temporary debug or test scripts, use `/tmp` directory to keep the project clean.
