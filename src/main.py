@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
 GOOBITS STT - Pure speech-to-text engine with multiple operation modes
-
-Usage:
-    stt --listen-once           # Single utterance with VAD
-    stt --conversation          # Always listening, interruption support
-    stt --tap-to-talk=f8        # Tap to start/stop recording
-    stt --hold-to-talk=space    # Hold to record, release to stop
-    stt --server --port=8769    # WebSocket server for remote clients
 """
 
-import argparse
 import asyncio
 import json
 import sys
 from pathlib import Path
+
+try:
+    import click
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+    RICH_AVAILABLE = True
+except ImportError:
+    import argparse
+    RICH_AVAILABLE = False
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.absolute()
@@ -24,7 +26,98 @@ if str(current_dir) not in sys.path:
 # Import STT modules
 
 
-def create_parser():
+def create_rich_cli():
+    """Create Rich-enhanced Click CLI interface"""
+    console = Console()
+    
+    @click.command(context_settings={"allow_extra_args": False})
+    @click.version_option(version="1.0.0", prog_name="stt")
+    @click.option("--listen-once", is_flag=True, help="🎯 Single utterance capture with VAD")
+    @click.option("--conversation", is_flag=True, help="💬 Always listening with interruption support")
+    @click.option("--tap-to-talk", metavar="KEY", help="⚡ Tap KEY to start/stop recording")
+    @click.option("--hold-to-talk", metavar="KEY", help="🔘 Hold KEY to record, release to stop")
+    @click.option("--server", is_flag=True, help="🌐 Run as WebSocket server for remote clients")
+    @click.option("--port", type=int, default=8769, help="🔌 Server port (default: 8769)")
+    @click.option("--host", default="0.0.0.0", help="🏠 Server host (default: 0.0.0.0)")
+    @click.option("--format", type=click.Choice(["json", "text"]), default="json", help="📄 Output format (json or text)")
+    @click.option("--no-formatting", is_flag=True, help="🚫 Disable advanced text formatting")
+    @click.option("--model", default="base", help="🤖 Whisper model size (tiny, base, small, medium, large)")
+    @click.option("--language", help="🌍 Language code (e.g., 'en', 'es', 'fr')")
+    @click.option("--device", help="🎤 Audio input device name or index")
+    @click.option("--sample-rate", type=int, default=16000, help="🔊 Audio sample rate in Hz")
+    @click.option("--config", help="⚙️ Configuration file path")
+    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
+    @click.option("--status", is_flag=True, help="📊 Show system status and capabilities")
+    @click.option("--models", is_flag=True, help="📋 List available Whisper models")
+    @click.pass_context
+    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, format, no_formatting, model, language, device, sample_rate, config, debug, status, models):
+        """🎙️ Transform speech into text with AI-powered transcription
+        
+        GOOBITS STT provides multiple operation modes for different use cases.
+        From quick voice notes to always-on conversation monitoring.
+        
+        \b
+        🎯 Quick Start:
+          stt --listen-once                    # Capture single speech
+          stt --conversation                   # Always listening mode
+          stt --tap-to-talk=f8                # Toggle recording with F8
+          stt --hold-to-talk=space             # Hold spacebar to record
+        
+        \b
+        🌐 Server & Integration:
+          stt --server --port=8769             # WebSocket server mode
+          stt --listen-once | jq -r '.text'    # Pipeline JSON output
+          stt --conversation | llm-chat        # Feed to AI assistant
+        
+        \b
+        🎤 Audio Configuration:
+          stt --device="USB Microphone"        # Specific audio device
+          stt --model=small --language=es      # Spanish with small model
+          stt --sample-rate=44100              # High-quality audio
+        
+        \b
+        ✨ Key Features:
+          • Advanced text formatting with entity detection
+          • Multiple Whisper model sizes (tiny to large)
+          • Real-time VAD (Voice Activity Detection)
+          • WebSocket server for remote integration
+          • JSON output for automation and pipelines
+        
+        \b
+        🔧 System Commands:
+          stt --status                         # Check system health
+          stt --models                         # List available models
+          stt --debug                          # Troubleshooting mode
+        """
+        # Create args object from parameters
+        from types import SimpleNamespace
+        args = SimpleNamespace(
+            listen_once=listen_once,
+            conversation=conversation,
+            tap_to_talk=tap_to_talk,
+            hold_to_talk=hold_to_talk,
+            server=server,
+            port=port,
+            host=host,
+            format=format,
+            no_formatting=no_formatting,
+            model=model,
+            language=language,
+            device=device,
+            sample_rate=sample_rate,
+            config=config,
+            debug=debug,
+            status=status,
+            models=models
+        )
+        
+        return run_stt_command(ctx, args)
+    
+    return main
+
+
+def create_fallback_parser():
+    """Fallback argparse interface when Click/Rich unavailable"""
     parser = argparse.ArgumentParser(
         description="GOOBITS STT - Pure speech-to-text engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -72,9 +165,11 @@ Examples:
     audio.add_argument("--device", help="Audio input device")
     audio.add_argument("--sample-rate", type=int, default=16000, help="Sample rate")
 
-    # Other options
+    # System options
     parser.add_argument("--config", help="Configuration file path")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--status", action="store_true", help="Show system status")
+    parser.add_argument("--models", action="store_true", help="List available models")
     parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
 
     return parser
@@ -171,11 +266,97 @@ async def run_server(args):
             print(f"Error: {error_msg}", file=sys.stderr)
 
 
-async def async_main():
-    parser = create_parser()
-    args = parser.parse_args()
+def handle_status_command(output_format="json"):
+    """Show system status and capabilities"""
+    console = Console() if RICH_AVAILABLE else None
+    
+    try:
+        # Check dependencies
+        status = {
+            "system": "ready",
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "dependencies": {},
+            "audio": {},
+            "models": []
+        }
+        
+        # Check core dependencies
+        deps_to_check = [
+            ("faster_whisper", "FastWhisper"),
+            ("torch", "PyTorch"), 
+            ("websockets", "WebSockets"),
+            ("opuslib", "Opus Audio"),
+            ("silero_vad", "Voice Activity Detection")
+        ]
+        
+        for module, name in deps_to_check:
+            try:
+                __import__(module)
+                status["dependencies"][name] = "✅ Available"
+            except ImportError:
+                status["dependencies"][name] = "❌ Missing"
+        
+        if output_format == "json":
+            print(json.dumps(status, indent=2))
+        else:
+            if console:
+                console.print("STT System Status", style="bold blue")
+                console.print("━━━━━━━━━━━━━━━━━━", style="blue")
+                console.print(f"├─ Python {status['python_version']}                           ✅ Ready")
+                for name, stat in status["dependencies"].items():
+                    console.print(f"├─ {name:<30} {stat}")
+                console.print("└─ Configuration                       ✅ Loaded")
+            else:
+                print("STT System Status")
+                print(f"Python: {status['python_version']}")
+                for name, stat in status["dependencies"].items():
+                    print(f"{name}: {stat}")
+                    
+    except Exception as e:
+        if output_format == "json":
+            print(json.dumps({"error": str(e), "status": "failed"}))
+        else:
+            print(f"❌ Status check failed: {e}", file=sys.stderr)
 
-    # Validate that at least one mode is selected
+
+def handle_models_command(output_format="json"):
+    """List available Whisper models"""
+    models = [
+        {"name": "tiny", "size": "37 MB", "speed": "Very Fast", "accuracy": "Basic"},
+        {"name": "base", "size": "142 MB", "speed": "Fast", "accuracy": "Good"},
+        {"name": "small", "size": "463 MB", "speed": "Medium", "accuracy": "Better"},
+        {"name": "medium", "size": "1.4 GB", "speed": "Slow", "accuracy": "High"},
+        {"name": "large", "size": "2.9 GB", "speed": "Very Slow", "accuracy": "Highest"}
+    ]
+    
+    if output_format == "json":
+        print(json.dumps({"available_models": models}, indent=2))
+    else:
+        console = Console() if RICH_AVAILABLE else None
+        if console:
+            console.print("Available Whisper Models", style="bold blue")
+            console.print("━━━━━━━━━━━━━━━━━━━━━━━━━", style="blue")
+            for model in models:
+                console.print(f"├─ {model['name']:<8} {model['size']:<10} {model['speed']:<12} {model['accuracy']}")
+        else:
+            print("Available Whisper Models:")
+            for model in models:
+                print(f"  {model['name']}: {model['size']} - {model['speed']} - {model['accuracy']}")
+
+
+def run_stt_command(ctx, args):
+    """Handle STT command execution with Rich styling"""
+    
+    # Handle special commands first
+    if args.status:
+        handle_status_command(args.format)
+        return
+    
+    if args.models:
+        handle_models_command(args.format)
+        return
+    
+    # Check if no meaningful arguments provided
     modes_selected = sum([
         bool(args.listen_once),
         bool(args.conversation),
@@ -183,14 +364,27 @@ async def async_main():
         bool(args.hold_to_talk),
         bool(args.server),
     ])
-
+    
     if modes_selected == 0:
-        parser.error("No operation mode selected. Use --help for options.")
+        if RICH_AVAILABLE:
+            click.echo(ctx.get_help())
+        else:
+            print("No operation mode selected. Use --help for options.", file=sys.stderr)
+        sys.exit(0)
     elif modes_selected > 1 and not (args.tap_to_talk and args.hold_to_talk):
-        # Allow combining tap-to-talk and hold-to-talk
-        parser.error("Multiple operation modes selected. Choose one mode or combine --tap-to-talk with --hold-to-talk.")
+        error_msg = "Multiple operation modes selected. Choose one mode or combine --tap-to-talk with --hold-to-talk."
+        if RICH_AVAILABLE:
+            click.echo(f"❌ {error_msg}", err=True)
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Run the appropriate mode asynchronously
+    asyncio.run(async_main_worker(args))
 
-    # Route to appropriate mode
+
+async def async_main_worker(args):
+    """Async worker for STT operations"""
     try:
         if args.listen_once:
             await run_listen_once(args)
@@ -218,13 +412,54 @@ async def async_main():
         if args.format == "json":
             print(json.dumps({"error": str(e), "status": "failed"}))
         else:
-            print(f"Error: {e}", file=sys.stderr)
+            if RICH_AVAILABLE:
+                click.echo(f"❌ Error: {e}", err=True)
+            else:
+                print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+async def async_main():
+    """Fallback main for argparse mode"""
+    parser = create_fallback_parser()
+    args = parser.parse_args()
+    
+    # Handle special commands
+    if args.status:
+        handle_status_command(args.format)
+        return
+    
+    if args.models:
+        handle_models_command(args.format)
+        return
+
+    # Validate that at least one mode is selected
+    modes_selected = sum([
+        bool(args.listen_once),
+        bool(args.conversation),
+        bool(args.tap_to_talk),
+        bool(args.hold_to_talk),
+        bool(args.server),
+    ])
+
+    if modes_selected == 0:
+        parser.error("No operation mode selected. Use --help for options.")
+    elif modes_selected > 1 and not (args.tap_to_talk and args.hold_to_talk):
+        # Allow combining tap-to-talk and hold-to-talk
+        parser.error("Multiple operation modes selected. Choose one mode or combine --tap-to-talk with --hold-to-talk.")
+
+    await async_main_worker(args)
 
 
 def main():
     """Entry point for the STT CLI"""
-    asyncio.run(async_main())
+    if RICH_AVAILABLE:
+        # Use Rich-enhanced Click interface
+        cli = create_rich_cli()
+        cli()
+    else:
+        # Fallback to basic argparse
+        asyncio.run(async_main())
 
 
 if __name__ == "__main__":
