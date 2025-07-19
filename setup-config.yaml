@@ -49,12 +49,16 @@ messages:
   
   install_dev_success: |
     GOOBITS STT has been installed in development mode!
-    Your local changes will be reflected immediately.
+    ✅ Your local changes will be reflected immediately - no reinstalling needed!
     
-    Development tips:
+    Development workflow:
+      - Edit code in src/ directory
+      - Test immediately with: stt --listen-once
       - Run tests with: ./test.py tests/text_formatting/ --summary
       - Format code with: ruff format src/
       - Check types with: mypy src/
+      
+    💡 No need to run ./setup.sh upgrade after code changes!
   
   upgrade_success: |
     GOOBITS STT has been upgraded successfully!

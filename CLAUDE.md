@@ -13,6 +13,26 @@ GOOBITS STT is a pure speech-to-text engine with multiple operation modes includ
 
 The project is built around Whisper models for transcription and includes advanced text formatting capabilities.
 
+## Installation & Development Setup
+
+**Use the setup script for installation**:
+
+```bash
+# Production install (for end users)
+./setup.sh install
+
+# Development install (editable) - RECOMMENDED FOR DEVELOPMENT  
+./setup.sh install --dev
+
+# Upgrade to latest version
+./setup.sh upgrade
+
+# Uninstall
+./setup.sh uninstall
+```
+
+**IMPORTANT FOR DEVELOPMENT**: Always use `./setup.sh install --dev` for development work. This creates an editable installation where code changes are immediately reflected without needing to reinstall or upgrade.
+
 ## Development Commands
 
 ### Testing (Primary workflow)
