@@ -73,7 +73,6 @@
     "engine": "porcupine",
     "keyword": "jarvis",
     "confidence_threshold": 0.7,
-    "model_path": null,
     "exit_phrases": [
       "goodbye jarvis",
       "stop listening",

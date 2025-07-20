@@ -3,7 +3,7 @@
 Wake Word Mode - Always-on wake word detection for hands-free activation
 
 This mode provides continuous wake word monitoring with:
-- OpenWakeWord integration for "Hey Jarvis" detection
+- Porcupine integration for "Jarvis" detection
 - Seamless transition to conversation mode upon detection
 - Low CPU usage for always-on operation
 - Exit phrase detection to return to wake word listening
@@ -305,7 +305,7 @@ class WakeWordMode(BaseMode):
             # Restart audio streaming for wake word detection
             await self._setup_audio_streaming()
             
-            await self._send_status("listening", "Returned to wake word detection - listening for 'Hey Jarvis'")
+            await self._send_status("listening", f"Returned to wake word detection - listening for '{self.keyword}'")
             
             # Continue wake word loop
             await self._wake_word_loop()
