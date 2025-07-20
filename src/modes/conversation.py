@@ -88,6 +88,11 @@ class ConversationMode(BaseMode):
         self.accumulated_segments = []  # Store transcribed segments from long utterances
         self.current_utterance_start_time = None
         self.segment_count = 0
+        
+        # VAD-based speech timing
+        self.speech_start_chunk_idx = None  # Index in main_buffer where speech actually started
+        self.speech_end_chunk_idx = None    # Index where speech ended
+        self.total_chunks_processed = 0     # Total chunks seen since utterance start
         self.vad = None  # Silero VAD instance
         self.vad_threshold = mode_config.get("vad_threshold", 0.5)
         self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.5)
@@ -267,6 +272,7 @@ class ConversationMode(BaseMode):
                     # Only add to main buffer during speech
                     if self.vad_state == "speech" and speech_start is not None:
                         self.main_buffer.append(audio_chunk)
+                        self.total_chunks_processed += 1
                         
                         # Check if we need to segment long utterances
                         if len(self.main_buffer) % 50 == 0:  # Check every 50 chunks (5 seconds)
@@ -293,6 +299,7 @@ class ConversationMode(BaseMode):
                         # We're in speech, add to main buffer even during brief silence
                         if speech_start is not None:
                             self.main_buffer.append(audio_chunk)
+                        self.total_chunks_processed += 1
 
                         # Check if silence is long enough to end utterance
                         required_silence = int(self.max_silence_duration * self.chunks_per_second)
@@ -303,7 +310,11 @@ class ConversationMode(BaseMode):
 
                                 if speech_duration >= self.min_speech_duration:
                                     # Valid utterance, process it as a task for interruption handling
+                                    # Mark end of speech for VAD-based trimming
+                                    self.speech_end_chunk_idx = len(self.main_buffer)
+                                    
                                     self.logger.warning(f"🛑 UTTERANCE COMPLETE ({speech_duration:.2f}s) - Processing final result...")
+                                    self.logger.info(f"   📍 Speech ended at buffer index {self.speech_end_chunk_idx}")
                                     self.vad_state = "silence"
                                     
                                     # Cancel any ongoing partial processing when transitioning to silence
@@ -325,7 +336,11 @@ class ConversationMode(BaseMode):
                                     speech_start = None
                                     await self._cancel_partial_processing()
                                     self.main_buffer.clear()  # Clear main buffer
-                                    self.accumulated_segments.clear()  # Clear accumulated segments
+                                    # CLEAN SLATE: Clear all tracking for new utterance
+                                    self.accumulated_segments.clear()
+                                    self.speech_start_chunk_idx = None
+                                    self.speech_end_chunk_idx = None
+                                    self.total_chunks_processed = 0
                                     self.last_transcription = ""
                                     self.previous_partial_result = ""
                                     self.confirmed_text = ""
@@ -337,6 +352,7 @@ class ConversationMode(BaseMode):
                     
                     if self.vad_state == "speech" and speech_start is not None:
                         self.main_buffer.append(audio_chunk)
+                        self.total_chunks_processed += 1
 
             except asyncio.TimeoutError:
                 # No audio data - continue loop
@@ -373,20 +389,31 @@ class ConversationMode(BaseMode):
         try:
             self.segment_count += 1
             
-            # Extract segment for processing
-            segment_chunks = self.main_buffer[:self.segment_max_chunks]
+            # Extract segment for processing - ONLY speech portion if VAD timing available
+            if self.speech_start_chunk_idx is not None:
+                # Trim to speech portion with small cushion
+                cushion_chunks = int(0.3 * self.chunks_per_second)  # 300ms cushion
+                start_idx = max(0, self.speech_start_chunk_idx - cushion_chunks)
+                segment_end = min(len(self.main_buffer), start_idx + self.segment_max_chunks)
+                segment_chunks = self.main_buffer[start_idx:segment_end]
+                
+                self.logger.warning(f"   📝 VAD-TRIMMED SEGMENT #{self.segment_count} (buffer {start_idx}:{segment_end})")
+            else:
+                # Fallback: use regular segmentation
+                segment_chunks = self.main_buffer[:self.segment_max_chunks]
+                self.logger.warning(f"   📝 REGULAR SEGMENT #{self.segment_count} (no VAD timing)")
+                
             segment_duration = len(segment_chunks) / self.chunks_per_second
-
-            self.logger.warning(f"   📝 PROCESSING SEGMENT #{self.segment_count} ({segment_duration:.1f}s, {len(segment_chunks)} chunks)")
+            self.logger.warning(f"   📏 Segment size: {segment_duration:.1f}s, {len(segment_chunks)} chunks")
 
             # Convert to audio array for transcription
             if segment_chunks:
                 segment_audio = np.concatenate(segment_chunks)
 
-                # Transcribe segment with accumulated context
+                # Transcribe segment with ONLY conversation context (NOT accumulated segments)
                 loop = asyncio.get_event_loop()
-                accumulated_text = " ".join([seg["text"] for seg in self.accumulated_segments])
-                context_prompt = self.conversation_context + " " + accumulated_text
+                # CRITICAL FIX: Do not use accumulated segments as context - causes feedback loop!
+                context_prompt = self.conversation_context.strip()
                 
                 self.logger.info(f"   🧠 Context for segment: '{context_prompt[:100]}...'") 
                 
@@ -410,24 +437,9 @@ class ConversationMode(BaseMode):
                     self.logger.warning(f"   ✅ SEGMENT #{self.segment_count} TRANSCRIBED: '{segment_text[:60]}...'")
                     self.logger.info(f"   📊 Total accumulated segments: {len(self.accumulated_segments)}")
                     
-                    # Send as partial result with accumulated context
-                    full_accumulated = " ".join([seg["text"] for seg in self.accumulated_segments])
-                    partial_result = {
-                        "text": full_accumulated,
-                        "is_partial": True,
-                        "status": "partial",
-                        "success": True,
-                        "language": result.get("language", "auto"),
-                        "duration": sum(seg["duration"] for seg in self.accumulated_segments),
-                        "confidence": result.get("confidence", 0.7),
-                        "segment_info": {
-                            "type": "long_utterance_accumulation",
-                            "segment_count": len(self.accumulated_segments),
-                            "latest_segment": segment_text
-                        },
-                        "timestamp": time.time()
-                    }
-                    await self._send_transcription(partial_result)
+                    # CRITICAL FIX: Do NOT send accumulated partial results - causes context contamination!
+                    # Just log the segment, don't send to output until final assembly
+                    self.logger.info(f"   💫 Segment stored for final assembly (not sent as partial)")
 
             # Keep overlap for context continuity  
             remaining_chunks = len(self.main_buffer) - (self.segment_max_chunks - self.overlap_chunks)
@@ -482,10 +494,10 @@ class ConversationMode(BaseMode):
                 return
                 
             # Process in executor to avoid blocking the listening loop
-            # Use conversation context as prompt for better accuracy
+            # Use ONLY conversation context (NOT confirmed_text to prevent feedback)
             loop = asyncio.get_event_loop()
-            context_prompt = self.conversation_context + " " + self.confirmed_text
-            result = await loop.run_in_executor(None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt.strip()))
+            context_prompt = self.conversation_context.strip()
+            result = await loop.run_in_executor(None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt))
 
             # Check if task was cancelled during processing
             if asyncio.current_task().cancelled():
@@ -566,13 +578,31 @@ class ConversationMode(BaseMode):
             if segment["text"].strip():
                 final_text_parts.append(segment["text"].strip())
                 
-        # Process remaining buffer if it has content
+        # Process remaining buffer if it has content - USE VAD-BASED TRIMMING
         if self.main_buffer:
             self.is_processing = True
             
             try:
-                utterance_data = np.concatenate(self.main_buffer)
-                remaining_duration = len(self.main_buffer) / self.chunks_per_second
+                # CRITICAL FIX: Only process speech portion with small cushion
+                if self.speech_start_chunk_idx is not None and self.speech_end_chunk_idx is not None:
+                    # Add small cushion (0.5s = 5 chunks on each side)
+                    cushion_chunks = int(0.5 * self.chunks_per_second)
+                    start_idx = max(0, self.speech_start_chunk_idx - cushion_chunks)
+                    end_idx = min(len(self.main_buffer), self.speech_end_chunk_idx + cushion_chunks)
+                    
+                    speech_buffer = self.main_buffer[start_idx:end_idx]
+                    self.logger.warning(f"   ✂️  VAD-trimmed buffer: {start_idx}:{end_idx} ({len(speech_buffer)} chunks, {len(speech_buffer)/self.chunks_per_second:.1f}s)")
+                    utterance_data = np.concatenate(speech_buffer)
+                else:
+                    # Fallback: use entire buffer if VAD timing not available
+                    self.logger.warning(f"   ⚠️  VAD timing unavailable, using entire buffer")
+                    utterance_data = np.concatenate(self.main_buffer)
+                    
+                # Calculate duration based on actual data processed
+                if self.speech_start_chunk_idx is not None and self.speech_end_chunk_idx is not None:
+                    remaining_duration = len(speech_buffer) / self.chunks_per_second
+                else:
+                    remaining_duration = len(self.main_buffer) / self.chunks_per_second
                 
                 self.logger.warning(f"   📝 Processing final buffer segment ({remaining_duration:.1f}s)...")
                 

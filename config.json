@@ -59,7 +59,7 @@
       "speech_pad_duration_s": 0.3,
       "pre_buffer_duration_s": 5.0,
       "segment_max_duration_s": 25.0,
-      "segment_overlap_duration_s": 5.0
+      "segment_overlap_duration_s": 1.5
     },
     "listen_once": {
       "vad_threshold": 0.5,
