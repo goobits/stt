@@ -62,9 +62,9 @@ def create_rich_cli():
     def main(ctx):
         """🎙️ [bold cyan]STT - Transform speech into text with AI-powered transcription.[/bold cyan]
         
+        \b
         From quick voice notes to always-on conversation monitoring,
         stt brings the power of Whisper to your terminal.
-
         \b
         [bold yellow]💡 Quick Start:[/bold yellow]
         \b
@@ -76,10 +76,10 @@ def create_rich_cli():
         \b
         [bold yellow]🔑 First-time Setup:[/bold yellow]
         \b
-          1. Check system status:  [green]stt status[/green]
-          2. Choose a default model: [green]stt config set model base[/green]
-          3. Test your microphone:  [green]stt listen --debug[/green]
-          4. Start transcribing:   [green]stt live[/green]
+          1. Check system status:      [green]stt status[/green]
+          2. Choose a default model:   [green]stt config set model base[/green]
+          3. Test your microphone:     [green]stt listen --debug[/green]
+          4. Start transcribing:       [green]stt live[/green]
 
         \b
         📚 For detailed help on a command, run: [green]stt [COMMAND] --help[/green]
