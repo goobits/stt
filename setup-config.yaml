@@ -27,6 +27,15 @@ installation:
   pypi_name: goobits-stt
   # Relative to project root
   development_path: "."
+  # Extra dependencies for specific features
+  extras:
+    demo:
+      description: "Smart Voice Assistant Demo dependencies"
+      packages:
+        - "webrtc-audio-processing>=0.3.1"
+        - "pygame>=2.5.0"
+        - "pyaudio>=0.2.11"
+        - "pydub>=0.25.1"
   
 # Shell integration
 shell_integration:
@@ -46,6 +55,10 @@ messages:
       stt --tap-to-talk=f8       # Tap F8 to start/stop
       stt --hold-to-talk=space   # Hold spacebar to record
       stt --server --port=8769   # WebSocket server
+    
+    🎤 Try the Smart Voice Assistant Demo:
+      ./setup-demo.sh install   # Install demo dependencies
+      ./setup-demo.sh run       # Run the demo
   
   install_dev_success: |
     GOOBITS STT has been installed in development mode!
@@ -59,6 +72,10 @@ messages:
       - Check types with: mypy src/
       
     💡 No need to run ./setup.sh upgrade after code changes!
+    
+    🎤 To try the Smart Voice Assistant Demo:
+      pip install webrtc-audio-processing pygame pyaudio
+      python3 examples/smart_voice_demo.py --disable-aec
   
   upgrade_success: |
     GOOBITS STT has been upgraded successfully!
