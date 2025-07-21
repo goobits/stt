@@ -40,12 +40,12 @@ def find_free_port() -> int:
 
 def get_main_py_path() -> Path:
     """Get the path to the main.py file"""
-    return Path(__file__).parent.parent / "src" / "main.py"
+    return Path(__file__).parent.parent.parent / "src" / "main.py"
 
 
 def get_test_env() -> dict:
     """Get environment variables for testing"""
-    return {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)}
+    return {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
 
 
 class TestServerAsyncIO:
@@ -341,10 +341,10 @@ class TestBasicServerFunctionality:
             # Try to connect (may fail on auth, but should not fail on connection)
             # Note: Removed timeout parameter due to compatibility issues with asyncio
             async with websockets.connect(uri) as websocket:
-                # If we get here, connection succeeded
-                assert websocket.open
+                # If we get here, connection succeeded (websocket is connected)
+                # In newer websockets library, being in this context means connection is open
                 
-                # Try sending a ping
+                # Try sending a ping to verify the connection is working
                 await websocket.ping()
                 
         except websockets.exceptions.ConnectionClosedError as e:

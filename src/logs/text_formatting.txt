@@ -444,3 +444,38 @@
 2025-07-20 02:54:39 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
 2025-07-20 02:54:39 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
 2025-07-20 02:54:39 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-20 13:34:25 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 13:34:25 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 13:34:25 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 13:41:40 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 13:41:40 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 13:41:46 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 13:41:46 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 13:42:08 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 13:42:08 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 14:23:52 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 14:23:52 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 14:24:38 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 14:24:38 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 14:29:34 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 14:29:34 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 14:43:04 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2025-07-20 14:43:04 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:47:26 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:47:26 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:48:01 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:48:01 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:48:08 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:48:08 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:48:28 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:48:28 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:48:58 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2025-07-20 15:48:58 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:49:20 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:49:20 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 15:49:54 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-20 15:49:54 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-20 16:04:39 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2025-07-20 16:04:39 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-21 16:29:26 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-21 16:29:26 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing

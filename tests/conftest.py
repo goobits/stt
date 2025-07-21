@@ -16,7 +16,7 @@ os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Register plugins
-pytest_plugins = ["tests.__tools__.pytest_diff_tracker", "tests.__tools__.pytest_summary_plugin"]
+pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin"]
 
 # Disable excessive logging during tests for performance
 logging.getLogger("src.text_formatting").setLevel(logging.CRITICAL)

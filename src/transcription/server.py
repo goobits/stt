@@ -589,13 +589,21 @@ class MatildaWebSocketServer:
         if self.ssl_enabled and self.ssl_context:
             server_kwargs["ssl"] = self.ssl_context
 
-        async with websockets.serve(self.handle_client, server_host, server_port, **server_kwargs):
-            logger.info("WebSocket Matilda Server is ready for connections!")
-            logger.info(f"Protocol: {protocol.upper()}")
-            logger.info(f"Active clients: {len(self.connected_clients)}")
+        try:
+            async with websockets.serve(self.handle_client, server_host, server_port, **server_kwargs):
+                logger.info("WebSocket Matilda Server is ready for connections!")
+                logger.info(f"Protocol: {protocol.upper()}")
+                logger.info(f"Active clients: {len(self.connected_clients)}")
 
-            # Keep server running
-            await asyncio.Future()
+                # Keep server running
+                await asyncio.Future()
+        except OSError as e:
+            if e.errno == 98 or "Address already in use" in str(e):
+                logger.error(f"Port {server_port} is already in use. Please choose a different port or stop the service using that port.")
+                raise RuntimeError(f"Port {server_port} is already in use") from e
+            else:
+                logger.error(f"Failed to bind to {server_host}:{server_port}: {e}")
+                raise
 
 
 # Enhanced server with dual-mode support

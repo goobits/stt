@@ -87,7 +87,7 @@ class TestCLICommands:
     def test_status_command_runs(self):
         """Does status subcommand work without crashing?"""
         # Test status command via subprocess to avoid async complexity
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
+        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
         
         result = subprocess.run([
             sys.executable, str(main_py), "status"
@@ -102,7 +102,7 @@ class TestCLICommands:
     def test_models_command_runs(self):
         """Does models subcommand work without crashing?"""
         # Test models command via subprocess to avoid async complexity
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
+        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
         
         result = subprocess.run([
             sys.executable, str(main_py), "models"
@@ -118,11 +118,11 @@ class TestCLICommands:
         """Does --help work without crashing?"""
         # Test that help can be displayed via subprocess
         # Use Path to get absolute path to main.py
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
+        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
         
         result = subprocess.run([
             sys.executable, str(main_py), "--help"
-        ], capture_output=True, text=True, timeout=10, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)})
+        ], capture_output=True, text=True, timeout=10, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)})
         
         # Should exit with 0 and show help text
         assert result.returncode == 0
@@ -135,8 +135,8 @@ class TestCLICommands:
     
     def test_config_subcommands_work(self):
         """Do config subcommands work without crashing?"""
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
-        env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)}
+        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
+        env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
         
         # Test config help
         result = subprocess.run([
@@ -159,8 +159,8 @@ class TestCLICommands:
     
     def test_subcommand_help_works(self):
         """Do individual subcommand help pages work?"""
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
-        env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)}
+        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
+        env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
         
         subcommands = ["listen", "live", "serve", "status", "models"]
         

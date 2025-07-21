@@ -151,9 +151,9 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ### Testing Framework
 - **pytest** with extensive plugin support
-- Custom test tools in `tests/__tools__/`
+- Custom test tools in `tests/tools/`
 - Text formatting tests with comprehensive entity coverage
-- Audio test fixtures in `tests/__fixtures__/`
+- Audio test fixtures in `tests/fixtures/audio/`
 
 ## Development Workflow
 

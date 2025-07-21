@@ -228,6 +228,10 @@ class ConfigLoader:
 
     @property
     def websocket_port(self) -> int:
+        # Check environment variable first, then config, then default
+        env_port = os.environ.get("WEBSOCKET_SERVER_PORT")
+        if env_port:
+            return int(env_port)
         return int(self.get("server.websocket.port", 8769))
 
     @property

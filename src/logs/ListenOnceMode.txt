@@ -133,3 +133,15 @@ Traceback (most recent call last):
   File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 203, in _send_transcription
     print(result["text"])
 BrokenPipeError: [Errno 32] Broken pipe
+2025-07-20 22:57:48 - ListenOnceMode - ERROR - Listen-once mode error: 'types.SimpleNamespace' object has no attribute 'format'
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/listen_once.py", line 72, in run
+    if self.args.format == "json":
+       ^^^^^^^^^^^^^^^^
+AttributeError: 'types.SimpleNamespace' object has no attribute 'format'
+2025-07-20 22:58:15 - ListenOnceMode - ERROR - Listen-once mode error: 'types.SimpleNamespace' object has no attribute 'format'
+Traceback (most recent call last):
+  File "/workspace/src/modes/listen_once.py", line 72, in run
+    if self.args.format == "json":
+       ^^^^^^^^^^^^^^^^
+AttributeError: 'types.SimpleNamespace' object has no attribute 'format'

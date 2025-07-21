@@ -187,7 +187,7 @@ def main():
             
             print("\n🧪 Verifying installation...")
             verify_cmd = [sys.executable if in_venv else python_exe, 
-                         "tests/__tools__/verify_test_setup.py"]
+                         "tests/tools/verify_test_setup.py"]
             subprocess.run(verify_cmd, check=False)
             print("\n🚀 Ready to run tests with: ./test.py")
         else:
