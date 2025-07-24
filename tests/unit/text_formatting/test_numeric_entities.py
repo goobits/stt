@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for numeric-related entities: numbers, ranges, and fractions.
+"""
+Comprehensive tests for numeric-related entities: numbers, ranges, and fractions.
 
 This module tests the detection and formatting of:
 - CARDINAL: "three" → "3"

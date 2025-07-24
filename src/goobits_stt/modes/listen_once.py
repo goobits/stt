@@ -8,11 +8,11 @@ This mode provides automatic speech detection and transcription of a single utte
 - Exits after transcription
 - Perfect for command-line pipelines and single voice commands
 """
+from __future__ import annotations
 
 import asyncio
 import time
-from typing import Dict, Any
-from pathlib import Path
+from typing import Dict, Any, Optional
 import sys
 
 from .base_mode import BaseMode
@@ -35,10 +35,10 @@ class ListenOnceMode(BaseMode):
 
     def __init__(self, args):
         super().__init__(args)
-        
+
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
-        
+
         # VAD and utterance detection
         self.vad = None
         self.vad_threshold = mode_config.get("vad_threshold", 0.5)
@@ -56,7 +56,7 @@ class ListenOnceMode(BaseMode):
         self.utterance_chunks = []
         self.speech_started = False
         self.recording_start_time = None
-        
+
         self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
                         f"min_speech={self.min_speech_duration}s, "
                         f"max_silence={self.max_silence_duration}s, "
@@ -87,15 +87,14 @@ class ListenOnceMode(BaseMode):
             if utterance_captured:
                 # Process and transcribe
                 await self._process_utterance()
+            # In piped mode, don't send error to avoid breaking the pipeline
+            # Just exit quietly if no speech detected
+            elif not sys.stdout.isatty():
+                # Piped mode - exit silently
+                pass
             else:
-                # In piped mode, don't send error to avoid breaking the pipeline
-                # Just exit quietly if no speech detected
-                if not sys.stdout.isatty():
-                    # Piped mode - exit silently
-                    pass
-                else:
-                    # Interactive mode - show error
-                    await self._send_error("No speech detected within timeout period")
+                # Interactive mode - show error
+                await self._send_error("No speech detected within timeout period")
 
         except KeyboardInterrupt:
             await self._send_status("interrupted", "Listen-once mode stopped by user")
@@ -127,7 +126,7 @@ class ListenOnceMode(BaseMode):
         except ImportError as e:
             self.logger.error(f"VAD dependencies not available: {e}")
             self.logger.error("Install dependencies with: pip install torch torchaudio silero-vad")
-            raise RuntimeError(f"VAD initialization failed: {e}")
+            raise RuntimeError(f"VAD initialization failed: {e}") from e
         except Exception as e:
             self.logger.error(f"Failed to initialize VAD: {e}")
             raise
@@ -227,22 +226,25 @@ class ListenOnceMode(BaseMode):
         # Directly pass the utterance_chunks to the flexible helper
         await self._process_and_transcribe_collected_audio(self.utterance_chunks)
 
-    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
+    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> dict[str, Any]:
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
-        
+
         # Log VAD stats if available
         if result["success"] and self.vad:
             vad_stats = self.vad.get_stats()
             self.logger.debug(f"VAD stats: {vad_stats}")
             result["model"] = self.args.model
-        
+
         return result
 
 
-    async def _send_transcription(self, result: Dict[str, Any]):
+    async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result with model info."""
-        extra = {"model": self.args.model} if "model" in result else {}
+        if extra is None:
+            extra = {}
+        if "model" in result:
+            extra["model"] = self.args.model
         await super()._send_transcription(result, extra)
 
 

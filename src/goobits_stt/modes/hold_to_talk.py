@@ -8,12 +8,11 @@ This mode offers a "walkie-talkie" style interaction:
 - Release key to stop recording and trigger transcription
 - Global hotkey support (works without terminal focus)
 """
+from __future__ import annotations
 
 import asyncio
 import threading
-from typing import Dict, Any
-from pathlib import Path
-import sys
+from typing import Dict, Any, Optional
 
 
 from .base_mode import BaseMode
@@ -42,12 +41,12 @@ class HoldToTalkMode(BaseMode):
     def __init__(self, args):
         super().__init__(args)
         self.hotkey = args.hold_to_talk
-        
+
         # Keyboard listener
         self.keyboard_listener = None
         self.target_key = None
         self.stop_event = threading.Event()
-        
+
         self.logger.info(f"Hold-to-talk mode initialized with hotkey: {self.hotkey}")
 
     async def run(self):
@@ -107,34 +106,34 @@ class HoldToTalkMode(BaseMode):
         """Parse key string to pynput Key object."""
         # Convert common key names to pynput Key objects
         key_mapping = {
-            'space': Key.space,
-            'enter': Key.enter,
-            'shift': Key.shift,
-            'shift_l': Key.shift_l,
-            'shift_r': Key.shift_r,
-            'ctrl': Key.ctrl,
-            'ctrl_l': Key.ctrl_l,
-            'ctrl_r': Key.ctrl_r,
-            'alt': Key.alt,
-            'alt_l': Key.alt_l,
-            'alt_r': Key.alt_r,
-            'cmd': Key.cmd,
-            'tab': Key.tab,
-            'esc': Key.esc,
-            'escape': Key.esc,
-            'backspace': Key.backspace,
-            'delete': Key.delete,
-            'up': Key.up,
-            'down': Key.down,
-            'left': Key.left,
-            'right': Key.right,
+            "space": Key.space,
+            "enter": Key.enter,
+            "shift": Key.shift,
+            "shift_l": Key.shift_l,
+            "shift_r": Key.shift_r,
+            "ctrl": Key.ctrl,
+            "ctrl_l": Key.ctrl_l,
+            "ctrl_r": Key.ctrl_r,
+            "alt": Key.alt,
+            "alt_l": Key.alt_l,
+            "alt_r": Key.alt_r,
+            "cmd": Key.cmd,
+            "tab": Key.tab,
+            "esc": Key.esc,
+            "escape": Key.esc,
+            "backspace": Key.backspace,
+            "delete": Key.delete,
+            "up": Key.up,
+            "down": Key.down,
+            "left": Key.left,
+            "right": Key.right,
         }
 
         # Handle function keys
-        if key_str.lower().startswith('f') and key_str[1:].isdigit():
+        if key_str.lower().startswith("f") and key_str[1:].isdigit():
             func_num = int(key_str[1:])
             if 1 <= func_num <= 12:
-                return getattr(Key, f'f{func_num}')
+                return getattr(Key, f"f{func_num}")
 
         # Check if it's a special key
         if key_str.lower() in key_mapping:
@@ -181,11 +180,11 @@ class HoldToTalkMode(BaseMode):
         """Check if the pressed/released key matches our target key."""
         try:
             # Handle special keys
-            if hasattr(key, 'name'):
+            if hasattr(key, "name"):
                 return bool(key == self.target_key or str(key) == str(self.target_key))
 
             # Handle character keys
-            if hasattr(key, 'char') and key.char:
+            if hasattr(key, "char") and key.char:
                 return bool(key.char.lower() == str(self.target_key).lower())
 
             # Direct comparison
@@ -268,17 +267,26 @@ class HoldToTalkMode(BaseMode):
         await self._process_and_transcribe_collected_audio()
 
 
-    async def _send_status(self, status: str, message: str):
+    async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message with hotkey info."""
-        await super()._send_status(status, message, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_status(status, message, extra)
 
-    async def _send_transcription(self, result: Dict[str, Any]):
+    async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result with hotkey info."""
-        await super()._send_transcription(result, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_transcription(result, extra)
 
-    async def _send_error(self, error_message: str):
+    async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message with hotkey info."""
-        await super()._send_error(error_message, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_error(error_message, extra)
 
     async def _cleanup(self):
         """Clean up resources."""

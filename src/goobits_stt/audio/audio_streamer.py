@@ -1,8 +1,9 @@
 """Audio streaming with Opus encoding for WebGPU visualizers."""
+from __future__ import annotations
 
 import asyncio
 import numpy as np
-from typing import Set, Optional
+from typing import Optional
 import weakref
 from aiohttp import web
 
@@ -93,7 +94,7 @@ class AudioStreamer:
 
 
 # Global instance
-_streamer: Optional[AudioStreamer] = None
+_streamer: AudioStreamer | None = None
 
 
 def get_audio_streamer() -> AudioStreamer:

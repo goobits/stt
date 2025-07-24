@@ -5,6 +5,7 @@ Silero Voice Activity Detection (VAD) module
 Provides accurate voice activity detection using the Silero VAD model.
 Significantly more accurate than simple amplitude-based detection.
 """
+from __future__ import annotations
 
 from typing import List, Tuple, Any, Optional
 import asyncio
@@ -53,6 +54,7 @@ class SileroVAD:
             min_silence_duration: Minimum silence duration to end speech
             padding_duration: Padding to add before/after speech segments
             use_onnx: Use ONNX model for 4-5x faster inference
+
         """
         self.sample_rate = sample_rate
         self.threshold = threshold
@@ -84,7 +86,7 @@ class SileroVAD:
 
         # VAD state
         self.speech_timestamps: list[dict[str, Any]] = []
-        self.current_speech_start: Optional[int] = None
+        self.current_speech_start: int | None = None
         self.temp_end = 0
         self.triggered = False
 
@@ -114,8 +116,8 @@ class SileroVAD:
 
             # Fallback to torch.hub method
             self.model, self.utils = torch.hub.load(
-                repo_or_dir='snakers4/silero-vad',
-                model='silero_vad',
+                repo_or_dir="snakers4/silero-vad",
+                model="silero_vad",
                 force_reload=False,
                 onnx=self.use_onnx,
                 verbose=False
@@ -137,7 +139,7 @@ class SileroVAD:
                 f"Failed to load VAD model: {e}. "
                 "Make sure you have installed: pip install torch torchaudio silero-vad"
             )
-            raise RuntimeError(error_msg)
+            raise RuntimeError(error_msg) from e
 
     def process_chunk(self, audio_chunk: np.ndarray) -> float:
         """
@@ -148,6 +150,7 @@ class SileroVAD:
 
         Returns:
             Speech probability (0.0-1.0)
+
         """
         try:
             # Convert to float32 if needed
@@ -175,7 +178,7 @@ class SileroVAD:
             return 0.0
 
     def process_chunk_with_state(self, audio_chunk: np.ndarray,
-                                chunk_length_ms: int = 100) -> Tuple[float, str]:
+                                chunk_length_ms: int = 100) -> tuple[float, str]:
         """
         Process chunk with state machine for robust speech detection.
 
@@ -189,9 +192,10 @@ class SileroVAD:
             - 'speech_start': Speech just started
             - 'speech': Ongoing speech
             - 'speech_end': Speech just ended
+
         """
         speech_prob = self.process_chunk(audio_chunk)
-        state = 'silence'
+        state = "silence"
 
         # Convert durations to chunk counts
         chunks_per_second = 1000 / chunk_length_ms
@@ -203,9 +207,9 @@ class SileroVAD:
             if not self.triggered:
                 self.triggered = True
                 self.current_speech_start = int(self.temp_end)
-                state = 'speech_start'
+                state = "speech_start"
             else:
-                state = 'speech'
+                state = "speech"
             self.temp_end += 1
 
         else:
@@ -214,20 +218,20 @@ class SileroVAD:
                     # Too short, reset
                     self.triggered = False
                     self.current_speech_start = None
-                    state = 'silence'
+                    state = "silence"
                 elif self.current_speech_start is not None and (self.temp_end - self.current_speech_start) >= min_silence_chunks:
                     # Speech ended
                     self.speech_timestamps.append({
-                        'start': self.current_speech_start,
-                        'end': self.temp_end - min_silence_chunks
+                        "start": self.current_speech_start,
+                        "end": self.temp_end - min_silence_chunks
                     })
                     self.triggered = False
                     self.current_speech_start = None
-                    state = 'speech_end'
+                    state = "speech_end"
                 else:
-                    state = 'speech'  # Still in speech, just a brief pause
+                    state = "speech"  # Still in speech, just a brief pause
             else:
-                state = 'silence'
+                state = "silence"
             self.temp_end += 1
 
         return speech_prob, state
@@ -239,7 +243,7 @@ class SileroVAD:
         self.temp_end = 0
         self.triggered = False
 
-    def process_audio_buffer(self, audio_buffer: np.ndarray) -> List[dict]:
+    def process_audio_buffer(self, audio_buffer: np.ndarray) -> list[dict]:
         """
         Process entire audio buffer and return speech segments.
 
@@ -248,6 +252,7 @@ class SileroVAD:
 
         Returns:
             List of speech segments with start/end times in seconds
+
         """
         try:
             # Convert to float32 if needed
@@ -285,11 +290,11 @@ class SileroVAD:
     def get_stats(self) -> dict:
         """Get VAD statistics."""
         return {
-            'sample_rate': self.sample_rate,
-            'threshold': self.threshold,
-            'model_type': 'ONNX' if self.use_onnx else 'JIT',
-            'speech_segments': len(self.speech_timestamps),
-            'is_speaking': self.triggered
+            "sample_rate": self.sample_rate,
+            "threshold": self.threshold,
+            "model_type": "ONNX" if self.use_onnx else "JIT",
+            "speech_segments": len(self.speech_timestamps),
+            "is_speaking": self.triggered
         }
 
 
@@ -305,18 +310,20 @@ class VADProcessor:
         Args:
             vad: SileroVAD instance
             buffer_size: Number of chunks to buffer for smoothing
+
         """
         self.vad = vad
         self.buffer_size = buffer_size
         self.prob_buffer: list[float] = []
         self.logger = logging.getLogger(__name__)
 
-    def process_with_smoothing(self, audio_chunk: np.ndarray) -> Tuple[float, float]:
+    def process_with_smoothing(self, audio_chunk: np.ndarray) -> tuple[float, float]:
         """
         Process chunk with probability smoothing.
 
         Returns:
             Tuple of (instant_probability, smoothed_probability)
+
         """
         # Get instant probability
         instant_prob = self.vad.process_chunk(audio_chunk)
@@ -342,6 +349,7 @@ class VADProcessor:
 
         Returns:
             True if speech detected
+
         """
         threshold = self.vad.threshold
         if aggressive:
@@ -407,16 +415,15 @@ class SimpleFallbackVAD:
     def get_stats(self) -> dict:
         """Get VAD statistics."""
         return {
-            'sample_rate': self.sample_rate,
-            'threshold': self.threshold,
-            'model_type': 'Fallback_RMS',
-            'speech_segments': 0,
-            'is_speaking': False
+            "sample_rate": self.sample_rate,
+            "threshold": self.threshold,
+            "model_type": "Fallback_RMS",
+            "speech_segments": 0,
+            "is_speaking": False
         }
 
     def reset_states(self):
         """Reset VAD state (no-op for simple VAD)."""
-        pass
 
 
 def create_vad(sample_rate: int = 16000,
@@ -437,6 +444,7 @@ def create_vad(sample_rate: int = 16000,
 
     Raises:
         ImportError: If required dependencies are not available
+
     """
     # Check minimum dependencies
     if not NUMPY_AVAILABLE:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for financial and currency entities.
+"""
+Comprehensive tests for financial and currency entities.
 
 This module tests the detection and formatting of:
 - MONEY: "$100", "€50", "£20"

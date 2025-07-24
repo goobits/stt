@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for entertainment and fun entities.
+"""
+Comprehensive tests for entertainment and fun entities.
 
 This module tests the detection and formatting of:
 - MUSIC_NOTATION: "C sharp", "B flat" → "C♯", "B♭"

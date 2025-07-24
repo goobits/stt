@@ -9,6 +9,7 @@ This class provides common functionality shared across all operation modes:
 - Output formatting (JSON/text)
 - Error handling and cleanup
 """
+from __future__ import annotations
 
 import asyncio
 import json
@@ -16,7 +17,6 @@ import time
 import tempfile
 import wave
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Dict, Any, Optional
 import sys
 
@@ -37,7 +37,7 @@ except ImportError:
 
 class BaseMode(ABC):
     """Abstract base class for all STT operation modes."""
-    
+
     def __init__(self, args):
         """Initialize common mode components."""
         self.args = args
@@ -48,63 +48,62 @@ class BaseMode(ABC):
             include_console=False,  # Never show logger output to console - use _send_* methods
             include_file=True
         )
-        
+
         # Audio processing
         self.loop = None
         self.audio_queue = None
         self.audio_streamer = None
-        
+
         # Model
         self.model = None
-        
+
         # Recording state
         self.is_recording = False
         self.audio_data = []
-        
+
         # Check dependencies
         if not NUMPY_AVAILABLE:
             raise ImportError(
                 f"NumPy is required for {self.__class__.__name__}. "
                 "Install with: pip install numpy"
             )
-        
+
         self.logger.info(f"{self.__class__.__name__} initialized")
-    
-    def _get_mode_config(self) -> Dict[str, Any]:
+
+    def _get_mode_config(self) -> dict[str, Any]:
         """Get mode-specific configuration from config.json."""
         mode_name = self._get_mode_name()
         return self.config.get("modes", {}).get(mode_name, {})
-    
+
     @abstractmethod
     async def run(self):
         """Main entry point for the mode. Must be implemented by subclasses."""
-        pass
-    
+
     async def _load_model(self):
         """Load Whisper model asynchronously."""
         try:
             from faster_whisper import WhisperModel
-            
+
             self.logger.info(f"Loading Whisper model: {self.args.model}")
-            
+
             # Load in executor to avoid blocking
             loop = asyncio.get_event_loop()
             self.model = await loop.run_in_executor(
                 None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
             )
-            
+
             self.logger.info(f"Whisper model {self.args.model} loaded successfully")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to load Whisper model: {e}")
             raise
-    
+
     async def _setup_audio_streamer(self, maxsize: int = 1000, chunk_duration_ms: int = 32):
         """Initialize the PipeBasedAudioStreamer."""
         try:
             self.loop = asyncio.get_event_loop()
             self.audio_queue = asyncio.Queue(maxsize=maxsize)
-            
+
             # Create audio streamer
             self.audio_streamer = PipeBasedAudioStreamer(
                 loop=self.loop,
@@ -113,28 +112,28 @@ class BaseMode(ABC):
                 sample_rate=self.args.sample_rate,
                 audio_device=self.args.device
             )
-            
+
             self.logger.info("Audio streamer setup completed")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to setup audio streaming: {e}")
             raise
-    
-    def _transcribe_audio(self, audio_data: np.ndarray, prompt: str = "") -> Dict[str, Any]:
+
+    def _transcribe_audio(self, audio_data: np.ndarray, prompt: str = "") -> dict[str, Any]:
         """Transcribe audio data using Whisper with optional context prompt."""
         try:
             # Save audio to temporary WAV file
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                with wave.open(tmp_file.name, 'wb') as wav_file:
+                with wave.open(tmp_file.name, "wb") as wav_file:
                     wav_file.setnchannels(1)  # Mono
                     wav_file.setsampwidth(2)  # 16-bit
                     wav_file.setframerate(self.args.sample_rate)
                     wav_file.writeframes(audio_data.astype(np.int16).tobytes())
-                
+
                 # Transcribe with optional prompt for context
                 if self.model is None:
                     raise RuntimeError("Model not loaded")
-                
+
                 # Use prompt if provided to give Whisper context
                 transcribe_kwargs = {"language": self.args.language}
                 if prompt.strip():
@@ -142,20 +141,20 @@ class BaseMode(ABC):
                     prompt_words = prompt.split()[-200:]
                     transcribe_kwargs["initial_prompt"] = " ".join(prompt_words)
                     self.logger.debug(f"Using context prompt: '{transcribe_kwargs['initial_prompt'][:50]}...'")
-                
+
                 segments, info = self.model.transcribe(tmp_file.name, **transcribe_kwargs)
                 text = "".join([segment.text for segment in segments]).strip()
-                
+
                 self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
-                
+
                 return {
                     "success": True,
                     "text": text,
-                    "language": info.language if hasattr(info, 'language') else 'en',
+                    "language": info.language if hasattr(info, "language") else "en",
                     "duration": len(audio_data) / self.args.sample_rate,
                     "confidence": 0.95  # Placeholder - Whisper doesn't provide confidence
                 }
-                
+
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
             return {
@@ -164,8 +163,8 @@ class BaseMode(ABC):
                 "text": "",
                 "duration": 0
             }
-    
-    async def _send_status(self, status: str, message: str, extra: Optional[Dict] = None):
+
+    async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message."""
         result = {
             "type": "status",
@@ -174,19 +173,19 @@ class BaseMode(ABC):
             "message": message,
             "timestamp": time.time()
         }
-        
+
         # Add any extra fields
         if extra:
             result.update(extra)
-        
+
         if self.args.format == "json":
             # Send status messages to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
             # Only show status messages in debug mode
             print(f"[{status.upper()}] {message}", file=sys.stderr)
-    
-    async def _send_transcription(self, result: Dict[str, Any], extra: Optional[Dict] = None):
+
+    async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result."""
         output = {
             "type": "transcription",
@@ -197,20 +196,19 @@ class BaseMode(ABC):
             "confidence": result["confidence"],
             "timestamp": time.time()
         }
-        
+
         # Add any extra fields
         if extra:
             output.update(extra)
-        
+
         if self.args.format == "json":
             print(json.dumps(output))
-        else:
-            # Text mode - just print the transcribed text
-            # Skip partial results in non-debug mode to avoid clutter
-            if not result.get("is_partial", False) or self.args.debug:
-                print(result["text"])
-    
-    async def _send_error(self, error_message: str, extra: Optional[Dict] = None):
+        # Text mode - just print the transcribed text
+        # Skip partial results in non-debug mode to avoid clutter
+        elif not result.get("is_partial", False) or self.args.debug:
+            print(result["text"])
+
+    async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message."""
         result = {
             "type": "error",
@@ -218,29 +216,29 @@ class BaseMode(ABC):
             "error": error_message,
             "timestamp": time.time()
         }
-        
+
         # Add any extra fields
         if extra:
             result.update(extra)
-        
+
         if self.args.format == "json":
             # Send errors to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
             # Only show errors in debug mode
             print(f"Error: {error_message}", file=sys.stderr)
-    
+
     def _get_mode_name(self) -> str:
         """Get the mode name from the class name."""
         class_name = self.__class__.__name__
         if class_name.endswith("Mode"):
             class_name = class_name[:-4]  # Remove "Mode" suffix
-        
+
         # Convert CamelCase to snake_case
         import re
-        return re.sub('([A-Z]+)', r'_\1', class_name).lower().strip('_')
-    
-    async def _process_and_transcribe_collected_audio(self, audio_chunks: Optional[list] = None):
+        return re.sub("([A-Z]+)", r"_\1", class_name).lower().strip("_")
+
+    async def _process_and_transcribe_collected_audio(self, audio_chunks: list | None = None):
         """
         A helper to process a list of audio chunks, transcribe it,
         and send the results. Uses self.audio_data by default.
@@ -270,10 +268,10 @@ class BaseMode(ABC):
         except Exception as e:
             self.logger.exception(f"Error during transcription processing: {e}")
             await self._send_error(f"Transcription error: {e}")
-    
+
     async def _cleanup(self):
         """Default cleanup behavior. Can be overridden by subclasses."""
         if self.is_recording and self.audio_streamer:
             self.audio_streamer.stop_recording()
-        
+
         self.logger.info(f"{self.__class__.__name__} cleanup completed")

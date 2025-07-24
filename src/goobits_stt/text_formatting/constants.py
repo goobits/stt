@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Shared constants for text formatting modules."""
+from __future__ import annotations
 
 import json
 import os
@@ -10,13 +11,14 @@ from typing import Dict, Any
 # I18N RESOURCE LOADER
 # ==============================================================================
 
-_RESOURCES: Dict[str, Dict[str, Any]] = {}  # Cache for loaded languages
+_RESOURCES: dict[str, dict[str, Any]] = {}  # Cache for loaded languages
 _RESOURCE_PATH = os.path.join(os.path.dirname(__file__), "resources")
 _LOCK = threading.Lock()  # For thread-safe lazy loading
 
 
-def get_resources(language: str = "en") -> Dict[str, Any]:
-    """Loads and caches language-specific resources from a JSON file.
+def get_resources(language: str = "en") -> dict[str, Any]:
+    """
+    Loads and caches language-specific resources from a JSON file.
     This is the single point of entry for all language-dependent constants.
 
     Args:
@@ -42,7 +44,7 @@ def get_resources(language: str = "en") -> Dict[str, Any]:
         try:
             filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
             with open(filepath, encoding="utf-8") as f:
-                resources: Dict[str, Any] = json.load(f)
+                resources: dict[str, Any] = json.load(f)
                 _RESOURCES[language] = resources
             return resources
         except FileNotFoundError:
@@ -50,8 +52,8 @@ def get_resources(language: str = "en") -> Dict[str, Any]:
             if language != "en":
                 print(f"Warning: Language resource '{language}.json' not found. Falling back to 'en'.")
                 return get_resources("en")
-            raise ValueError("Default language resource 'en.json' not found.")
-        except json.JSONDecodeError:
-            raise ValueError(f"Error decoding JSON from {language}.json")
+            raise ValueError("Default language resource 'en.json' not found.") from None
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error decoding JSON from {language}.json") from e
 
 

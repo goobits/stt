@@ -7,12 +7,11 @@ This mode provides a simple toggle-based recording mechanism:
 - Second key press stops recording and triggers transcription
 - Global hotkey support (works without terminal focus)
 """
+from __future__ import annotations
 
 import asyncio
 import threading
-from typing import Dict, Any
-from pathlib import Path
-import sys
+from typing import Dict, Any, Optional
 
 
 from .base_mode import BaseMode
@@ -41,11 +40,11 @@ class TapToTalkMode(BaseMode):
     def __init__(self, args):
         super().__init__(args)
         self.hotkey = args.tap_to_talk
-        
+
         # Hotkey listener
         self.hotkey_listener = None
         self.stop_event = threading.Event()
-        
+
         self.logger.info(f"Tap-to-talk mode initialized with hotkey: {self.hotkey}")
 
     async def run(self):
@@ -104,20 +103,20 @@ class TapToTalkMode(BaseMode):
         """Parse hotkey string to pynput format."""
         # Convert common key names to pynput format
         key_mapping = {
-            'space': '<space>',
-            'enter': '<enter>',
-            'shift': '<shift>',
-            'ctrl': '<ctrl>',
-            'alt': '<alt>',
-            'cmd': '<cmd>',
-            'tab': '<tab>',
-            'esc': '<esc>',
-            'escape': '<esc>',
+            "space": "<space>",
+            "enter": "<enter>",
+            "shift": "<shift>",
+            "ctrl": "<ctrl>",
+            "alt": "<alt>",
+            "cmd": "<cmd>",
+            "tab": "<tab>",
+            "esc": "<esc>",
+            "escape": "<esc>",
         }
 
         # Handle function keys
-        if hotkey_str.lower().startswith('f') and hotkey_str[1:].isdigit():
-            return f'<{hotkey_str.lower()}>'
+        if hotkey_str.lower().startswith("f") and hotkey_str[1:].isdigit():
+            return f"<{hotkey_str.lower()}>"
 
         # Check if it's a special key
         if hotkey_str.lower() in key_mapping:
@@ -137,10 +136,9 @@ class TapToTalkMode(BaseMode):
                 # Start recording
                 if self.loop is not None:
                     asyncio.run_coroutine_threadsafe(self._start_recording(), self.loop)
-            else:
-                # Stop recording and transcribe
-                if self.loop is not None:
-                    asyncio.run_coroutine_threadsafe(self._stop_recording(), self.loop)
+            # Stop recording and transcribe
+            elif self.loop is not None:
+                asyncio.run_coroutine_threadsafe(self._stop_recording(), self.loop)
 
         except Exception as e:
             self.logger.error(f"Error handling hotkey press: {e}")
@@ -219,17 +217,26 @@ class TapToTalkMode(BaseMode):
         await self._process_and_transcribe_collected_audio()
 
 
-    async def _send_status(self, status: str, message: str):
+    async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message with hotkey info."""
-        await super()._send_status(status, message, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_status(status, message, extra)
 
-    async def _send_transcription(self, result: Dict[str, Any]):
+    async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result with hotkey info."""
-        await super()._send_transcription(result, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_transcription(result, extra)
 
-    async def _send_error(self, error_message: str):
+    async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message with hotkey info."""
-        await super()._send_error(error_message, {"hotkey": self.hotkey})
+        if extra is None:
+            extra = {}
+        extra["hotkey"] = self.hotkey
+        await super()._send_error(error_message, extra)
 
     async def _cleanup(self):
         """Clean up resources."""

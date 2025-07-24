@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for entity interactions: priority conflicts and boundaries.
+"""
+Comprehensive tests for entity interactions: priority conflicts and boundaries.
 
 This module tests how different entities interact:
 - Entity priority resolution (overlapping entities)

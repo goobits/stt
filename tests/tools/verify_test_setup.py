@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Verification script to check if all test dependencies are properly installed.
+"""
+Verification script to check if all test dependencies are properly installed.
 Run this before running the test suite to ensure everything is set up correctly.
 """
 

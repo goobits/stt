@@ -7,7 +7,7 @@ click.rich_click.USE_RICH_MARKUP = True
 
 # 🧛‍♂️ Apply Dracula theme colors
 click.rich_click.STYLE_OPTION = "#ff79c6"      # Dracula Pink - for option flags
-click.rich_click.STYLE_ARGUMENT = "#8be9fd"    # Dracula Cyan - for argument types  
+click.rich_click.STYLE_ARGUMENT = "#8be9fd"    # Dracula Cyan - for argument types
 click.rich_click.STYLE_COMMAND = "#50fa7b"     # Dracula Green - for subcommands
 click.rich_click.STYLE_USAGE = "#bd93f9"       # Dracula Purple - for "Usage:" line
 click.rich_click.STYLE_HELPTEXT = "#b3b8c0"    # Light gray - for help descriptions
@@ -20,7 +20,7 @@ click.rich_click.COMMAND_GROUPS = {
             "commands": ["listen", "live", "serve"],
         },
         {
-            "name": "System & Model Commands", 
+            "name": "System & Model Commands",
             "commands": ["config", "status", "models"],
         },
     ]
@@ -41,8 +41,6 @@ RICH_AVAILABLE = True
 
 if RICH_AVAILABLE:
     from rich.console import Console
-    from rich.panel import Panel
-    from rich.text import Text
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.absolute()
@@ -55,12 +53,13 @@ if str(project_root) not in sys.path:
 def create_rich_cli():
     """Create Rich-enhanced Click CLI interface"""
     console = Console()
-    
+
     @click.group()
     @click.version_option(version="1.0.0", prog_name="GOOBITS STT")
     @click.pass_context
     def main(ctx):
-        """🎙️ [bold cyan]STT - Transform speech into text with AI-powered transcription.[/bold cyan]
+        """
+        🎙️ [bold cyan]STT - Transform speech into text with AI-powered transcription.[/bold cyan]
         
         \b
         From quick voice notes to always-on conversation monitoring,
@@ -84,8 +83,7 @@ def create_rich_cli():
         \b
         📚 For detailed help on a command, run: [green]stt [COMMAND] --help[/green]
         """
-        pass
-    
+
     # Core Commands
     @main.command()
     @click.option("--device", help="🎤 Audio input device name or index")
@@ -194,11 +192,10 @@ def create_rich_cli():
     @main.group()
     def config():
         """⚙️ Manage default settings."""
-        pass
 
     @config.command()
-    @click.argument('key')
-    @click.argument('value')
+    @click.argument("key")
+    @click.argument("value")
     def set(key, value):
         """Set a configuration value."""
         from src.core.config import get_config
@@ -208,7 +205,7 @@ def create_rich_cli():
         click.echo(f"Set {key} = {value}")
 
     @config.command()
-    @click.argument('key')
+    @click.argument("key")
     def get(key):
         """Get a configuration value."""
         from src.core.config import get_config
@@ -223,7 +220,6 @@ def create_rich_cli():
     def list():
         """List all configuration settings."""
         from src.core.config import get_config
-        import json
         config_loader = get_config()
         click.echo(json.dumps(config_loader._config, indent=2))
 
@@ -248,7 +244,7 @@ def create_rich_cli():
             debug=False
         )
         asyncio.run(async_main_worker(args))
-    
+
     return main
 
 
@@ -260,17 +256,17 @@ async def async_main_worker(args):
             from src.utils.system_status import show_system_status
             await show_system_status()
             return
-        
+
         # Handle models listing
         if args.models:
             from src.utils.model_utils import list_available_models
             await list_available_models()
             return
-        
+
         # Initialize configuration and logging
         from src.core.config import setup_logging
-        logger = setup_logging("main", log_level="DEBUG" if args.debug else "INFO")
-        
+        setup_logging("main", log_level="DEBUG" if args.debug else "INFO")
+
         # Server mode
         if args.server:
             # Set environment variables for server configuration
@@ -279,15 +275,15 @@ async def async_main_worker(args):
             if args.port:
                 os.environ["WEBSOCKET_SERVER_PORT"] = str(args.port)
             os.environ["MATILDA_MANAGEMENT_TOKEN"] = "managed-by-matilda-system"
-            
+
             from src.transcription.server import MatildaWebSocketServer
             server = MatildaWebSocketServer()
             await server.start_server()
             return
-        
+
         # Select appropriate mode
         mode = None
-        
+
         if args.listen_once:
             from src.modes.listen_once import ListenOnceMode
             mode = ListenOnceMode(args)
@@ -303,10 +299,10 @@ async def async_main_worker(args):
         elif args.hold_to_talk:
             from src.modes.hold_to_talk import HoldToTalkMode
             mode = HoldToTalkMode(args)
-        
+
         # Run the selected mode
         await mode.run()
-        
+
     except KeyboardInterrupt:
         if RICH_AVAILABLE:
             console = Console()
@@ -316,9 +312,9 @@ async def async_main_worker(args):
     except Exception as e:
         if RICH_AVAILABLE:
             console = Console()
-            console.print(f"\n[red]Error: {str(e)}[/red]")
+            console.print(f"\n[red]Error: {e!s}[/red]")
         else:
-            print(f"\nError: {str(e)}", file=sys.stderr)
+            print(f"\nError: {e!s}", file=sys.stderr)
         if args.debug:
             import traceback
             traceback.print_exc()
@@ -328,7 +324,7 @@ async def async_main_worker(args):
 async def async_main():
     """Async entry point for argparse fallback"""
     parser = argparse.ArgumentParser(
-        description='GOOBITS STT - Transform speech into text with AI-powered transcription',
+        description="GOOBITS STT - Transform speech into text with AI-powered transcription",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -341,46 +337,46 @@ Examples:
   %(prog)s --conversation | llm-chat        # Feed to AI assistant
         """
     )
-    
+
     # Operation modes
-    mode_group = parser.add_argument_group('operation modes')
-    mode_group.add_argument('--listen-once', action='store_true', help='Single utterance capture with VAD')
-    mode_group.add_argument('--conversation', action='store_true', help='Always listening with interruption support')
-    mode_group.add_argument('--wake-word', action='store_true', help='Wake word detection mode with Porcupine')
-    mode_group.add_argument('--tap-to-talk', metavar='KEY', help='Tap KEY to start/stop recording')
-    mode_group.add_argument('--hold-to-talk', metavar='KEY', help='Hold KEY to record, release to stop')
-    mode_group.add_argument('--server', action='store_true', help='Run as WebSocket server for remote clients')
-    
+    mode_group = parser.add_argument_group("operation modes")
+    mode_group.add_argument("--listen-once", action="store_true", help="Single utterance capture with VAD")
+    mode_group.add_argument("--conversation", action="store_true", help="Always listening with interruption support")
+    mode_group.add_argument("--wake-word", action="store_true", help="Wake word detection mode with Porcupine")
+    mode_group.add_argument("--tap-to-talk", metavar="KEY", help="Tap KEY to start/stop recording")
+    mode_group.add_argument("--hold-to-talk", metavar="KEY", help="Hold KEY to record, release to stop")
+    mode_group.add_argument("--server", action="store_true", help="Run as WebSocket server for remote clients")
+
     # Server options
-    server_group = parser.add_argument_group('server options')
-    server_group.add_argument('--port', type=int, default=8769, help='Server port (default: 8769)')
-    server_group.add_argument('--host', default='0.0.0.0', help='Server host (default: 0.0.0.0)')
-    
+    server_group = parser.add_argument_group("server options")
+    server_group.add_argument("--port", type=int, default=8769, help="Server port (default: 8769)")
+    server_group.add_argument("--host", default="0.0.0.0", help="Server host (default: 0.0.0.0)")
+
     # Output options
-    output_group = parser.add_argument_group('output options')
-    output_group.add_argument('--json', action='store_true', help='Output JSON format (default: simple text)')
-    output_group.add_argument('--debug', action='store_true', help='Enable detailed debug logging')
-    output_group.add_argument('--no-formatting', action='store_true', help='Disable advanced text formatting')
-    
+    output_group = parser.add_argument_group("output options")
+    output_group.add_argument("--json", action="store_true", help="Output JSON format (default: simple text)")
+    output_group.add_argument("--debug", action="store_true", help="Enable detailed debug logging")
+    output_group.add_argument("--no-formatting", action="store_true", help="Disable advanced text formatting")
+
     # Model options
-    model_group = parser.add_argument_group('model options')
-    model_group.add_argument('--model', default='base', help='Whisper model size (tiny, base, small, medium, large)')
-    model_group.add_argument('--language', help='Language code (e.g., "en", "es", "fr")')
-    
+    model_group = parser.add_argument_group("model options")
+    model_group.add_argument("--model", default="base", help="Whisper model size (tiny, base, small, medium, large)")
+    model_group.add_argument("--language", help='Language code (e.g., "en", "es", "fr")')
+
     # Audio options
-    audio_group = parser.add_argument_group('audio options')
-    audio_group.add_argument('--device', help='Audio input device name or index')
-    audio_group.add_argument('--sample-rate', type=int, default=16000, help='Audio sample rate in Hz')
-    
+    audio_group = parser.add_argument_group("audio options")
+    audio_group.add_argument("--device", help="Audio input device name or index")
+    audio_group.add_argument("--sample-rate", type=int, default=16000, help="Audio sample rate in Hz")
+
     # System options
-    system_group = parser.add_argument_group('system options')
-    system_group.add_argument('--config', help='Configuration file path')
-    system_group.add_argument('--status', action='store_true', help='Show system status and capabilities')
-    system_group.add_argument('--models', action='store_true', help='List available Whisper models')
-    system_group.add_argument('--version', action='version', version='%(prog)s 1.0.0')
-    
+    system_group = parser.add_argument_group("system options")
+    system_group.add_argument("--config", help="Configuration file path")
+    system_group.add_argument("--status", action="store_true", help="Show system status and capabilities")
+    system_group.add_argument("--models", action="store_true", help="List available Whisper models")
+    system_group.add_argument("--version", action="version", version="%(prog)s 1.0.0")
+
     args = parser.parse_args()
-    
+
     # Validate mode selection
     modes_selected = sum([
         bool(args.listen_once),
@@ -405,7 +401,7 @@ def main():
     # Ensure stdout is unbuffered for piping
     import sys
     sys.stdout.reconfigure(line_buffering=True)
-    
+
     if RICH_AVAILABLE:
         # Use Rich-enhanced Click interface
         cli = create_rich_cli()

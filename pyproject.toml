@@ -27,14 +27,19 @@ stt-server = "goobits_stt.transcription.server:main"
 smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
 [tool.ruff]
-select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
-ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001",]
-fixable = [ "ALL",]
-unfixable = []
 exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".test_artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
 line-length = 120
 indent-width = 4
 target-version = "py38"
+
+[tool.ruff.lint]
+select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001", "D203", "D212",]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "G004", "D400", "D415"]  # Allow assert, f-strings in logging, and missing docstring punctuation in tests
+fixable = [ "ALL",]
+unfixable = []
 
 [tool.black]
 line-length = 120
@@ -43,7 +48,7 @@ include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | build\n  | dist\n  | venv\n  | \\.test_artifacts\n  | logs\n  | .*\\.egg-info\n  | docker\n  | \\.pytest_cache\n  | tmp\n)/\n"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -56,7 +61,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-exclude = [ "venv/", ".test_artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
+exclude = [ "venv/", ".test_artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", ".*\\.egg-info/",]
 [[tool.mypy.overrides]]
 module = [ "websockets.*", "faster_whisper.*", "deepmultilingualpunctuation.*", "spacy.*", "opuslib.*", "silero_vad.*", "torchaudio.*", "ctranslate2.*", "numpy.*", "pynput.*",]
 ignore_missing_imports = true

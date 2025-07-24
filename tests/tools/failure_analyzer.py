@@ -1,6 +1,8 @@
-"""Pytest plugin for failure analysis with YAML/JSON export.
+"""
+Pytest plugin for failure analysis with YAML/JSON export.
 Provides clean, deduplicated summaries of test failures.
 """
+from __future__ import annotations
 
 import pytest
 import yaml
@@ -8,7 +10,7 @@ import json
 import re
 from pathlib import Path
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Tuple, Optional
 
 
@@ -20,7 +22,7 @@ class FailureAnalyzer:
         self.passed = 0
         self.total = 0
 
-    def add_result(self, nodeid: str, passed: bool, failure_info: Optional[Dict] = None):
+    def add_result(self, nodeid: str, passed: bool, failure_info: dict | None = None):
         """Record a test result."""
         self.total += 1
         if passed:
@@ -35,7 +37,7 @@ class FailureAnalyzer:
                 }
             )
 
-    def extract_failure_info(self, longrepr: str) -> Optional[Dict]:
+    def extract_failure_info(self, longrepr: str) -> dict | None:
         """Extract input/expected/actual from various assertion patterns."""
         # Pattern 1: Standard "Input 'X' should format to 'Y', got 'Z'"
         # First try to extract from formatted strings with {variables}
@@ -102,7 +104,7 @@ class FailureAnalyzer:
         match = re.search(r"assert '([^']+)' ==", longrepr)
         return match.group(1) if match else "N/A"
 
-    def _extract_from_clarity(self, longrepr: str) -> Optional[Dict]:
+    def _extract_from_clarity(self, longrepr: str) -> dict | None:
         """Extract from pytest-clarity output."""
         input_match = re.search(r"Input '([^']+)'", longrepr)
         if not input_match:
@@ -118,7 +120,7 @@ class FailureAnalyzer:
             }
         return None
 
-    def categorize_issue(self, failure: Dict) -> Tuple[str, List[str]]:
+    def categorize_issue(self, failure: dict) -> tuple[str, list[str]]:
         """Categorize the failure by issue type."""
         input_text = failure.get("input", "")
         expected = failure.get("expected", "")
@@ -179,7 +181,7 @@ class FailureAnalyzer:
 
         return category, issues or ["unknown"]
 
-    def generate_report(self, format: str = "yaml") -> Dict:
+    def generate_report(self, format: str = "yaml") -> dict:
         """Generate the analysis report."""
         # Group by unique issue patterns
         issue_groups = defaultdict(list)
@@ -199,7 +201,7 @@ class FailureAnalyzer:
                     "passed": self.passed,
                     "failed": len(self.failures),
                     "unique_patterns": len(issue_groups),
-                    "generated_at": datetime.now().isoformat(),
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
                 },
                 "issues": [],
             }

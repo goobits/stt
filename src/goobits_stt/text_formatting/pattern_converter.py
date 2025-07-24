@@ -6,6 +6,7 @@ This class consolidates all entity conversion logic from WebPatternConverter,
 CodePatternConverter, and NumericalPatternConverter into a single unified
 converter for better maintainability and performance.
 """
+from __future__ import annotations
 
 import re
 from typing import Optional
@@ -120,11 +121,8 @@ class PatternConverter:
                     r"^(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-]?\w+$", value.lower()
                 ):
                     parsed_value = self.number_parser.parse(value)
-                    if parsed_value:
-                        value = parsed_value
-                    else:
-                        # If not a number, remove spaces for URL-friendliness
-                        value = value.replace(" ", "")
+                    # If not a number, remove spaces for URL-friendliness
+                    value = parsed_value or value.replace(" ", "")
 
                 # Format as key=value with no spaces
                 processed_parts.append(f"{key}={value}")
@@ -269,8 +267,9 @@ class PatternConverter:
         # For clean SpaCy-detected emails, just return the text as-is
         return text + trailing_punct
 
-    def convert_spoken_email(self, entity: Entity, full_text: Optional[str] = None) -> str:
-        """Convert 'user at example dot com' to 'user@example.com'.
+    def convert_spoken_email(self, entity: Entity, full_text: str | None = None) -> str:
+        """
+        Convert 'user at example dot com' to 'user@example.com'.
 
         Note: The entity text should contain only the email part, not action phrases.
         Action phrases are handled separately by the formatter.
@@ -464,7 +463,7 @@ class PatternConverter:
         """Preserve the original text of a programming keyword."""
         return entity.text
 
-    def convert_filename(self, entity: Entity, full_text: Optional[str] = None) -> str:
+    def convert_filename(self, entity: Entity, full_text: str | None = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
 
@@ -517,8 +516,7 @@ class PatternConverter:
             result = self.number_parser.parse_as_digits(match.group(0))
             if result:
                 return result
-            fallback = self.number_parser.parse(match.group(0)) or match.group(0)
-            return fallback
+            return self.number_parser.parse(match.group(0)) or match.group(0)
 
         number_word_pattern = (
             r"\b(?:"
@@ -540,8 +538,8 @@ class PatternConverter:
         # Handle both "v1" and "v 1" patterns by collapsing them before splitting
 
         # Collapse "v <number>" patterns into "v<number>" to treat as single units
-        version_collapse_pattern = r'\bv\s+(\d+(?:\.\d+)*)\b'
-        filename_part = re.sub(version_collapse_pattern, r'v\1', filename_part, flags=re.IGNORECASE)
+        version_collapse_pattern = r"\bv\s+(\d+(?:\.\d+)*)\b"
+        filename_part = re.sub(version_collapse_pattern, r"v\1", filename_part, flags=re.IGNORECASE)
 
         # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
@@ -663,8 +661,8 @@ class PatternConverter:
                 right = parsed_right
 
             # Check if right side contains math expressions - if so, preserve them
-            has_math_operators = bool(re.search(r'\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b', right, re.IGNORECASE))
-            
+            has_math_operators = bool(re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE))
+
             if has_math_operators:
                 # Preserve math expressions as-is (they should be handled by math entity detection)
                 pass  # Don't modify math expressions
@@ -748,7 +746,7 @@ class PatternConverter:
         words = parameters.split()
         result_words: list[str] = []
 
-        for i, word in enumerate(words):
+        for _i, word in enumerate(words):
             # Check if this word is a number word
             parsed_number = self.number_parser.parse(word)
             if parsed_number and parsed_number.isdigit():
@@ -1091,7 +1089,7 @@ class PatternConverter:
             if number_str is None:
                 # Split and try to find valid number words
                 words = number_text.split()
-                for i, word in enumerate(words):
+                for i, _word in enumerate(words):
                     # Try parsing from this word onwards
                     remaining_text = " ".join(words[i:])
                     parsed = self.number_parser.parse(remaining_text)
@@ -1136,7 +1134,7 @@ class PatternConverter:
             if number_str is None:
                 # Split and try to find valid number words
                 words = number_text.split()
-                for i, word in enumerate(words):
+                for i, _word in enumerate(words):
                     # Try parsing from this word onwards
                     remaining_text = " ".join(words[i:])
                     parsed = self.number_parser.parse(remaining_text)
@@ -1232,7 +1230,7 @@ class PatternConverter:
             if number_str is None:
                 # Split and try to find valid number words
                 words = number_text.split()
-                for i, word in enumerate(words):
+                for i, _word in enumerate(words):
                     # Try parsing from this word onwards
                     remaining_text = " ".join(words[i:])
                     parsed = self.number_parser.parse(remaining_text)
@@ -1253,7 +1251,8 @@ class PatternConverter:
         return entity.text
 
     def convert_time_or_duration(self, entity: Entity) -> str:
-        """Convert TIME entities detected by SpaCy.
+        """
+        Convert TIME entities detected by SpaCy.
 
         This handles both regular time expressions and compound durations.
         SpaCy detects phrases like "five hours thirty minutes" as TIME entities.
@@ -1590,10 +1589,7 @@ class PatternConverter:
         parsed_num_str = self.number_parser.parse_ordinal(text_lower)
         if parsed_num_str:
             num = int(parsed_num_str)
-            if 11 <= num % 100 <= 13:
-                suffix = "th"
-            else:
-                suffix = {1: "st", 2: "nd", 3: "rd"}.get(num % 10, "th")
+            suffix = "th" if 11 <= num % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(num % 10, "th")
             return f"{parsed_num_str}{suffix}"
 
         return entity.text
@@ -1790,7 +1786,6 @@ class PatternConverter:
 
     def convert_version(self, entity: Entity) -> str:
         """Convert version numbers from spoken form to numeric form."""
-
         text = entity.text
 
         # Extract the prefix (version, python, etc.)
@@ -1863,7 +1858,8 @@ class PatternConverter:
         return entity.text
 
     def convert_measurement(self, entity: Entity, full_text: str = "") -> str:
-        """Convert measurements to use proper symbols.
+        """
+        Convert measurements to use proper symbols.
 
         Examples:
         - "six feet" → "6′"
@@ -2115,7 +2111,8 @@ class PatternConverter:
         return entity.text
 
     def convert_temperature(self, entity: Entity) -> str:
-        """Convert temperature expressions to proper format.
+        """
+        Convert temperature expressions to proper format.
 
         Examples:
         - "twenty degrees celsius" → "20°C"
@@ -2152,7 +2149,8 @@ class PatternConverter:
         return f"{parsed_num}°"
 
     def convert_metric_unit(self, entity: Entity) -> str:
-        """Convert metric units to standard abbreviations.
+        """
+        Convert metric units to standard abbreviations.
 
         Examples:
         - "five kilometers" → "5 km"
@@ -2229,7 +2227,8 @@ class PatternConverter:
         return f"{parsed_num} {standard_unit}"
 
     def convert_root_expression(self, entity: Entity) -> str:
-        """Convert root expressions to mathematical notation.
+        """
+        Convert root expressions to mathematical notation.
 
         Examples:
         - "square root of sixteen" → "√16"
@@ -2292,7 +2291,8 @@ class PatternConverter:
         return entity.text
 
     def convert_math_constant(self, entity: Entity) -> str:
-        """Convert mathematical constants to their symbols.
+        """
+        Convert mathematical constants to their symbols.
 
         Examples:
         - "pi" → "π"
@@ -2314,7 +2314,8 @@ class PatternConverter:
         return constant_map.get(constant, entity.text)
 
     def convert_scientific_notation(self, entity: Entity) -> str:
-        """Convert scientific notation to proper format.
+        """
+        Convert scientific notation to proper format.
 
         Examples:
         - "two point five times ten to the sixth" → "2.5 × 10⁶"
@@ -2394,7 +2395,8 @@ class PatternConverter:
         return f"{parsed_base} × 10{superscript_exp}"
 
     def convert_music_notation(self, entity: Entity) -> str:
-        """Convert music notation to symbols.
+        """
+        Convert music notation to symbols.
 
         Examples:
         - "C sharp" → "C♯"
@@ -2417,7 +2419,8 @@ class PatternConverter:
         return entity.text
 
     def convert_spoken_emoji(self, entity: Entity) -> str:
-        """Convert spoken emoji expressions to emoji characters.
+        """
+        Convert spoken emoji expressions to emoji characters.
 
         Examples:
         - "smiley face" → "🙂"

@@ -1,4 +1,5 @@
-"""Simplified pytest plugin for clean failure summaries.
+"""
+Simplified pytest plugin for clean failure summaries.
 Generates YAML/JSON reports with proper value extraction.
 """
 
@@ -6,7 +7,7 @@ import pytest
 import yaml
 import re
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def extract_failure_details(longrepr: str) -> dict:
@@ -125,7 +126,7 @@ class SummaryReporter:
                     "passed": self.passed,
                     "failed": len(self.failures),
                     "unique_issues": len(issue_groups),
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
                 "issues": [],
             }

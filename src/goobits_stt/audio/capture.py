@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Streaming Audio Monitor - Pipe-based real-time audio streaming.
+"""
+Streaming Audio Monitor - Pipe-based real-time audio streaming.
 
 This replaces AudioFileMonitor's file-based approach with direct pipe streaming
 from arecord, eliminating filesystem buffering issues entirely.
 """
+from __future__ import annotations
 
 import time
 import threading
@@ -45,9 +47,9 @@ class StreamingStats:
     samples_sent: int = 0
     bytes_sent: int = 0
     total_duration: float = 0.0
-    start_time: Optional[float] = None
+    start_time: float | None = None
 
-    def update_chunk(self, chunk_size: int, timestamp: Optional[float] = None) -> None:
+    def update_chunk(self, chunk_size: int, timestamp: float | None = None) -> None:
         """Update statistics with new chunk information."""
         if timestamp is None:
             timestamp = time.time()
@@ -62,7 +64,8 @@ class StreamingStats:
 
 
 class PipeBasedAudioStreamer:
-    """Pipe-based audio streamer that eliminates filesystem buffering issues.
+    """
+    Pipe-based audio streamer that eliminates filesystem buffering issues.
 
     Instead of arecord > file.wav + monitor file, this uses:
     arecord | python_process (direct pipe streaming)
@@ -74,9 +77,10 @@ class PipeBasedAudioStreamer:
         queue: asyncio.Queue,
         chunk_duration_ms: int = 32,
         sample_rate: int = 16000,
-        audio_device: Optional[str] = None,
+        audio_device: str | None = None,
     ):
-        """Initialize pipe-based audio streamer.
+        """
+        Initialize pipe-based audio streamer.
 
         Args:
             loop: asyncio event loop for thread-safe communication
@@ -105,8 +109,8 @@ class PipeBasedAudioStreamer:
         self.target_bytes_per_chunk = self.target_chunk_size * 2  # 16-bit samples
 
         # Process management
-        self.arecord_process: Optional[subprocess.Popen] = None
-        self.reader_thread: Optional[threading.Thread] = None
+        self.arecord_process: subprocess.Popen | None = None
+        self.reader_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
         # Statistics
@@ -120,7 +124,7 @@ class PipeBasedAudioStreamer:
             f"{self.target_chunk_size} samples/chunk"
         )
 
-    def _build_audio_command(self) -> List[str]:
+    def _build_audio_command(self) -> list[str]:
         """Build platform-specific audio capture command."""
         # Get audio tool from config (uses existing get_audio_tool method)
         audio_tool = "arecord"  # Default fallback
@@ -167,7 +171,7 @@ class PipeBasedAudioStreamer:
 
             # Only use stdbuf with arecord (Unix tools), not with ffmpeg
             if audio_tool == "arecord":
-                cmd_with_stdbuf = ["stdbuf", "-o0", "-e0"] + cmd
+                cmd_with_stdbuf = ["stdbuf", "-o0", "-e0", *cmd]
                 try:
                     # Try with stdbuf first (to disable arecord's internal buffering)
                     self.arecord_process = subprocess.Popen(
@@ -199,7 +203,7 @@ class PipeBasedAudioStreamer:
             logger.info(f"[PIPE-STREAM] Failed to start recording: {e}")
             return False
 
-    def stop_recording(self) -> Dict[str, Any]:
+    def stop_recording(self) -> dict[str, Any]:
         """Stop recording and return final statistics."""
         logger.info("[PIPE-STREAM] Stopping recording...")
 
@@ -268,11 +272,11 @@ class PipeBasedAudioStreamer:
     def _read_pipe_loop(self):
         """Main loop for reading from arecord pipe."""
         logger.info("[PIPE-STREAM] Reader thread started")
-        
+
         if self.arecord_process is None or self.arecord_process.stdout is None:
             logger.error("[PIPE-STREAM] No arecord process or stdout available")
             return
-            
+
         total_bytes_read = 0
 
         # Make pipe non-blocking to allow better control (Unix only)
@@ -280,7 +284,7 @@ class PipeBasedAudioStreamer:
             import fcntl
             import os
             import select
-            
+
             fd = self.arecord_process.stdout.fileno()
             flags = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -304,7 +308,7 @@ class PipeBasedAudioStreamer:
                 if use_select:
                     # Unix: Use select with short timeout to avoid blocking forever
                     ready_to_read, _, _ = select.select([self.arecord_process.stdout], [], [], 0.05)
-                    
+
                     if ready_to_read:
                         try:
                             # Read available data (up to 64KB at once)

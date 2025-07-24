@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for mathematical entities: equations, constants, and notation.
+"""
+Comprehensive tests for mathematical entities: equations, constants, and notation.
 
 This module tests the detection and formatting of:
 - MATH_EXPRESSION: "five times ten" → "5 × 10"

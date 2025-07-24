@@ -1,4 +1,5 @@
 """SSL utility functions for STT Hotkeys."""
+from __future__ import annotations
 
 import ssl
 from pathlib import Path
@@ -13,8 +14,9 @@ logger = setup_logging(__name__, log_filename="security.txt")
 SSLMode = Literal["client", "server"]
 
 
-def create_ssl_context(mode: SSLMode = "client", auto_generate: bool = True) -> Optional[ssl.SSLContext]:
-    """Create SSL context for secure connections.
+def create_ssl_context(mode: SSLMode = "client", auto_generate: bool = True) -> ssl.SSLContext | None:
+    """
+    Create SSL context for secure connections.
 
     This centralizes SSL context creation for both client and server,
     eliminating code duplication.

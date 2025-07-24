@@ -1,4 +1,5 @@
 """Opus batch encoder/decoder for compressing audio files."""
+from __future__ import annotations
 
 import io
 import wave
@@ -22,7 +23,8 @@ class OpusBatchEncoder:
     """Encode entire WAV files to Opus format for reduced network transfer."""
 
     def __init__(self, bitrate: int = 24000):
-        """Initialize Opus batch encoder.
+        """
+        Initialize Opus batch encoder.
 
         Args:
             bitrate: Opus bitrate in bits per second (default: 24000)
@@ -32,8 +34,9 @@ class OpusBatchEncoder:
         self.frame_size = 960  # 60ms at 16kHz
         logger.info(f"OpusBatchEncoder initialized with bitrate: {bitrate}bps")
 
-    def encode_wav_to_opus(self, wav_data: bytes) -> Tuple[bytes, dict]:
-        """Encode WAV file data to Opus format.
+    def encode_wav_to_opus(self, wav_data: bytes) -> tuple[bytes, dict]:
+        """
+        Encode WAV file data to Opus format.
 
         Args:
             wav_data: Complete WAV file as bytes
@@ -115,7 +118,8 @@ class OpusBatchDecoder:
     """Decode Opus data back to WAV format."""
 
     def decode_opus_to_wav(self, opus_data: bytes, metadata: dict) -> bytes:
-        """Decode Opus data to WAV format using the frame information from metadata.
+        """
+        Decode Opus data to WAV format using the frame information from metadata.
 
         Args:
             opus_data: Opus encoded audio (concatenated frames)

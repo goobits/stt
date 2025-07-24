@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for web-related entities: URLs, emails, and ports.
+"""
+Comprehensive tests for web-related entities: URLs, emails, and ports.
 
 This module tests the detection and formatting of:
 - SPOKEN_URL: "example dot com" → "example.com"

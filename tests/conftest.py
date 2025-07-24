@@ -1,36 +1,38 @@
 """Custom pytest configuration and formatters for beautiful test output."""
+from __future__ import annotations
 
 import pytest
 import sys
 import os
 import logging
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 # CRITICAL: Set environment variable BEFORE any imports that might load models
 os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
 # Add the project root to the path for all tests
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 # Register plugins
 pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin"]
 
 # Disable excessive logging during tests for performance
-logging.getLogger("src.text_formatting").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.formatter").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.detectors").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
-logging.getLogger("src.core").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
+logging.getLogger("goobits_stt.text_formatting").setLevel(logging.CRITICAL)
+logging.getLogger("goobits_stt.text_formatting.formatter").setLevel(logging.CRITICAL)
+logging.getLogger("goobits_stt.text_formatting.detectors").setLevel(logging.CRITICAL)
+logging.getLogger("goobits_stt.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
+logging.getLogger("goobits_stt.core").setLevel(logging.CRITICAL)
+logging.getLogger("goobits_stt.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
 
 # Also disable the root logger for these modules to catch all sub-loggers
 for logger_name in [
-    "src.text_formatting.formatter",
-    "src.text_formatting.detectors",
-    "src.text_formatting.pattern_converter",
+    "goobits_stt.text_formatting.formatter",
+    "goobits_stt.text_formatting.detectors",
+    "goobits_stt.text_formatting.pattern_converter",
 ]:
     logging.getLogger(logger_name).disabled = True
 
@@ -41,7 +43,7 @@ class FormatterTestReporter:
     """Custom reporter for text formatting tests with beautiful output."""
 
     def __init__(self):
-        self.failures: List[Tuple[str, str, str, str]] = []
+        self.failures: list[tuple[str, str, str, str]] = []
         self.passes = 0
         self.total = 0
 
@@ -164,7 +166,7 @@ def assert_format(input_text: str, expected: str, actual: str, test_name: str = 
         # Show character-by-character diff if needed
         if len(expected) < 50 and len(actual) < 50:
             diff_text = ""
-            for i, (e, a) in enumerate(zip(expected, actual)):
+            for _i, (e, a) in enumerate(zip(expected, actual)):
                 if e != a:
                     diff_text += f"[red]{a}[/red]"
                 else:
@@ -187,10 +189,10 @@ def preloaded_nlp_models():
     # Enable no-punctuation mode for testing FIRST
     import os
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     print("\n🚀 Preloading NLP models for test session...")
     try:
-        from src.text_formatting.nlp_provider import get_nlp, get_punctuator
+        from goobits_stt.text_formatting.nlp_provider import get_nlp, get_punctuator
 
         # Warm up both models
         nlp = get_nlp()
@@ -208,14 +210,14 @@ def preloaded_formatter(preloaded_nlp_models):
     """Preload the formatter function with warmed-up NLP models and result caching."""
     # Enable no-punctuation mode for testing
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     # Reset any cached models to ensure the environment variable takes effect
-    from src.text_formatting.nlp_provider import reset_models
+    from goobits_stt.text_formatting.nlp_provider import reset_models
     reset_models()
 
     print("🚀 Preloading formatter function with caching (PUNCTUATION DISABLED)...")
     try:
-        from src.text_formatting.formatter import format_transcription
+        from goobits_stt.text_formatting.formatter import format_transcription
 
         # Cache for formatter results during testing
         cache = {}
@@ -244,11 +246,12 @@ def preloaded_formatter(preloaded_nlp_models):
 
 @pytest.fixture
 def raw_formatter():
-    """Provides a TextFormatter instance with AI punctuation and smart
+    """
+    Provides a TextFormatter instance with AI punctuation and smart
     capitalization disabled for predictable unit testing of entity conversion.
     """
     import os
-    from src.text_formatting.formatter import TextFormatter
+    from goobits_stt.text_formatting.formatter import TextFormatter
 
     # Set environment variable to disable punctuation
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
@@ -260,7 +263,7 @@ def raw_formatter():
 
         # 2. Define a mock capitalizer that does nothing.
         class NoopCapitalizer:
-            def capitalize(self, text: str, entities: list = None, doc=None) -> str:
+            def capitalize(self, text: str, entities: list | None = None, doc=None) -> str:
                 return text
 
         # 3. Replace the smart capitalizer on our test instance
@@ -282,7 +285,7 @@ def preloaded_config():
     """Preload config once per test session."""
     print("🚀 Preloading configuration...")
     try:
-        from src.core.config import get_config
+        from goobits_stt.core.config import get_config
 
         config = get_config()
         print("✅ Configuration preloaded successfully")
@@ -336,8 +339,8 @@ def preloaded_opus_codecs():
     """Preload Opus codecs once per test session."""
     print("🚀 Preloading Opus codecs...")
     try:
-        from src.audio.decoder import OpusDecoder, OpusStreamDecoder
-        from src.transcription.client import OpusEncoder
+        from goobits_stt.audio.decoder import OpusDecoder, OpusStreamDecoder
+        from goobits_stt.transcription.client import OpusEncoder
 
         sample_rate = 16000
         channels = 1
@@ -364,18 +367,19 @@ def preloaded_opus_codecs():
 
 @pytest.fixture
 def spanish_formatter():
-    """Provides a TextFormatter instance configured for Spanish language
+    """
+    Provides a TextFormatter instance configured for Spanish language
     with punctuation disabled for predictable testing.
     """
     import os
-    from src.text_formatting.formatter import TextFormatter
-    
+    from goobits_stt.text_formatting.formatter import TextFormatter
+
     # Save the current value of the environment variable
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
-    
+
     # Set environment variable to disable punctuation
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     try:
         # Create a formatter instance for Spanish
         formatter = TextFormatter(language="es")
@@ -392,5 +396,5 @@ def spanish_formatter():
 @pytest.fixture
 def preloaded_formatter():
     """Provide preloaded text formatter for tests."""
-    from src.text_formatting.formatter import format_transcription
+    from goobits_stt.text_formatting.formatter import format_transcription
     return format_transcription

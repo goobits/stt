@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config.json"""
+from __future__ import annotations
 import json
 import logging
 import os
@@ -12,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 class ConfigLoader:
     """Load configuration from config.json"""
 
-    def __init__(self, config_path: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, config_path: Union[str, Path] | None = None) -> None:
         if config_path is None:
             config_path = self._find_config_file()
 
@@ -41,7 +42,6 @@ class ConfigLoader:
 
     def _find_config_file(self) -> Path:
         """Find config file in multiple locations"""
-        
         # Method 1: Try package data (for installed packages)
         try:
             import importlib.resources
@@ -49,7 +49,7 @@ class ConfigLoader:
                 # Python 3.9+ syntax
                 package_data = importlib.resources.files("src") / "config.json"
                 if package_data.is_file():
-                    return package_data
+                    return Path(str(package_data))
             except AttributeError:
                 # Python 3.8 fallback
                 with importlib.resources.path("src", "config.json") as config_path:
@@ -57,20 +57,20 @@ class ConfigLoader:
                         return config_path
         except (ImportError, FileNotFoundError, ModuleNotFoundError):
             pass
-        
+
         # Method 2: Try relative to source code (development mode)
         current = Path(__file__).parent.parent.parent  # Go up 3 levels: core -> src -> project root
         for filename in ["config.jsonc", "config.json"]:
             config_path = current / filename
             if config_path.exists():
                 return config_path
-        
+
         # Method 3: Try current working directory
         for filename in ["config.jsonc", "config.json"]:
             config_path = Path.cwd() / filename
             if config_path.exists():
                 return config_path
-        
+
         # Method 4: Create a default config
         return self._create_default_config()
 
@@ -78,7 +78,7 @@ class ConfigLoader:
         """Create a default config file in temp directory"""
         import tempfile
         import json
-        
+
         default_config = {
             "whisper": {
                 "model": "base",
@@ -169,12 +169,12 @@ class ConfigLoader:
                 "server_stop_delay": 1.0
             }
         }
-        
+
         # Create temporary config file
         temp_config = Path(tempfile.gettempdir()) / "goobits-stt-config.json"
-        with open(temp_config, 'w') as f:
+        with open(temp_config, "w") as f:
             json.dump(default_config, f, indent=2)
-        
+
         return temp_config
 
     def _setup_paths(self) -> None:
@@ -216,13 +216,13 @@ class ConfigLoader:
         """Set a value using dot notation (e.g., 'server.websocket.port')"""
         keys = key_path.split(".")
         target = self._config
-        
+
         # Navigate to the parent of the target key
         for key in keys[:-1]:
             if key not in target:
                 target[key] = {}
             target = target[key]
-        
+
         # Set the final value
         target[keys[-1]] = value
 
@@ -252,8 +252,9 @@ class ConfigLoader:
 
     @property
     def jwt_secret_key(self) -> str:
-        """Get JWT secret key with security-first approach.
-        
+        """
+        Get JWT secret key with security-first approach.
+
         Priority order:
         1. Environment variable STT_JWT_SECRET (production)
         2. Config file value (development)
@@ -263,12 +264,12 @@ class ConfigLoader:
         env_key = os.environ.get("STT_JWT_SECRET")
         if env_key and self._validate_secret_key(env_key):
             return env_key
-        
+
         # 2. Config file (fallback for development)
         config_key = self.get("server.websocket.jwt_secret_key")
         if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
             return str(config_key)
-        
+
         # 3. Auto-generate in memory only (no file modification)
         import logging
         logger = logging.getLogger(__name__)
@@ -287,9 +288,7 @@ class ConfigLoader:
         if not key or len(key) < 32:
             return False
         # Check for minimum entropy (not all same character, etc.)
-        if len(set(key)) < 8:  # At least 8 unique characters
-            return False
-        return True
+        return len(set(key)) >= 8  # At least 8 unique characters
 
 
     @property
@@ -305,7 +304,8 @@ class ConfigLoader:
         return str(self.get("whisper.compute_type", "float16"))
 
     def detect_cuda_support(self) -> tuple[bool, str]:
-        """Detect if CUDA is available and supported by CTranslate2.
+        """
+        Detect if CUDA is available and supported by CTranslate2.
 
         Returns:
             (cuda_available, reason): Boolean indicating CUDA availability and reason string
@@ -352,7 +352,7 @@ class ConfigLoader:
             return "float16"
         return "int8"
 
-    def get_hotkey_config(self, key_name: str) -> Dict[str, Any]:
+    def get_hotkey_config(self, key_name: str) -> dict[str, Any]:
         """Get configuration for a specific hotkey from array"""
         hotkeys = self.get("hotkeys", [])
         platform_key = self._get_platform_key()
@@ -370,11 +370,11 @@ class ConfigLoader:
 
         return {}
 
-    def get_all_hotkeys(self) -> List[Dict[str, Any]]:
+    def get_all_hotkeys(self) -> list[dict[str, Any]]:
         """Get all hotkey configurations"""
         return list(self.get("hotkeys", []))
 
-    def get_hotkeys_for_platform(self, platform: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_hotkeys_for_platform(self, platform: str | None = None) -> list[dict[str, Any]]:
         """Get all hotkeys for a specific platform"""
         if platform is None:
             platform = self._get_platform_key()
@@ -437,11 +437,11 @@ class ConfigLoader:
 
         return str(os.path.join(self.temp_dir, filename))
 
-    def get_filter_phrases(self) -> List[str]:
+    def get_filter_phrases(self) -> list[str]:
         """Get text filter phrases"""
         return list(self.get("text_filtering.filter_phrases", []))
 
-    def get_exact_filter_phrases(self) -> List[str]:
+    def get_exact_filter_phrases(self) -> list[str]:
         """Get exact match filter phrases"""
         return list(self.get("text_filtering.exact_filter_phrases", []))
 
@@ -453,10 +453,10 @@ class ConfigLoader:
         """Get current typing speed setting"""
         return str(self.get("text_insertion.typing_speed", "fast"))
 
-    def get_available_typing_speeds(self) -> List[str]:
+    def get_available_typing_speeds(self) -> list[str]:
         """Get list of available typing speed presets"""
         presets = self.get("typing_speed_presets", {})
-        return ["custom"] + list(presets.keys())
+        return ["custom", *list(presets.keys())]
 
     def get_recording_controls_enabled(self) -> bool:
         """Get whether recording control keys are enabled"""
@@ -557,11 +557,11 @@ class ConfigLoader:
 
     # Additional properties needed for daemon functionality
     @property
-    def filter_phrases(self) -> List[str]:
+    def filter_phrases(self) -> list[str]:
         return self.get_filter_phrases()
 
     @property
-    def exact_filter_phrases(self) -> List[str]:
+    def exact_filter_phrases(self) -> list[str]:
         return self.get_exact_filter_phrases()
 
     # Timing properties needed for daemon functionality
@@ -596,7 +596,7 @@ class ConfigLoader:
     def get_audio_file(self, key_name: str = "f8") -> str:
         return self.get_file_path("audio", key_name)
 
-    def get_visualizer_command(self, key_name: str, pid_file: str) -> List[str]:
+    def get_visualizer_command(self, key_name: str, pid_file: str) -> list[str]:
         """Get complete visualizer command with arguments"""
         script_path = os.path.join(self.project_dir, "src", "visualizers", "visualizer.py")
         hotkey_config = self.get_hotkey_config(key_name.lower())
@@ -605,7 +605,7 @@ class ConfigLoader:
         return [self.venv_python, script_path, display_type, pid_file, "--key", key_name.lower()]
 
     @property
-    def filename_formats(self) -> Dict[str, str]:
+    def filename_formats(self) -> dict[str, str]:
         """Get filename formatting rules per extension"""
         return dict(self.get(
             "text_formatting.filename_formats",
@@ -627,12 +627,12 @@ class ConfigLoader:
     def save(self) -> None:
         """Save the current configuration back to the config file"""
         import json
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             json.dump(self._config, f, indent=2)
 
 
 # Create a global instance for backward compatibility
-_config_loader: Optional[ConfigLoader] = None
+_config_loader: ConfigLoader | None = None
 
 
 def get_config() -> ConfigLoader:
@@ -654,9 +654,10 @@ def setup_logging(
     log_level: str = "INFO",
     include_console: bool = True,
     include_file: bool = True,
-    log_filename: Optional[str] = None,
+    log_filename: str | None = None,
 ) -> logging.Logger:
-    """Setup standardized logging for STT modules.
+    """
+    Setup standardized logging for STT modules.
 
     Args:
         module_name: Name of the module (usually __name__)
@@ -685,7 +686,7 @@ def setup_logging(
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     # Prevent propagation to root logger to avoid duplicate console output
     logger.propagate = False
 
@@ -713,7 +714,7 @@ def get_logger(module_name: str) -> logging.Logger:
     return setup_logging(module_name)
 
 
-def load_config(config_path: Optional[Union[str, Path]] = None) -> ConfigLoader:
+def load_config(config_path: Union[str, Path] | None = None) -> ConfigLoader:
     """Load configuration from config file (alias for creating ConfigLoader)."""
     return ConfigLoader(config_path)
 

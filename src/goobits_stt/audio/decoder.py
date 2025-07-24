@@ -1,4 +1,5 @@
 """Opus audio decoder for streaming audio processing."""
+from __future__ import annotations
 
 import io
 import wave
@@ -23,7 +24,8 @@ class OpusDecoder:
     """Handles Opus decoding and PCM audio accumulation for streaming."""
 
     def __init__(self, sample_rate: int = 16000, channels: int = 1):
-        """Initialize Opus decoder.
+        """
+        Initialize Opus decoder.
 
         Args:
             sample_rate: Audio sample rate (default: 16000 for Whisper)
@@ -44,7 +46,8 @@ class OpusDecoder:
         logger.info(f"Opus decoder initialized: {sample_rate}Hz, {channels} channel(s)")
 
     def decode_chunk(self, opus_data: bytes) -> int:
-        """Decode an Opus chunk and append to PCM buffer.
+        """
+        Decode an Opus chunk and append to PCM buffer.
 
         Args:
             opus_data: Opus-encoded audio data
@@ -72,7 +75,8 @@ class OpusDecoder:
             raise
 
     def get_wav_data(self) -> bytes:
-        """Get accumulated audio as WAV format data.
+        """
+        Get accumulated audio as WAV format data.
 
         Returns:
             Complete WAV file data ready for Whisper
@@ -102,7 +106,8 @@ class OpusDecoder:
         return wav_data
 
     def get_pcm_array(self) -> np.ndarray:
-        """Get accumulated audio as numpy array.
+        """
+        Get accumulated audio as numpy array.
 
         Returns:
             PCM audio data as int16 numpy array
@@ -113,9 +118,8 @@ class OpusDecoder:
         pcm_data = self.pcm_buffer.read()
 
         # Convert to numpy array
-        audio_array = np.frombuffer(pcm_data, dtype=np.int16)
+        return np.frombuffer(pcm_data, dtype=np.int16)
 
-        return audio_array
 
     def reset(self):
         """Reset decoder and clear buffers."""
@@ -148,7 +152,8 @@ class OpusStreamDecoder:
         logger.info("Opus stream decoder initialized")
 
     def create_session(self, session_id: str, sample_rate: int = 16000, channels: int = 1) -> OpusDecoder:
-        """Create a new decoding session.
+        """
+        Create a new decoding session.
 
         Args:
             session_id: Unique identifier for the session
@@ -168,11 +173,11 @@ class OpusStreamDecoder:
         logger.info(f"Created decoding session: {session_id}")
         return decoder
 
-    def get_session(self, session_id: str) -> Optional[OpusDecoder]:
+    def get_session(self, session_id: str) -> OpusDecoder | None:
         """Get an existing session decoder."""
         return self.sessions.get(session_id)
 
-    def remove_session(self, session_id: str) -> Optional[OpusDecoder]:
+    def remove_session(self, session_id: str) -> OpusDecoder | None:
         """Remove and return a session decoder."""
         decoder = self.sessions.pop(session_id, None)
         if decoder:

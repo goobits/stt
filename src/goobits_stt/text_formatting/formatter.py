@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Text formatter for Matilda transcriptions.
+"""
+Text formatter for Matilda transcriptions.
 
 Clean architecture with 4 specialized classes:
 - EntityDetector: SpaCy-powered entity detection
@@ -7,6 +8,7 @@ Clean architecture with 4 specialized classes:
 - PatternConverter: Entity-specific conversions
 - SmartCapitalizer: Intelligent capitalization
 """
+from __future__ import annotations
 
 import os
 import re
@@ -30,6 +32,7 @@ from . import regex_patterns
 
 # Import resource loader for i18n constants
 from .constants import get_resources
+import contextlib
 
 # Setup config and logging
 config = get_config()
@@ -41,7 +44,8 @@ class EntityDetector:
     """Detects various entities using SpaCy and custom patterns"""
 
     def __init__(self, nlp=None, language: str = "en"):
-        """Initialize EntityDetector with dependency injection.
+        """
+        Initialize EntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
@@ -55,7 +59,7 @@ class EntityDetector:
         self.language = language
         self.resources = get_resources(language)
 
-    def detect_entities(self, text: str, existing_entities: List[Entity], doc=None) -> List[Entity]:
+    def detect_entities(self, text: str, existing_entities: list[Entity], doc=None) -> list[Entity]:
         """Single pass entity detection"""
         entities: list[Entity] = []
 
@@ -66,7 +70,7 @@ class EntityDetector:
         # Sorting is no longer needed here as the main formatter will sort the final list.
         return entities
 
-    def _process_spacy_entities(self, text: str, entities: List[Entity], existing_entities: List[Entity], doc=None) -> None:
+    def _process_spacy_entities(self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None) -> None:
         """Process SpaCy-detected entities."""
         if not self.nlp:
             return
@@ -123,7 +127,7 @@ class EntityDetector:
                                     if token.i + 1 < len(doc):
                                         next_token = doc[token.i + 1]
                                     break
-                            
+
                             # Check for specific idiomatic contexts using POS tags
                             if ordinal_token and next_token:
                                 # RULE 1: Skip if it's an adjective followed by a specific idiomatic noun from our resources.
@@ -133,7 +137,7 @@ class EntityDetector:
                                     if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
                                         logger.debug(f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'.")
                                         continue
-                                
+
                                 # RULE 2: Skip if it's at sentence start and followed by comma ("First, we...")
                                 if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
                                     logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma")
@@ -310,7 +314,7 @@ class EntityDetector:
         if self.nlp and (" plus " in entity_text_lower or " times " in entity_text_lower):
             try:
                 doc = self.nlp(text) # Ensure we have the doc object
-                
+
                 # Find the first token that starts at or after the end of our entity.
                 next_token = None
                 for token in doc:
@@ -320,10 +324,10 @@ class EntityDetector:
 
                 if next_token:
                     # RULE: If a CARDINAL like "five plus" is followed by a NOUN ("years"), it's idiomatic.
-                    if next_token.pos_ == 'NOUN':
+                    if next_token.pos_ == "NOUN":
                         logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}').")
                         return True
-                    
+
                     # RULE: If a CARDINAL like "two times" is followed by a comparative ("better"), it's idiomatic.
                     if next_token.tag_ in ["JJR", "RBR"]: # JJR = Adj, Comparative; RBR = Adv, Comparative
                          logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}').")
@@ -455,10 +459,8 @@ class EntityDetector:
         # Get the spaCy doc if available
         doc = None
         if self.nlp:
-            try:
+            with contextlib.suppress(Exception):
                 doc = self.nlp(text)
-            except Exception:
-                pass
 
         # Get context before and after the entity
         prefix_text = text[: ent.start_char].strip().lower()
@@ -530,7 +532,7 @@ class EntityDetector:
                 return True
 
         # Use SpaCy analysis if available
-        if doc and hasattr(ent, 'start') and hasattr(ent, 'end'):
+        if doc and hasattr(ent, "start") and hasattr(ent, "end"):
             try:
                 # Find the token(s) that correspond to this entity
                 for token in doc:
@@ -685,9 +687,10 @@ class TextFormatter:
         self.profanity_words = self.resources.get("filtering", {}).get("profanity_words", [])
 
     def format_transcription(
-        self, text: str, key_name: str = "", enter_pressed: bool = False, language: Optional[str] = None
+        self, text: str, key_name: str = "", enter_pressed: bool = False, language: str | None = None
     ) -> str:
-        """Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS
+        """
+        Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS
 
         Args:
             text: Text to format
@@ -782,11 +785,10 @@ class TextFormatter:
                         deduplicated_entities.remove(existing)
                         logger.debug(f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')")
                         break
-                    else:
-                        # Keep the existing longer/equal entity
-                        overlaps_with_existing = True
-                        logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')")
-                        break
+                    # Keep the existing longer/equal entity
+                    overlaps_with_existing = True
+                    logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')")
+                    break
 
             if not overlaps_with_existing:
                 deduplicated_entities.append(entity)
@@ -897,7 +899,7 @@ class TextFormatter:
         # Check if cleaned text is a short lowercase version pattern (e.g., 'v1.0' not 'version 2.1')
         import re
         has_lowercase_version = (any(entity.type == EntityType.VERSION for entity in converted_entities)
-                               and re.match(r'^v\d', cleaned_text))  # 'v' followed by digit
+                               and re.match(r"^v\d", cleaned_text))  # 'v' followed by digit
         skip_capitalization_for_cli = punctuation_was_removed and (has_cli_command or has_lowercase_version)
 
         final_text = cleaned_text
@@ -942,7 +944,7 @@ class TextFormatter:
         logger.debug(f"Final formatted: '{text[:50]}...'")
         return text
 
-    def _is_standalone_technical(self, text: str, entities: List[Entity]) -> bool:
+    def _is_standalone_technical(self, text: str, entities: list[Entity]) -> bool:
         """Check if the text consists entirely of technical entities with no natural language."""
         if not entities:
             return False
@@ -1062,10 +1064,10 @@ class TextFormatter:
 
         # Clean up orphaned commas at the beginning of text
         # This handles cases like "Actually, that's great" → ", that's great" → "that's great"
-        text = re.sub(r'^\s*,\s*', '', text)
+        text = re.sub(r"^\s*,\s*", "", text)
 
         # Also clean up double commas that might result from removal
-        text = re.sub(r',\s*,', ',', text)
+        text = re.sub(r",\s*,", ",", text)
 
         # Normalize repeated punctuation using centralized patterns
         for pattern, replacement in regex_patterns.REPEATED_PUNCTUATION_PATTERNS:
@@ -1076,9 +1078,8 @@ class TextFormatter:
 
         # Filter profanity using centralized pattern creation
         profanity_pattern = regex_patterns.create_profanity_pattern(self.profanity_words)
-        text = profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
+        return profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
 
-        return text
 
     def _apply_filters(self, text: str) -> str:
         """Apply configured filters"""
@@ -1106,7 +1107,7 @@ class TextFormatter:
         text: str,
         original_had_punctuation: bool = False,
         is_standalone_technical: bool = False,
-        filtered_entities: Optional[List[Entity]] = None,
+        filtered_entities: list[Entity] | None = None,
     ) -> str:
         """Add punctuation - treat all text as sentences unless single standalone technical entity"""
         if filtered_entities is None:
@@ -1231,24 +1232,7 @@ class TextFormatter:
                                     base_command_words = self.resources.get("context_words", {}).get(
                                         "command_words", []
                                     )
-                                    command_words = list(base_command_words) + [
-                                        "drive",
-                                        "use",
-                                        "check",
-                                        "select",
-                                        "define",
-                                        "access",
-                                        "transpose",
-                                        "download",
-                                        "git",
-                                        "contact",
-                                        "email",
-                                        "visit",
-                                        "connect",
-                                        "redis",
-                                        "server",
-                                        "ftp",
-                                    ]
+                                    command_words = [*list(base_command_words), "drive", "use", "check", "select", "define", "access", "transpose", "download", "git", "contact", "email", "visit", "connect", "redis", "server", "ftp"]
                                     if prev_token.text.lower() in command_words:
                                         should_remove = True
 
@@ -1390,12 +1374,12 @@ class TextFormatter:
 
         # Add comma after i.e. and e.g. when followed by a word,
         # but NOT if a comma is already there.
-        text = re.sub(r"(\b(?:i\.e\.|e\.g\.))(?!,)(\s+[a-zA-Z])", r"\1,\2", text)
+        return re.sub(r"(\b(?:i\.e\.|e\.g\.))(?!,)(\s+[a-zA-Z])", r"\1,\2", text)
 
-        return text
 
     def _convert_orphaned_keywords(self, text: str) -> str:
-        """Convert orphaned keywords that weren't captured by entities.
+        """
+        Convert orphaned keywords that weren't captured by entities.
 
         This handles cases where keywords like 'slash', 'dot', 'at' remain in the text
         after entity conversion, typically due to entity boundary issues.
@@ -1407,9 +1391,9 @@ class TextFormatter:
         # Only convert safe keywords that are less likely to appear in natural language
         # Be more conservative about what we convert
         safe_keywords = {
-            'slash': '/',
-            'colon': ':',
-            'underscore': '_',
+            "slash": "/",
+            "colon": ":",
+            "underscore": "_",
         }
 
         # Filter to only keywords we want to convert when orphaned
@@ -1422,18 +1406,18 @@ class TextFormatter:
         sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
 
         # Define keywords that should consume surrounding spaces when converted
-        space_consuming_symbols = {'/', ':', '_'}
+        space_consuming_symbols = {"/", ":", "_"}
 
         # Convert keywords that appear as standalone words
         for keyword, symbol in sorted_keywords:
             if symbol in space_consuming_symbols:
                 # For these symbols, consume surrounding spaces
-                pattern = rf'\s*\b{re.escape(keyword)}\b\s*'
+                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
                 # Simple replacement that consumes spaces
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
             else:
                 # For other keywords, preserve word boundaries
-                pattern = rf'\b{re.escape(keyword)}\b'
+                pattern = rf"\b{re.escape(keyword)}\b"
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
         return text
@@ -1505,7 +1489,7 @@ class TextFormatter:
         # The tests expect straight quotes, so this implementation will preserve them
         # while fixing the bug that was injecting code into the output.
         new_chars = []
-        for i, char in enumerate(text):
+        for _i, char in enumerate(text):
             if char == '"':
                 new_chars.append('"')
             elif char == "'":
@@ -1515,7 +1499,7 @@ class TextFormatter:
 
         return "".join(new_chars)
 
-    def _apply_capitalization_with_entity_protection(self, text: str, entities: List[Entity], doc=None) -> str:
+    def _apply_capitalization_with_entity_protection(self, text: str, entities: list[Entity], doc=None) -> str:
         """Apply capitalization while protecting entities - Phase 1 simplified version"""
         logger.debug(f"Capitalization protection called with text: '{text}' and {len(entities)} entities")
         if not text:
@@ -1545,8 +1529,9 @@ class TextFormatter:
 
         return capitalized_text
 
-    def _clean_standalone_entity_punctuation(self, text: str, entities: List[Entity]) -> str:
-        """Remove trailing punctuation from standalone entities.
+    def _clean_standalone_entity_punctuation(self, text: str, entities: list[Entity]) -> str:
+        """
+        Remove trailing punctuation from standalone entities.
 
         If the formatted text is essentially just a single entity with trailing punctuation,
         remove the punctuation. This handles cases like '/compact.' → '/compact'.
@@ -1561,11 +1546,11 @@ class TextFormatter:
         text_stripped = text.strip()
 
         # Check if text ends with punctuation
-        if not text_stripped or text_stripped[-1] not in '.!?':
+        if not text_stripped or text_stripped[-1] not in ".!?":
             return text
 
         # Remove trailing punctuation for analysis (handle multiple punctuation marks)
-        text_no_punct = re.sub(r'[.!?]+$', '', text_stripped).strip()
+        text_no_punct = re.sub(r"[.!?]+$", "", text_stripped).strip()
 
         # Define entity types that should be standalone (no punctuation when alone)
         standalone_entity_types = {
@@ -1589,7 +1574,7 @@ class TextFormatter:
                 if entity.type in standalone_entity_types:
                     # Check if this entity covers at least 70% of the text
                     try:
-                        entity_length = len(entity.text) if hasattr(entity, 'text') else (entity.end - entity.start)
+                        entity_length = len(entity.text) if hasattr(entity, "text") else (entity.end - entity.start)
                         text_length = len(text_no_punct)
                         coverage = entity_length / text_length if text_length > 0 else 0
 
@@ -1618,7 +1603,8 @@ _formatter_instance = None
 
 
 def format_transcription(text: str, key_name: str = "", enter_pressed: bool = False) -> str:
-    """Format transcribed text with all processing steps.
+    """
+    Format transcribed text with all processing steps.
 
     This is the main entry point for all text formatting. It combines:
     - Whisper artifact removal

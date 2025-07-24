@@ -1,4 +1,5 @@
 """Opus audio encoder for streaming audio to server."""
+from __future__ import annotations
 
 import numpy as np
 import opuslib
@@ -21,7 +22,8 @@ class OpusEncoder:
     """Handles Opus encoding for streaming audio."""
 
     def __init__(self, sample_rate: int = 16000, channels: int = 1, bitrate: int = 24000):
-        """Initialize Opus encoder.
+        """
+        Initialize Opus encoder.
 
         Args:
             sample_rate: Audio sample rate (default: 16000 for Whisper)
@@ -43,8 +45,9 @@ class OpusEncoder:
 
         logger.info(f"Opus encoder initialized: {sample_rate}Hz, {channels} channel(s), {bitrate}bps")
 
-    def encode_chunk(self, audio_data: np.ndarray) -> Optional[bytes]:
-        """Encode audio chunk to Opus format.
+    def encode_chunk(self, audio_data: np.ndarray) -> bytes | None:
+        """
+        Encode audio chunk to Opus format.
 
         Args:
             audio_data: Audio samples as numpy array (float32 or int16)
@@ -81,7 +84,7 @@ class OpusEncoder:
 
         return None
 
-    def flush(self) -> Optional[bytes]:
+    def flush(self) -> bytes | None:
         """Encode any remaining samples in buffer with padding."""
         if self.buffer_size == 0:
             return None

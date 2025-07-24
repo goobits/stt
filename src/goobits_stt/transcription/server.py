@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""WebSocket Matilda Server - Enables Mac clients to connect via WebSocket for speech-to-text
+"""
+WebSocket Matilda Server - Enables Mac clients to connect via WebSocket for speech-to-text
 Runs alongside the existing TCP server for local Ubuntu clients
 """
+from __future__ import annotations
 import os
 import sys
 
@@ -17,23 +19,23 @@ if os.environ.get("WEBSOCKET_SERVER_IP"):
     os.environ["WEBSOCKET_SERVER_HOST"] = os.environ["WEBSOCKET_SERVER_IP"]
 
 # All imports after path and environment setup
-import asyncio  # noqa: E402
-import websockets  # noqa: E402
-import json  # noqa: E402
-import base64  # noqa: E402
-import tempfile  # noqa: E402
-import traceback  # noqa: E402
-import time  # noqa: E402
-from collections import defaultdict  # noqa: E402
-import uuid  # noqa: E402
-from typing import Tuple  # noqa: E402
-from faster_whisper import WhisperModel  # noqa: E402
-from goobits_stt.core.config import get_config, setup_logging  # noqa: E402
-from goobits_stt.core.token_manager import TokenManager  # noqa: E402
-from goobits_stt.audio.decoder import OpusStreamDecoder  # noqa: E402
-from goobits_stt.audio.opus_batch import OpusBatchDecoder  # noqa: E402
-from goobits_stt.utils.ssl import create_ssl_context  # noqa: E402
-from goobits_stt.text_formatting.formatter import format_transcription  # noqa: E402
+import asyncio
+import websockets
+import json
+import base64
+import tempfile
+import traceback
+import time
+from collections import defaultdict
+import uuid
+from typing import Tuple
+from faster_whisper import WhisperModel
+from goobits_stt.core.config import get_config, setup_logging
+from goobits_stt.core.token_manager import TokenManager
+from goobits_stt.audio.decoder import OpusStreamDecoder
+from goobits_stt.audio.opus_batch import OpusBatchDecoder
+from goobits_stt.utils.ssl import create_ssl_context
+from goobits_stt.text_formatting.formatter import format_transcription
 
 # Get config instance and setup logging
 config = get_config()
@@ -181,8 +183,9 @@ class MatildaWebSocketServer:
         else:
             await self.send_error(websocket, f"Unknown message type: {message_type}")
 
-    async def transcribe_audio_from_wav(self, wav_data: bytes, client_id: str) -> Tuple[bool, str, dict]:
-        """Common transcription logic for both batch and streaming.
+    async def transcribe_audio_from_wav(self, wav_data: bytes, client_id: str) -> tuple[bool, str, dict]:
+        """
+        Common transcription logic for both batch and streaming.
 
         Args:
             wav_data: WAV audio data to transcribe
@@ -432,7 +435,8 @@ class MatildaWebSocketServer:
             await self.send_error(websocket, f"Audio chunk processing failed: {e!s}")
 
     async def handle_end_stream(self, websocket, data, client_ip, client_id):
-        """Handle end of streaming session and perform transcription.
+        """
+        Handle end of streaming session and perform transcription.
 
         Note: No need to wait for chunks - WebSocket guarantees in-order delivery,
         so if we received the end_stream message, all prior chunks have arrived.
@@ -581,9 +585,8 @@ class MatildaWebSocketServer:
             if e.errno == 98 or "Address already in use" in str(e):
                 logger.error(f"Port {server_port} is already in use. Please choose a different port or stop the service using that port.")
                 raise RuntimeError(f"Port {server_port} is already in use") from e
-            else:
-                logger.error(f"Failed to bind to {server_host}:{server_port}: {e}")
-                raise
+            logger.error(f"Failed to bind to {server_host}:{server_port}: {e}")
+            raise
 
 
 # Enhanced server with dual-mode support

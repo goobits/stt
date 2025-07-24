@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Web-related entity detection and conversion for Matilda transcriptions."""
+from __future__ import annotations
 
 import re
 from typing import List
@@ -14,7 +15,8 @@ logger = setup_logging(__name__, log_filename="text_formatting.txt", include_con
 
 class WebEntityDetector:
     def __init__(self, nlp=None, language: str = "en"):
-        """Initialize WebEntityDetector with dependency injection.
+        """
+        Initialize WebEntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
@@ -39,7 +41,7 @@ class WebEntityDetector:
         # Note: _detect_spoken_emails builds its own pattern internally
         # Note: port_pattern is the same as port_number_pattern
 
-    def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
+    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
         """Detects all web-related entities."""
         web_entities: list[Entity] = []
         # Create a combined list for overlap checking that includes both existing and newly detected entities
@@ -65,7 +67,7 @@ class WebEntityDetector:
         return web_entities
 
     def _detect_spoken_protocol_urls(
-        self, text: str, web_entities: List[Entity], existing_entities: List[Entity]
+        self, text: str, web_entities: list[Entity], existing_entities: list[Entity]
     ) -> None:
         """Detect spoken protocols like 'http colon slash slash'."""
         for match in self.spoken_protocol_pattern.finditer(text):
@@ -76,7 +78,7 @@ class WebEntityDetector:
                     )
                 )
 
-    def _detect_spoken_urls(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
+    def _detect_spoken_urls(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
         """Detect spoken URLs like 'example dot com slash path'."""
         for match in self.spoken_url_pattern.finditer(text):
             if not is_inside_entity(match.start(), match.end(), existing_entities):
@@ -86,7 +88,7 @@ class WebEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=full_match, type=EntityType.SPOKEN_URL)
                 )
 
-    def _detect_spoken_emails(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
+    def _detect_spoken_emails(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
         """Detect spoken emails like 'john at example.com' using spaCy for context."""
         # First, let's look for email patterns with a simpler approach
         # We'll search for patterns like "username at domain dot com"
@@ -184,7 +186,7 @@ class WebEntityDetector:
                     )
                 )
 
-    def _detect_port_numbers(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
+    def _detect_port_numbers(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
         """Detect port numbers like 'localhost colon eight zero eight zero'."""
         for match in self.port_number_pattern.finditer(text):
             if not is_inside_entity(match.start(), match.end(), existing_entities):
@@ -192,8 +194,9 @@ class WebEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.PORT_NUMBER)
                 )
 
-    def _detect_links(self, text: str, entities: List[Entity], existing_entities: List[Entity]) -> None:
-        """Detect URLs and emails using SpaCy's built-in token attributes.
+    def _detect_links(self, text: str, entities: list[Entity], existing_entities: list[Entity]) -> None:
+        """
+        Detect URLs and emails using SpaCy's built-in token attributes.
 
         This method replaces the regex-based URL and email detection with
         SpaCy's more accurate token-level detection.

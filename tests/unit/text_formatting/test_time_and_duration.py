@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for time and duration entities.
+"""
+Comprehensive tests for time and duration entities.
 
 This module tests the detection and formatting of:
 - TIME: "3:30 PM", "15:45"

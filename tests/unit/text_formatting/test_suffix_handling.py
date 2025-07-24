@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Tests for suffix handling in the STT system.
+"""
+Tests for suffix handling in the STT system.
 
 This test suite ensures that the suffix configuration is properly applied
 after transcription, which is critical for user experience.
 """
 
 import pytest
-from src.text_formatting.formatter import TextFormatter
+from goobits_stt.text_formatting.formatter import TextFormatter
 
 
 class TestSuffixHandling:

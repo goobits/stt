@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for code-related entities: filenames, operators, and flags.
+"""
+Comprehensive tests for code-related entities: filenames, operators, and flags.
 
 This module tests the detection and formatting of:
 - FILENAME: File names with case formatting based on extension
@@ -430,7 +431,7 @@ class TestCommandFlags:
             ("combine dash dash verbose and dash dash output", "Combine --verbose and --output"),
         ]
 
-        for input_text, expected in test_cases:
+        for input_text, _expected in test_cases:
             result = format_transcription(input_text)
             # Check that both flags are present
             assert (
@@ -693,7 +694,8 @@ class TestFilenameEdgeCasesAndRegressions:
     """Test edge cases and known issues with filename detection."""
 
     def test_greedy_filename_detection_regression(self, preloaded_formatter):
-        """Test and document KNOWN ISSUE: Filename regex is too greedy.
+        """
+        Test and document KNOWN ISSUE: Filename regex is too greedy.
 
         The filename detection currently consumes entire sentences when it finds
         'dot extension' patterns, which is incorrect behavior.

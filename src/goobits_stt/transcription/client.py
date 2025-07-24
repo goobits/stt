@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Unified Transcription Client - Consolidates all transcription-related functionality.
+"""
+Unified Transcription Client - Consolidates all transcription-related functionality.
 
 This module provides a single interface for all client-side transcription operations,
 including WebSocket connections, streaming audio, batch processing, and circuit breaking.
 """
+from __future__ import annotations
 
 import os
-import sys
 import asyncio
 import websockets
 import json
@@ -18,13 +19,14 @@ import ssl
 import numpy as np
 from enum import Enum
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Any, Tuple, Callable, Dict
 
 
-from goobits_stt.utils.ssl import create_ssl_context  # noqa: E402
-from goobits_stt.core.config import get_config, setup_logging  # noqa: E402
-from goobits_stt.audio.encoder import OpusEncoder  # noqa: E402
-from goobits_stt.audio.opus_batch import OpusBatchEncoder  # noqa: E402
+from goobits_stt.utils.ssl import create_ssl_context
+from goobits_stt.core.config import get_config, setup_logging
+from goobits_stt.audio.encoder import OpusEncoder
+from goobits_stt.audio.opus_batch import OpusBatchEncoder
 
 # Get config instance
 config = get_config()
@@ -67,7 +69,7 @@ class CircuitBreakerConfig:
 class CircuitBreaker:
     """Lightweight circuit breaker for WebSocket connections"""
 
-    def __init__(self, config_obj: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, config_obj: CircuitBreakerConfig | None = None):
         self.config = config_obj or CircuitBreakerConfig()
         self.state = CircuitState.CLOSED
         self.failure_count = 0
@@ -114,8 +116,9 @@ class CircuitBreaker:
             self.state = CircuitState.OPEN
             self.success_count = 0
 
-    def execute(self, func: Callable[[], Any]) -> Tuple[bool, Any, Optional[str]]:
-        """Execute function with circuit breaker protection
+    def execute(self, func: Callable[[], Any]) -> tuple[bool, Any, str | None]:
+        """
+        Execute function with circuit breaker protection
 
         Returns:
             (success: bool, result: Any, error_message: Optional[str])
@@ -147,7 +150,8 @@ class CircuitBreaker:
 
 
 class StreamingAudioClient:
-    """WebSocket client for streaming Opus audio to server.
+    """
+    WebSocket client for streaming Opus audio to server.
 
     This class provides a direct interface for streaming audio to the transcription
     server. It is used by StreamHandler and other components that need real-time
@@ -157,7 +161,8 @@ class StreamingAudioClient:
     def __init__(
         self, websocket_url: str, auth_token: str, debug_save_audio: bool = False, max_debug_chunks: int = 1000
     ):
-        """Initialize streaming client.
+        """
+        Initialize streaming client.
 
         Args:
             websocket_url: WebSocket server URL
@@ -190,7 +195,8 @@ class StreamingAudioClient:
         logger.info(f"Streaming client initialized for {websocket_url} (debug_audio: {debug_save_audio})")
 
     def _is_websocket_closed(self) -> bool:
-        """Check if WebSocket connection is closed.
+        """
+        Check if WebSocket connection is closed.
 
         Returns:
             True if WebSocket is closed or invalid
@@ -233,8 +239,9 @@ class StreamingAudioClient:
             logger.error(f"Failed to connect: {e}")
             raise
 
-    async def start_stream(self, session_id: Optional[str] = None) -> str:
-        """Start audio streaming session.
+    async def start_stream(self, session_id: str | None = None) -> str:
+        """
+        Start audio streaming session.
 
         Args:
             session_id: Optional session ID (auto-generated if not provided)
@@ -275,7 +282,8 @@ class StreamingAudioClient:
         raise RuntimeError(f"Failed to start stream: {response_data}")
 
     async def send_audio_chunk(self, audio_data: np.ndarray):
-        """Send audio chunk to server.
+        """
+        Send audio chunk to server.
 
         Args:
             audio_data: Audio samples to encode and send
@@ -341,7 +349,8 @@ class StreamingAudioClient:
             logger.debug(f"Buffering audio: {len(audio_data)} samples (waiting for complete frame)")
 
     async def end_stream(self) -> dict:
-        """End streaming session and get transcription.
+        """
+        End streaming session and get transcription.
 
         Returns:
             Transcription result from server
@@ -560,15 +569,17 @@ class StreamingAudioClient:
 
 
 class TranscriptionClient:
-    """Unified client for all transcription operations - streaming and batch modes.
+    """
+    Unified client for all transcription operations - streaming and batch modes.
 
     Supports dual-mode architecture:
     - Streaming mode: Real-time transcription (record-and-transcribe-simultaneously)
     - Batch mode: Traditional transcription (record-then-transcribe)
     """
 
-    def __init__(self, websocket_host: Optional[str] = None, debug_callback: Optional[Callable[[str], None]] = None):
-        """Initialize transcription client.
+    def __init__(self, websocket_host: str | None = None, debug_callback: Callable[[str], None] | None = None):
+        """
+        Initialize transcription client.
 
         Args:
             websocket_host: WebSocket server host (defaults to config)
@@ -603,7 +614,7 @@ class TranscriptionClient:
         self.debug_callback(f"TranscriptionClient initialized for {self.websocket_url}")
         self.debug_callback(f"Default transcription mode: {self.default_mode}")
 
-    def get_ssl_context(self) -> Optional[ssl.SSLContext]:
+    def get_ssl_context(self) -> ssl.SSLContext | None:
         """Get SSL context for client connections"""
         ssl_context = create_ssl_context(mode="client", auto_generate=False)
         if ssl_context is None:
@@ -616,9 +627,10 @@ class TranscriptionClient:
         return ssl_context
 
     async def send_batch_transcription(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, use_opus_compression: bool = True
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Send batch transcription request.
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, use_opus_compression: bool = True
+    ) -> tuple[bool, str | None, str | None]:
+        """
+        Send batch transcription request.
 
         Args:
             audio_file_path: Path to audio file for transcription
@@ -635,7 +647,7 @@ class TranscriptionClient:
 
         try:
             # Check if file exists and has content
-            if not os.path.exists(audio_file_path):
+            if not Path(audio_file_path).exists():
                 return False, None, f"Audio file not found: {audio_file_path}"
 
             file_size = os.path.getsize(audio_file_path)
@@ -722,9 +734,10 @@ class TranscriptionClient:
             return False, None, f"Transcription failed: {e}"
 
     async def transcribe_batch_mode(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, **batch_options
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Traditional batch transcription (record-then-transcribe).
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, **batch_options
+    ) -> tuple[bool, str | None, str | None]:
+        """
+        Traditional batch transcription (record-then-transcribe).
 
         This mode waits for recording to complete, then transcribes the entire
         audio file at once. Provides higher accuracy but higher latency.
@@ -747,7 +760,7 @@ class TranscriptionClient:
 
         # Validate audio file duration if needed
         try:
-            if os.path.exists(audio_file_path):
+            if Path(audio_file_path).exists():
                 file_size = os.path.getsize(audio_file_path)
                 # Rough estimate: 16kHz * 2 bytes/sample = 32000 bytes/second
                 estimated_duration = (file_size - 44) / 32000  # Subtract WAV header
@@ -768,12 +781,13 @@ class TranscriptionClient:
     async def transcribe_with_mode(
         self,
         audio_file_path: str,
-        mode: Optional[str] = None,
-        session_id: Optional[str] = None,
-        cancel_event: Optional[threading.Event] = None,
+        mode: str | None = None,
+        session_id: str | None = None,
+        cancel_event: threading.Event | None = None,
         **mode_options,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Transcribe using specified mode or default configuration.
+    ) -> tuple[bool, str | None, str | None]:
+        """
+        Transcribe using specified mode or default configuration.
 
         Args:
             audio_file_path: Path to audio file
@@ -803,9 +817,10 @@ class TranscriptionClient:
         return False, None, f"Unknown transcription mode: {transcription_mode}"
 
     async def create_streaming_session(
-        self, session_id: Optional[str] = None, debug_save_audio: Optional[bool] = None
+        self, session_id: str | None = None, debug_save_audio: bool | None = None
     ) -> StreamingAudioClient:
-        """Create and start a new streaming session.
+        """
+        Create and start a new streaming session.
 
         Args:
             session_id: Optional session ID (auto-generated if not provided)
@@ -842,7 +857,8 @@ class TranscriptionClient:
         return streaming_client
 
     async def cleanup_streaming_session(self, streaming_client: StreamingAudioClient) -> None:
-        """Clean up a streaming session.
+        """
+        Clean up a streaming session.
 
         Args:
             streaming_client: The streaming client to clean up
@@ -856,7 +872,7 @@ class TranscriptionClient:
         except Exception as e:
             self.debug_callback(f"Error disconnecting streaming client: {e}")
 
-    def get_supported_modes(self) -> Dict[str, Any]:
+    def get_supported_modes(self) -> dict[str, Any]:
         """Get supported transcription modes and their configurations."""
         return {
             "default_mode": self.default_mode,

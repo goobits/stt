@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for basic text formatting: capitalization and punctuation.
+"""
+Comprehensive tests for basic text formatting: capitalization and punctuation.
 
 This module tests the core formatting behaviors:
 - Sentence capitalization

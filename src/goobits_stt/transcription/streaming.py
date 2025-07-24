@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Stream Handler for STT Hotkey Daemon
+"""
+Stream Handler for STT Hotkey Daemon
 
 This module provides a self-contained handler for the complex real-time audio streaming
 pipeline. It isolates all streaming logic from the main daemon, managing the complete
@@ -13,6 +14,7 @@ Design Benefits:
 - Robust error handling and resource cleanup
 - Clear separation between streaming and batch transcription
 """
+from __future__ import annotations
 
 import asyncio
 import uuid
@@ -22,6 +24,7 @@ from dataclasses import dataclass
 from goobits_stt.core.config import get_config, setup_logging
 from .client import StreamingAudioClient
 from goobits_stt.audio.capture import PipeBasedAudioStreamer
+import contextlib
 
 # Setup logging and config
 logger = setup_logging(__name__, log_filename="transcription.txt")
@@ -33,15 +36,16 @@ class StreamingResult:
     """Result of a streaming session."""
 
     success: bool
-    transcription_text: Optional[str] = None
-    error_message: Optional[str] = None
-    session_id: Optional[str] = None
+    transcription_text: str | None = None
+    error_message: str | None = None
+    session_id: str | None = None
     chunks_processed: int = 0
-    final_stats: Optional[Dict[str, Any]] = None
+    final_stats: dict[str, Any] | None = None
 
 
 class StreamHandler:
-    """Self-contained handler for real-time audio streaming sessions.
+    """
+    Self-contained handler for real-time audio streaming sessions.
 
     This class manages the complete lifecycle of a streaming session:
     1. Creates and configures streaming client and audio streamer
@@ -51,7 +55,8 @@ class StreamHandler:
     """
 
     def __init__(self, key_name: str, websocket_url: str, auth_token: str, visualizer_orchestrator=None):
-        """Initialize stream handler for a specific hotkey.
+        """
+        Initialize stream handler for a specific hotkey.
 
         Args:
             key_name: The hotkey name for this streaming session
@@ -73,15 +78,16 @@ class StreamHandler:
         self._shutdown_event = asyncio.Event()  # Signal for run_streaming() to exit
 
         # Streaming components (created during run)
-        self.streaming_client: Optional[StreamingAudioClient] = None
-        self.audio_streamer: Optional[PipeBasedAudioStreamer] = None
-        self.audio_queue: Optional[asyncio.Queue] = None
-        self.chunk_processor_task: Optional[asyncio.Task] = None
+        self.streaming_client: StreamingAudioClient | None = None
+        self.audio_streamer: PipeBasedAudioStreamer | None = None
+        self.audio_queue: asyncio.Queue | None = None
+        self.chunk_processor_task: asyncio.Task | None = None
 
         logger.info(f"StreamHandler initialized for {key_name} with session {self.session_id}")
 
     async def run(self) -> StreamingResult:
-        """Run the complete streaming session.
+        """
+        Run the complete streaming session.
 
         This is the main entry point that manages the entire streaming lifecycle:
         1. Sets up streaming client and audio streamer
@@ -124,7 +130,8 @@ class StreamHandler:
             await self._cleanup()
 
     async def stop_streaming(self) -> StreamingResult:
-        """Stop the streaming session and return final transcription using a robust,
+        """
+        Stop the streaming session and return final transcription using a robust,
         deterministic shutdown sequence.
 
         This implements the correct shutdown sequence:
@@ -228,7 +235,8 @@ class StreamHandler:
             )
 
     async def _setup_streaming(self) -> bool:
-        """Set up streaming client and audio components.
+        """
+        Set up streaming client and audio components.
 
         Returns:
             True if setup was successful
@@ -277,7 +285,8 @@ class StreamHandler:
             return False
 
     async def _start_streaming(self) -> bool:
-        """Start the streaming pipeline.
+        """
+        Start the streaming pipeline.
 
         Returns:
             True if streaming started successfully
@@ -351,10 +360,8 @@ class StreamHandler:
             # Cancel chunk processor
             if self.chunk_processor_task and not self.chunk_processor_task.done():
                 self.chunk_processor_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await self.chunk_processor_task
-                except asyncio.CancelledError:
-                    pass
 
             # Disconnect streaming client
             if self.streaming_client:
@@ -369,7 +376,8 @@ class StreamHandler:
             logger.error(f"Error during cleanup for {self.key_name}: {e}")
 
     async def wait_for_ready(self, timeout: float = 5.0) -> bool:
-        """Wait for the streaming session to be ready.
+        """
+        Wait for the streaming session to be ready.
 
         Args:
             timeout: Maximum time to wait in seconds
@@ -385,8 +393,9 @@ class StreamHandler:
             logger.error(f"Timeout waiting for streaming session {self.key_name} to be ready")
             return False
 
-    def get_session_info(self) -> Dict[str, Any]:
-        """Get information about the current streaming session.
+    def get_session_info(self) -> dict[str, Any]:
+        """
+        Get information about the current streaming session.
 
         Returns:
             Dictionary with session information
@@ -403,7 +412,8 @@ class StreamHandler:
         }
 
     def is_healthy(self) -> bool:
-        """Check if the streaming session is healthy and actually working.
+        """
+        Check if the streaming session is healthy and actually working.
 
         Returns:
             True if the session is running and all components are active
@@ -440,7 +450,8 @@ class StreamHandler:
 def create_stream_handler(
     key_name: str, websocket_url: str, auth_token: str, visualizer_orchestrator=None
 ) -> StreamHandler:
-    """Create a new stream handler instance.
+    """
+    Create a new stream handler instance.
 
     Args:
         key_name: The hotkey name for this streaming session
@@ -456,7 +467,8 @@ def create_stream_handler(
 
 
 async def run_streaming_session(key_name: str, websocket_url: str, auth_token: str) -> StreamingResult:
-    """Run a complete streaming session with automatic cleanup.
+    """
+    Run a complete streaming session with automatic cleanup.
 
     This is a convenience function for running a streaming session that handles
     setup, execution, and cleanup automatically.
@@ -480,8 +492,7 @@ async def run_streaming_session(key_name: str, websocket_url: str, auth_token: s
         await asyncio.sleep(0.1)  # Give it time to start
 
         # Immediately stop for this example - in real use, daemon controls timing
-        result = await handler.stop_streaming()
-        return result
+        return await handler.stop_streaming()
 
     except Exception as e:
         logger.error(f"Error in streaming session for {key_name}: {e}")

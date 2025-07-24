@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Centralized regular expression patterns for text formatting.
+"""
+Centralized regular expression patterns for text formatting.
 
 This module contains all complex regex patterns used throughout the text formatting
 system, organized logically and using verbose formatting for readability and
@@ -8,6 +9,7 @@ maintainability.
 All patterns use re.VERBOSE flag where beneficial and include detailed comments
 explaining each component.
 """
+from __future__ import annotations
 
 import re
 from typing import List, Pattern, Optional
@@ -250,8 +252,9 @@ REPEATED_PUNCTUATION_PATTERNS = [
 
 
 # Profanity filtering pattern (built dynamically)
-def create_profanity_pattern(profanity_words: List[str]) -> Pattern:
-    """Create a pattern to filter profanity words.
+def create_profanity_pattern(profanity_words: list[str]) -> Pattern:
+    """
+    Create a pattern to filter profanity words.
 
     Only matches lowercase profanity to avoid filtering proper nouns
     and sentence beginnings (e.g., "Hell, Michigan" vs "go to hell").
@@ -399,9 +402,9 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     # Create alternation patterns for each keyword type (inline implementation)
     # Sort by length to match longer phrases first
     dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
-    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True) 
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
     question_mark_keywords_sorted = sorted(question_mark_keywords, key=len, reverse=True)
-    
+
     dot_escaped = [re.escape(k) for k in dot_keywords_sorted] + [r"\."]
     dot_pattern = "|".join(dot_escaped)
 
@@ -569,7 +572,7 @@ def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
     slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
     dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
     question_keywords_sorted = sorted(question_keywords, key=len, reverse=True)
-    
+
     colon_pattern = "|".join(re.escape(k) for k in colon_keywords_sorted)
     slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
@@ -1296,12 +1299,12 @@ ENTITY_BOUNDARY_PATTERN = re.compile(r"\b(?=\w)")
 # ==============================================================================
 
 
-def create_artifact_patterns(artifacts: List[str]) -> List[Pattern]:
+def create_artifact_patterns(artifacts: list[str]) -> list[Pattern]:
     """Create and cache compiled patterns for transcription artifacts."""
     return [re.compile(r"\b" + re.escape(artifact) + r"\b", re.IGNORECASE) for artifact in artifacts]
 
 
-def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
+def get_compiled_pattern(pattern_name: str) -> Pattern | None:
     """Get a pre-compiled pattern by name."""
     pattern_map = {
         "whitespace": WHITESPACE_NORMALIZATION_PATTERN,
@@ -1336,17 +1339,17 @@ def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
 # ==============================================================================
 
 
-def get_file_extensions_by_category(category: str) -> List[str]:
+def get_file_extensions_by_category(category: str) -> list[str]:
     """Get file extensions for a specific category."""
     return FILE_EXTENSIONS.get(category, [])
 
 
-def get_all_file_extensions() -> List[str]:
+def get_all_file_extensions() -> list[str]:
     """Get all file extensions as a flat list."""
     return ALL_FILE_EXTENSIONS.copy()
 
 
-def create_alternation_pattern(items: List[str], word_boundaries: bool = True) -> str:
+def create_alternation_pattern(items: list[str], word_boundaries: bool = True) -> str:
     """Create a regex alternation pattern from a list of items."""
     escaped_items = [re.escape(item) for item in items]
     pattern = "|".join(escaped_items)

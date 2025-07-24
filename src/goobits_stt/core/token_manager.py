@@ -1,12 +1,14 @@
-"""JWT Token Management System for STT Server
+"""
+JWT Token Management System for STT Server
 Handles token generation, validation, and one-time use enforcement
 """
+from __future__ import annotations
 
 import base64
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional, Any, Set
 import uuid
@@ -19,12 +21,12 @@ logger = logging.getLogger(__name__)
 class TokenManager:
     """Manages JWT tokens for client authentication"""
 
-    def __init__(self, secret_key: Optional[str] = None, data_dir: Optional[Path] = None):
+    def __init__(self, secret_key: str | None = None, data_dir: Path | None = None):
         # Use project root data directory instead of /app/data
         if data_dir is None:
             project_root = Path(__file__).parent.parent.parent
             data_dir = project_root / "data"
-        
+
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -33,8 +35,8 @@ class TokenManager:
         self.used_tokens_file = self.data_dir / "used_tokens.json"
 
         # In-memory token storage
-        self.active_tokens: Dict[str, Dict[str, Any]] = {}
-        self.used_tokens: Set[str] = set()
+        self.active_tokens: dict[str, dict[str, Any]] = {}
+        self.used_tokens: set[str] = set()
 
         # Load existing tokens
         self._load_tokens()
@@ -97,7 +99,7 @@ class TokenManager:
 
     def _cleanup_expired_tokens(self):
         """Remove expired tokens from active tokens"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expired_tokens = []
 
         for token_id, token_info in self.active_tokens.items():
@@ -118,8 +120,9 @@ class TokenManager:
         if expired_tokens:
             self._save_tokens()
 
-    def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> Dict[str, Any]:
-        """Generate a new JWT token for a client
+    def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> dict[str, Any]:
+        """
+        Generate a new JWT token for a client
 
         Args:
             client_name: Name of the client
@@ -132,14 +135,14 @@ class TokenManager:
         """
         try:
             token_id = str(uuid.uuid4())
-            expires = datetime.utcnow() + timedelta(days=expiration_days)
+            expires = datetime.now(timezone.utc) + timedelta(days=expiration_days)
 
             # Create JWT payload
             payload = {
                 "token_id": token_id,
                 "client_name": client_name,
                 "exp": expires,
-                "iat": datetime.utcnow(),
+                "iat": datetime.now(timezone.utc),
                 "one_time_use": one_time_use,
                 "encryption_enabled": True,
             }
@@ -152,7 +155,7 @@ class TokenManager:
                 "token_id": token_id,
                 "client_name": client_name,
                 "expires": expires.isoformat(),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "one_time_use": one_time_use,
                 "used": False,
                 "last_seen": None,
@@ -174,10 +177,11 @@ class TokenManager:
 
         except Exception as e:
             logger.error(f"Failed to generate token: {e}")
-            raise ValueError(f"Token generation failed: {e}")
+            raise ValueError(f"Token generation failed: {e}") from e
 
-    def validate_token(self, token: str, mark_as_used: bool = False) -> Optional[Dict[str, Any]]:
-        """Validate a JWT token
+    def validate_token(self, token: str, mark_as_used: bool = False) -> dict[str, Any] | None:
+        """
+        Validate a JWT token
 
         Args:
             token: JWT token to validate
@@ -218,7 +222,7 @@ class TokenManager:
                     logger.info(f"Marked one-time token {token_id} as used")
 
             # Update last seen
-            self.active_tokens[token_id]["last_seen"] = datetime.utcnow().isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
             self.active_tokens[token_id]["active"] = True
             self._save_tokens()
 
@@ -235,7 +239,8 @@ class TokenManager:
             return None
 
     def revoke_token(self, token_id: str) -> bool:
-        """Revoke a token by removing it from active tokens
+        """
+        Revoke a token by removing it from active tokens
 
         Args:
             token_id: ID of token to revoke
@@ -263,7 +268,7 @@ class TokenManager:
         """Mark a client as active"""
         if token_id in self.active_tokens:
             self.active_tokens[token_id]["active"] = True
-            self.active_tokens[token_id]["last_seen"] = datetime.utcnow().isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     def mark_client_inactive(self, token_id: str):
         """Mark a client as inactive"""
@@ -294,7 +299,7 @@ class TokenManager:
 
         return clients
 
-    def get_server_stats(self) -> Dict[str, Any]:
+    def get_server_stats(self) -> dict[str, Any]:
         """Get token manager statistics"""
         self._cleanup_expired_tokens()
 

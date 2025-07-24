@@ -1,4 +1,5 @@
-"""Shared NLP model provider to eliminate circular imports.
+"""
+Shared NLP model provider to eliminate circular imports.
 
 This module provides centralized access to the SpaCy NLP model
 and other AI models used by the text formatting system.
@@ -17,7 +18,8 @@ _models_lock = threading.Lock()
 
 
 def get_nlp():
-    """Lazy-load SpaCy model with thread-safe singleton pattern.
+    """
+    Lazy-load SpaCy model with thread-safe singleton pattern.
 
     Returns:
         Optional: SpaCy NLP model instance or None if loading failed
@@ -39,7 +41,8 @@ def get_nlp():
 
 
 def get_punctuator():
-    """Lazy-load punctuation model with thread-safe singleton pattern.
+    """
+    Lazy-load punctuation model with thread-safe singleton pattern.
 
     Returns:
         Optional: Punctuation model instance or None if loading failed

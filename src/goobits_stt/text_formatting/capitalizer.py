@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Smart capitalization module for Matilda transcriptions."""
+from __future__ import annotations
 
 import re
 from typing import List, Optional
@@ -73,7 +74,7 @@ class SmartCapitalizer:
         # Load common abbreviations from resources
         self.common_abbreviations = tuple(self.resources.get("technical", {}).get("common_abbreviations", []))
 
-    def capitalize(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
+    def capitalize(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Apply intelligent capitalization with entity protection"""
         if not text:
             return text
@@ -181,11 +182,10 @@ class SmartCapitalizer:
                                 logger.debug("CLI command is entire text, not capitalizing")
                                 should_capitalize = False
                                 break
-                            else:
-                                logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
+                            logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
                             # Otherwise, allow normal capitalization for CLI commands at sentence start
                         # Special rule for versions starting with 'v' (e.g., v1.2)
-                        elif entity.type == EntityType.VERSION and entity.text.startswith('v'):
+                        elif entity.type == EntityType.VERSION and entity.text.startswith("v"):
                             logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                             should_capitalize = False
                             break
@@ -339,7 +339,7 @@ class SmartCapitalizer:
 
         return text
 
-    def _capitalize_proper_nouns(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
+    def _capitalize_proper_nouns(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Capitalize proper nouns using spaCy NER and known patterns"""
         if not self.nlp:
             # No spaCy available, return text unchanged

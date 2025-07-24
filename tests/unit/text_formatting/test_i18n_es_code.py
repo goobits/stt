@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for Spanish code-related entities.
+"""
+Comprehensive tests for Spanish code-related entities.
 
 This module tests the detection and formatting of:
 - SLASH_COMMAND: "/comando" patterns
