@@ -1,187 +1,52 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [ "setuptools>=61.0",]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "goobits-stt"
 version = "1.0.0"
 description = "GOOBITS STT - Pure speech-to-text engine with multiple operation modes"
-authors = [{name = "GOOBITS Team"}]
-license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["speech-to-text", "whisper", "transcription", "stt", "voice"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
+keywords = [ "speech-to-text", "whisper", "transcription", "stt", "voice",]
+classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12",]
+dependencies = [ "websockets>=10.0", "numpy>=1.21.0", "cryptography>=3.0.0", "PyJWT>=2.0.0", "requests>=2.25.0", "aiohttp>=3.8.0", "click>=8.0.0", "rich-click>=1.7.0", "rich>=13.0.0", "faster-whisper>=1.0.0", "ctranslate2>=4.0.0", "torch>=2.0.0", "torchaudio>=2.0.0", "silero-vad>=4.0.0", "deepmultilingualpunctuation>=1.0.0", "spacy>=3.8.0", "pyparsing>=3.0.0", "opuslib>=3.0.0", "pynput>=1.7.0", "pvporcupine>=3.0.0",]
+[[project.authors]]
+name = "GOOBITS Team"
 
-# Core dependencies for STT functionality
-dependencies = [
-    "websockets>=10.0",
-    "numpy>=1.21.0",
-    "cryptography>=3.0.0",
-    "PyJWT>=2.0.0",
-    "requests>=2.25.0",
-    "aiohttp>=3.8.0",
-    # CLI and UI
-    "click>=8.0.0",
-    "rich-click>=1.7.0",
-    "rich>=13.0.0",
-    # STT-specific
-    "faster-whisper>=1.0.0",
-    "ctranslate2>=4.0.0",
-    "torch>=2.0.0",
-    "torchaudio>=2.0.0",
-    "silero-vad>=4.0.0",
-    "deepmultilingualpunctuation>=1.0.0",
-    "spacy>=3.8.0",
-    "pyparsing>=3.0.0",
-    "opuslib>=3.0.0",
-    "pynput>=1.7.0",
-    "pvporcupine>=3.0.0",  # Porcupine wake word detection for production use
-]
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
-# Development dependencies
-dev = [
-    "pytest>=6.0",
-    "pytest-asyncio>=0.20.0",
-    "pytest-xdist>=3.0.0",  # For parallel test execution
-    "pytest-sugar>=0.9.0",  # Beautiful test output with progress bar
-    "pytest-clarity>=1.0.0",  # Better assertion diffs
-    "pytest-html>=3.0.0",  # HTML test reports
-    "pytest-json-report>=1.5.0",  # JSON test reports for custom formatting
-    "rich>=13.0.0",  # Rich terminal formatting
-    "ruff>=0.1.0",
-    "black>=22.0.0",
-    "mypy>=1.0.0",
-    "bandit>=1.7.0",
-    "pyyaml>=6.0.0",  # For test summary YAML output
-]
-
-# Enhanced audio features (optional, requires system dependencies)
-audio = [
-    "webrtc-audio-processing>=0.1.0",  # Echo cancellation (needs swig)
-    "pygame>=2.1.0",  # Audio playback
-    "pyaudio>=0.2.11",  # Alternative audio interface (needs portaudio-dev)
-    "pydub>=0.25.1",  # Enhanced audio format support
-]
-
+dev = [ "pytest>=6.0", "pytest-asyncio>=0.20.0", "pytest-xdist>=3.0.0", "pytest-sugar>=0.9.0", "pytest-clarity>=1.0.0", "pytest-html>=3.0.0", "pytest-json-report>=1.5.0", "rich>=13.0.0", "ruff>=0.1.0", "black>=22.0.0", "mypy>=1.0.0", "bandit>=1.7.0", "pyyaml>=6.0.0",]
+audio = [ "webrtc-audio-processing>=0.1.0", "pygame>=2.1.0", "pyaudio>=0.2.11", "pydub>=0.25.1",]
 
 [project.scripts]
-stt = "src.main:main"
+stt = "stt.cli:cli_entry"
 stt-server = "src.transcription.server:main"
 smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
-# Package discovery
-[tool.setuptools.packages.find]
-include = ["src*", "examples*"]
-exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
-
-# Include additional data files
-[tool.setuptools.package-data]
-src = ["*.json", "text_formatting/resources/*.json"]
-
-# Code Quality Tools Configuration
 [tool.ruff]
-# Enable comprehensive rule set
-select = ["E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
-
-# Ignore specific rules that are too strict for this project
-ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
-    "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206",  # Type annotations
-    "S602", "S603", "S607",  # subprocess calls (we use these intentionally)
-    "PLR0913",  # Too many arguments
-    "PLR2004",  # Magic values
-    "FBT002",   # Boolean default positional argument
-    "COM812",   # Trailing comma (conflicts with formatter)
-    "ISC001",   # Implicit string concatenation (conflicts with formatter)
-]
-
-# Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
+select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001",]
+fixable = [ "ALL",]
 unfixable = []
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    # Project-specific exclusions
-    ".test_artifacts",
-    "logs",
-    "*.egg-info",
-    "docker",
-    ".pytest_cache",
-    "/tmp",
-]
-
+exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".test_artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
 line-length = 120
 indent-width = 4
 target-version = "py38"
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-
 [tool.black]
 line-length = 120
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-  | venv
-  | \.test_artifacts
-  | logs
-  | .*\.egg-info
-  | docker
-  | \.pytest_cache
-  | tmp
-)/
-'''
+target-version = [ "py38",]
+include = "\\.pyi?$"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | build\n  | dist\n  | venv\n  | \\.test_artifacts\n  | logs\n  | .*\\.egg-info\n  | docker\n  | \\.pytest_cache\n  | tmp\n)/\n"
 
 [tool.mypy]
 python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false  # Start lenient, can tighten later
+disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = true
 disallow_untyped_decorators = false
@@ -191,58 +56,37 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-exclude = [
-    "venv/",
-    ".test_artifacts/",
-    "logs/",
-    "docker/",
-    ".pytest_cache/",
-    "build/",
-    "dist/",
-    "*.egg-info/",
-]
-
+exclude = [ "venv/", ".test_artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
 [[tool.mypy.overrides]]
-module = [
-    "websockets.*",
-    "faster_whisper.*",
-    "deepmultilingualpunctuation.*",
-    "spacy.*",
-    "opuslib.*",
-    "silero_vad.*",
-    "torchaudio.*",
-    "ctranslate2.*",
-    "numpy.*",
-    "pynput.*",
-]
+module = [ "websockets.*", "faster_whisper.*", "deepmultilingualpunctuation.*", "spacy.*", "opuslib.*", "silero_vad.*", "torchaudio.*", "ctranslate2.*", "numpy.*", "pynput.*",]
 ignore_missing_imports = true
 
 [tool.pylint]
 max-line-length = 120
-disable = [
-    "missing-docstring",
-    "too-few-public-methods",
-    "too-many-arguments",
-    "too-many-locals",
-    "too-many-branches",
-    "too-many-statements",
-    "import-outside-toplevel",  # We do this intentionally for performance
-    "broad-except",  # Sometimes needed for robustness
-]
+disable = [ "missing-docstring", "too-few-public-methods", "too-many-arguments", "too-many-locals", "too-many-branches", "too-many-statements", "import-outside-toplevel", "broad-except",]
 
 [tool.bandit]
-exclude_dirs = ["tests", "venv"]
-skips = ["B602", "B603", "B607"]  # subprocess calls are intentional
+exclude_dirs = [ "tests", "venv",]
+skips = [ "B602", "B603", "B607",]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.setuptools.package-data]
+src = [ "*.json", "text_formatting/resources/*.json",]
 
 [tool.coverage.run]
-source = ["src"]
-omit = [
-    "*/tests/*",
-    "*/venv/*",
-    "*/__pycache__/*",
-]
+source = [ "src",]
+omit = [ "*/tests/*", "*/venv/*", "*/__pycache__/*",]
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
 skip_covered = false
+
+[tool.setuptools.packages.find]
+include = [ "src*", "examples*",]
+exclude = [ "tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist",]

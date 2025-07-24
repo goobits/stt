@@ -1,0 +1,251 @@
+# Goobits configuration for Speech-to-Text CLI
+package_name: goobits-stt
+command_name: stt
+display_name: "Speech-to-Text CLI"
+description: "High-quality real-time speech transcription tool"
+
+# Python requirements
+python:
+  minimum_version: "3.8"
+  maximum_version: "3.11"
+
+# Dependencies
+dependencies:
+  required:
+    - git
+    - pipx
+    - portaudio19-dev
+  optional:
+    - ffmpeg
+
+# Installation settings
+installation:
+  pypi_name: goobits-stt
+  development_path: "."
+
+# Shell integration
+shell_integration:
+  enabled: true
+  alias: "stt"
+
+# Validation rules
+validation:
+  check_api_keys: false
+  check_disk_space: true
+  minimum_disk_space_mb: 500
+
+# Messages
+messages:
+  install_success: |
+    🎤 Speech-to-Text CLI installed successfully!
+    
+    Quick start:
+      stt listen              # Record and transcribe once
+      stt conversation        # Interactive mode
+      stt server             # Start WebSocket server
+    
+    Run 'stt --help' for more options.
+  
+  install_dev_success: |
+    🔧 STT installed in development mode!
+    Your changes will be reflected immediately.
+  
+  upgrade_success: |
+    ⬆️  STT has been upgraded successfully!
+  
+  uninstall_success: |
+    STT has been uninstalled.
+
+# CLI Configuration
+cli:
+  name: stt
+  tagline: "Real-time speech-to-text transcription"
+  version_command: true
+  rich_help: true
+  
+  # Help sections
+  help:
+    examples: |
+      # Basic usage
+      $ stt listen
+      $ stt conversation
+      
+      # With options
+      $ stt listen --model large --language es
+      $ stt server --port 9000
+      
+      # Batch processing
+      $ stt batch audio1.wav audio2.mp3
+    
+    setup: |
+      1. Install with: ./setup.sh install
+      2. For development: ./setup.sh install --dev
+      3. Ensure microphone permissions are granted
+  
+  # Global options (apply to all commands)
+  options:
+    - name: "model"
+      type: "str"
+      default: "base"
+      desc: "Whisper model size to use"
+      choices: ["tiny", "base", "small", "medium", "large"]
+    - name: "language"
+      type: "str"
+      default: "en"
+      desc: "Language code for transcription"
+    - name: "device"
+      type: "str"
+      default: "cpu"
+      desc: "Compute device to use"
+      choices: ["cpu", "cuda", "mps"]
+    - name: "no-formatting"
+      type: "flag"
+      desc: "Disable text formatting and punctuation"
+    - name: "json"
+      type: "flag"
+      desc: "Output results in JSON format"
+    - name: "debug"
+      type: "flag"
+      desc: "Enable debug logging"
+    - name: "config"
+      type: "str"
+      desc: "Path to configuration file"
+    - name: "sample-rate"
+      type: "int"
+      default: 16000
+      desc: "Audio sample rate in Hz"
+  
+  # Command groups
+  groups:
+    - name: "Recording Modes"
+      commands: [listen, live]
+    - name: "Server & Processing"
+      commands: [serve]
+    - name: "System"
+      commands: [status, models]
+    - name: "Configuration"
+      commands: [config]
+  
+  # Commands
+  commands:
+    # Recording modes
+    listen:
+      desc: "Record once and transcribe"
+      category: "Recording Modes"
+      options:
+        - name: "device"
+          type: "str"
+          desc: "Audio input device to use"
+        - name: "language"
+          type: "str"
+          desc: "Language code for transcription"
+        - name: "model"
+          type: "str"
+          default: "base"
+          desc: "Whisper model to use"
+          choices: ["tiny", "base", "small", "medium", "large"]
+        - name: "hold-to-talk"
+          type: "str"
+          desc: "Hold key to record"
+        - name: "json"
+          type: "flag"
+          desc: "Output as JSON"
+        - name: "debug"
+          type: "flag"
+          desc: "Enable debug output"
+        - name: "config"
+          type: "str"
+          desc: "Path to config file"
+        - name: "no-formatting"
+          type: "flag"
+          desc: "Disable text formatting"
+        - name: "sample-rate"
+          type: "int"
+          default: 16000
+          desc: "Audio sample rate"
+    
+    live:
+      desc: "Live conversation mode"
+      category: "Recording Modes"
+      options:
+        - name: "device"
+          type: "str"
+          desc: "Audio input device to use"
+        - name: "language"
+          type: "str"
+          desc: "Language code for transcription"
+        - name: "model"
+          type: "str"
+          default: "base"
+          desc: "Whisper model to use"
+          choices: ["tiny", "base", "small", "medium", "large"]
+        - name: "tap-to-talk"
+          type: "str"
+          desc: "Key to tap for push-to-talk"
+        - name: "json"
+          type: "flag"
+          desc: "Output as JSON"
+        - name: "debug"
+          type: "flag"
+          desc: "Enable debug output"
+        - name: "config"
+          type: "str"
+          desc: "Path to config file"
+        - name: "no-formatting"
+          type: "flag"
+          desc: "Disable text formatting"
+        - name: "sample-rate"
+          type: "int"
+          default: 16000
+          desc: "Audio sample rate"
+    
+    # Server and processing
+    serve:
+      desc: "Start transcription server"
+      category: "Server & Processing"
+      options:
+        - name: "port"
+          type: "int"
+          default: 8769
+          desc: "Port to run server on"
+        - name: "host"
+          type: "str"
+          default: "0.0.0.0"
+          desc: "Host to bind to"
+        - name: "debug"
+          type: "flag"
+          desc: "Enable debug output"
+        - name: "config"
+          type: "str"
+          desc: "Path to config file"
+    
+    # System commands
+    status:
+      desc: "Show system status and capabilities"
+      category: "System"
+    
+    models:
+      desc: "List available Whisper models"
+      category: "System"
+    
+    # Configuration
+    config:
+      desc: "Manage STT configuration"
+      category: "Configuration"
+      subcommands:
+        list:
+          desc: "List all configuration settings"
+        
+        get:
+          desc: "Get specific configuration value"
+          args:
+            - name: "key"
+              desc: "Configuration key to retrieve"
+        
+        set:
+          desc: "Set configuration value"
+          args:
+            - name: "key"
+              desc: "Configuration key"
+            - name: "value"
+              desc: "Configuration value"
