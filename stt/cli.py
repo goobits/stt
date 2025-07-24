@@ -89,6 +89,10 @@ def load_plugins(cli_group):
             if plugin_file.name.startswith("_"):
                 continue
                 
+            # Skip core system files that aren't plugins
+            if plugin_file.name in ["loader.py", "__init__.py"]:
+                continue
+                
             plugin_name = plugin_file.stem
             
             try:

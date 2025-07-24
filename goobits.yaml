@@ -17,7 +17,22 @@ dependencies:
   required:
     - git
     - pipx
-    - portaudio19-dev
+    - type: system_package
+      name: portaudio19-dev
+      description: "PortAudio development headers for audio recording"
+      ubuntu: libportaudio2-dev
+      debian: libportaudio2-dev
+      centos: portaudio-devel
+      fedora: portaudio-devel
+      macos: portaudio
+      check_method: pkg_config
+      check_args: ["--exists", "portaudio-2.0"]
+      install_instructions:
+        ubuntu: "sudo apt update && sudo apt install libportaudio2-dev"
+        debian: "sudo apt update && sudo apt install libportaudio2-dev"
+        centos: "sudo yum install portaudio-devel"
+        fedora: "sudo dnf install portaudio-devel"
+        macos: "brew install portaudio"
   optional:
     - ffmpeg
 

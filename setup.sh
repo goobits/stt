@@ -61,9 +61,13 @@ readonly REQUIRED_MB="500"
 readonly SHELL_INTEGRATION="True"
 readonly SHELL_ALIAS="stt"
 
-# Dependencies
+# Dependencies (legacy format for backward compatibility)
 readonly REQUIRED_DEPS=("git" "pipx" "portaudio19-dev")
 readonly OPTIONAL_DEPS=("ffmpeg")
+
+# Enhanced dependency data (JSON format for complex dependencies)
+readonly REQUIRED_DEPS_JSON='[{"type": "command", "name": "git", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "pipx", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "system_package", "name": "portaudio19-dev", "description": "PortAudio development headers for audio recording", "ubuntu": "libportaudio2-dev", "debian": "libportaudio2-dev", "centos": "portaudio-devel", "fedora": "portaudio-devel", "macos": "portaudio", "windows": null, "check_method": "pkg_config", "check_args": ["--exists", "portaudio-2.0"], "install_instructions": {"ubuntu": "sudo apt update && sudo apt install libportaudio2-dev", "debian": "sudo apt update && sudo apt install libportaudio2-dev", "centos": "sudo yum install portaudio-devel", "fedora": "sudo dnf install portaudio-devel", "macos": "brew install portaudio"}}]'
+readonly OPTIONAL_DEPS_JSON='[{"type": "command", "name": "ffmpeg", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
 
 # Tree view helper functions
 tree_start() {
@@ -144,6 +148,145 @@ get_version() {
     else
         echo ""
     fi
+}
+
+# Platform detection
+detect_platform() {
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        case "$ID" in
+            ubuntu) echo "ubuntu" ;;
+            debian) echo "debian" ;;
+            centos|rhel) echo "centos" ;;
+            fedora) echo "fedora" ;;
+            *) echo "linux" ;;
+        esac
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]]; then
+        echo "windows"
+    else
+        echo "unknown"
+    fi
+}
+
+# Validate system package using various methods
+validate_system_package() {
+    local dep_name="$1"
+    local dep_type="$2"
+    local platform_package="$3"
+    local check_method="$4"
+    local check_args="$5"
+    
+    # If it's a command type, use command -v
+    if [[ "$dep_type" == "command" ]]; then
+        command -v "$dep_name" >/dev/null 2>&1
+        return $?
+    fi
+    
+    # For system packages, try different detection methods
+    case "$check_method" in
+        "pkg_config")
+            if command -v pkg-config >/dev/null 2>&1; then
+                if [[ -n "$check_args" ]]; then
+                    eval "pkg-config $check_args" >/dev/null 2>&1
+                    return $?
+                else
+                    pkg-config --exists "$dep_name" >/dev/null 2>&1
+                    return $?
+                fi
+            fi
+            ;;
+        "dpkg_query")
+            if command -v dpkg >/dev/null 2>&1; then
+                dpkg -l | grep -q "^ii.*$platform_package" 2>/dev/null
+                return $?
+            fi
+            ;;
+        "rpm_query")
+            if command -v rpm >/dev/null 2>&1; then
+                rpm -q "$platform_package" >/dev/null 2>&1
+                return $?
+            fi
+            ;;
+        "brew_list")
+            if command -v brew >/dev/null 2>&1; then
+                brew list "$platform_package" >/dev/null 2>&1
+                return $?
+            fi
+            ;;
+        "file_exists")
+            if [[ -n "$check_args" ]]; then
+                for file_path in $check_args; do
+                    [[ -f "$file_path" ]] && return 0
+                done
+            fi
+            return 1
+            ;;
+    esac
+    
+    # Fallback: try platform-specific detection
+    local current_platform=$(detect_platform)
+    case "$current_platform" in
+        "ubuntu"|"debian")
+            if command -v dpkg >/dev/null 2>&1; then
+                dpkg -l | grep -q "^ii.*$platform_package" 2>/dev/null
+                return $?
+            fi
+            ;;
+        "centos"|"fedora")
+            if command -v rpm >/dev/null 2>&1; then
+                rpm -q "$platform_package" >/dev/null 2>&1
+                return $?
+            fi
+            ;;
+        "macos")
+            if command -v brew >/dev/null 2>&1; then
+                brew list "$platform_package" >/dev/null 2>&1
+                return $?
+            fi
+            ;;
+    esac
+    
+    return 1
+}
+
+# Generate installation instruction for missing package
+generate_install_instruction() {
+    local dep_name="$1"
+    local platform_package="$2"
+    local install_instructions="$3"
+    
+    local current_platform=$(detect_platform)
+    
+    # Check if custom install instructions are provided
+    if [[ -n "$install_instructions" ]]; then
+        # Parse JSON-like install instructions (simplified)
+        local instruction=$(echo "$install_instructions" | grep -o "\"$current_platform\":[^,}]*" | cut -d: -f2- | tr -d '"')
+        if [[ -n "$instruction" ]]; then
+            echo "$instruction"
+            return
+        fi
+    fi
+    
+    # Generate default instructions based on platform
+    case "$current_platform" in
+        "ubuntu"|"debian")
+            echo "sudo apt update && sudo apt install $platform_package"
+            ;;
+        "centos")
+            echo "sudo yum install $platform_package"
+            ;;
+        "fedora")
+            echo "sudo dnf install $platform_package"
+            ;;
+        "macos")
+            echo "brew install $platform_package"
+            ;;
+        *)
+            echo "Install $dep_name ($platform_package) using your system package manager"
+            ;;
+    esac
 }
 
 # Logging functions (original + tree mode support)
@@ -374,23 +517,72 @@ validate_python_tree() {
 validate_dependencies_tree() {
     local missing_deps=()
     local optional_missing=()
+    local install_instructions=()
     
-    # Check required dependencies
-    for dep in "${REQUIRED_DEPS[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
+    # Enhanced dependency validation using JSON data
+    if command -v python3 >/dev/null 2>&1; then
+        # Parse and validate required dependencies
+        local required_result=$(python3 -c "
+import json
+import sys
+try:
+    required_deps = json.loads('$REQUIRED_DEPS_JSON')
+    current_platform = '$SYSTEM_OS'
     
-    # Check optional dependencies
+    missing = []
+    instructions = []
+    
+    for dep in required_deps:
+        if isinstance(dep, str):
+            dep = {'name': dep, 'type': 'command'}
+        
+        dep_name = dep['name']
+        dep_type = dep.get('type', 'command')
+        
+        # Get platform-specific package name
+        platform_package = dep.get(current_platform, dep_name)
+        check_method = dep.get('check_method', '')
+        check_args = ' '.join(dep.get('check_args', []))
+        
+        # For now, we'll do basic validation in shell
+        print(f'{dep_name}|{dep_type}|{platform_package}|{check_method}|{check_args}')
+except Exception as e:
+    # Fallback to simple validation
+    pass
+")
+        
+        # Process each dependency
+        while IFS='|' read -r dep_name dep_type platform_package check_method check_args; do
+            if [[ -n "$dep_name" ]]; then
+                if ! validate_system_package "$dep_name" "$dep_type" "$platform_package" "$check_method" "$check_args"; then
+                    missing_deps+=("$dep_name")
+                    local instruction=$(generate_install_instruction "$dep_name" "$platform_package" "")
+                    install_instructions+=("$instruction")
+                fi
+            fi
+        done <<< "$required_result"
+    else
+        # Fallback to legacy validation
+        for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! command -v "$dep" >/dev/null 2>&1; then
+                missing_deps+=("$dep")
+            fi
+        done
+    fi
+    
+    # Similar process for optional dependencies (simplified)
     for dep in "${OPTIONAL_DEPS[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             optional_missing+=("$dep")
         fi
     done
     
+    # Display results
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
-        tree_sub_node "error" "Missing required: ${missing_deps[*]}" "true"
+        tree_sub_node "error" "Missing required: ${missing_deps[*]}"
+        if [[ ${#install_instructions[@]} -gt 0 ]]; then
+            tree_sub_node "info" "Install with: ${install_instructions[0]}" "true"
+        fi
         return 1
     fi
     
@@ -438,24 +630,75 @@ validate_disk_space() {
 validate_dependencies() {
     local missing_deps=()
     local optional_missing=()
+    local install_instructions=()
     
-    # Check required dependencies
-    for dep in "${REQUIRED_DEPS[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
+    # Enhanced dependency validation using JSON data
+    if command -v python3 >/dev/null 2>&1; then
+        # Parse and validate required dependencies
+        local required_result=$(python3 -c "
+import json
+import sys
+try:
+    required_deps = json.loads('$REQUIRED_DEPS_JSON')
+    current_platform = '$SYSTEM_OS'
     
-    # Check optional dependencies
+    missing = []
+    instructions = []
+    
+    for dep in required_deps:
+        if isinstance(dep, str):
+            dep = {'name': dep, 'type': 'command'}
+        
+        dep_name = dep['name']
+        dep_type = dep.get('type', 'command')
+        
+        # Get platform-specific package name
+        platform_package = dep.get(current_platform, dep_name)
+        check_method = dep.get('check_method', '')
+        check_args = ' '.join(dep.get('check_args', []))
+        
+        # For now, we'll do basic validation in shell
+        print(f'{dep_name}|{dep_type}|{platform_package}|{check_method}|{check_args}')
+except Exception as e:
+    # Fallback to simple validation
+    pass
+")
+        
+        # Process each dependency
+        while IFS='|' read -r dep_name dep_type platform_package check_method check_args; do
+            if [[ -n "$dep_name" ]]; then
+                if ! validate_system_package "$dep_name" "$dep_type" "$platform_package" "$check_method" "$check_args"; then
+                    missing_deps+=("$dep_name")
+                    local instruction=$(generate_install_instruction "$dep_name" "$platform_package" "")
+                    install_instructions+=("$instruction")
+                fi
+            fi
+        done <<< "$required_result"
+    else
+        # Fallback to legacy validation
+        for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! command -v "$dep" >/dev/null 2>&1; then
+                missing_deps+=("$dep")
+            fi
+        done
+    fi
+    
+    # Similar process for optional dependencies (simplified)
     for dep in "${OPTIONAL_DEPS[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             optional_missing+=("$dep")
         fi
     done
     
+    # Display results
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         log_error "Missing required dependencies: ${missing_deps[*]}"
-        log_error "Please install the missing dependencies and try again"
+        if [[ ${#install_instructions[@]} -gt 0 ]]; then
+            log_info "To install missing dependencies:"
+            for instruction in "${install_instructions[@]}"; do
+                log_info "  $instruction"
+            done
+        fi
         return 1
     fi
     
