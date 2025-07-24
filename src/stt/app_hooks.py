@@ -1,39 +1,45 @@
 """
 App hooks for STT CLI - bridges Goobits CLI with existing STT functionality
 """
+import asyncio
 import sys
-from typing import List, Optional, Any
+from typing import Optional, Any
+from pathlib import Path
 
-# Import existing STT modules
-import sys
-import os
-# Add parent directory to path to import main
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from main import main as legacy_main
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 
-# Helper function to build command line args for legacy main
-def _build_args(mode: str, **kwargs) -> List[str]:
-    """Build command line arguments for legacy main function"""
-    args = [mode]
+def create_args_object(**kwargs):
+    """Create an args object that mimics argparse namespace"""
+    class Args:
+        pass
     
-    # Add options
-    if 'model' in kwargs and kwargs['model']:
-        args.extend(['--model', kwargs['model']])
-    if 'language' in kwargs and kwargs['language']:
-        args.extend(['--language', kwargs['language']])
-    if 'device' in kwargs and kwargs['device']:
-        args.extend(['--device', kwargs['device']])
-    if 'no_formatting' in kwargs and kwargs['no_formatting']:
-        args.append('--no-formatting')
-    if 'json' in kwargs and kwargs['json']:
-        args.append('--json')
-    if 'debug' in kwargs and kwargs['debug']:
-        args.append('--debug')
-    if 'config' in kwargs and kwargs['config']:
-        args.extend(['--config', kwargs['config']])
-    if 'sample_rate' in kwargs and kwargs['sample_rate']:
-        args.extend(['--sample-rate', str(kwargs['sample_rate'])])
+    args = Args()
+    
+    # Set all kwargs as attributes
+    for key, value in kwargs.items():
+        # Convert underscores to hyphens for consistency
+        attr_name = key.replace('-', '_')
+        setattr(args, attr_name, value)
+    
+    # Set defaults for common attributes
+    if not hasattr(args, 'debug'):
+        args.debug = False
+    if not hasattr(args, 'json'):
+        args.json = False
+    if not hasattr(args, 'model'):
+        args.model = 'base'
+    if not hasattr(args, 'language'):
+        args.language = None
+    if not hasattr(args, 'device'):
+        args.device = None
+    if not hasattr(args, 'no_formatting'):
+        args.no_formatting = False
+    if not hasattr(args, 'sample_rate'):
+        args.sample_rate = 16000
+    if not hasattr(args, 'config'):
+        args.config = None
     
     return args
 
@@ -44,20 +50,17 @@ def on_listen(device: Optional[str] = None, language: Optional[str] = None,
               json: bool = False, debug: bool = False, config: Optional[str] = None,
               no_formatting: bool = False, sample_rate: Optional[int] = None, **kwargs):
     """Listen once and transcribe"""
-    # Build kwargs dict for _build_args
-    options = {
-        'device': device, 'language': language, 'model': model,
-        'json': json, 'debug': debug, 'config': config,
-        'no_formatting': no_formatting, 'sample_rate': sample_rate
-    }
-    args = _build_args('listen', **options)
+    from src.modes.listen_once import ListenOnceMode
     
-    if hold_to_talk:
-        args.extend(['--hold-to-talk', hold_to_talk])
+    args = create_args_object(
+        device=device, language=language, model=model,
+        hold_to_talk=hold_to_talk, json=json, debug=debug,
+        config=config, no_formatting=no_formatting,
+        sample_rate=sample_rate or 16000
+    )
     
-    # Call legacy main with constructed args
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    mode = ListenOnceMode(args)
+    return asyncio.run(mode.run())
 
 
 def on_live(device: Optional[str] = None, language: Optional[str] = None, 
@@ -65,80 +68,103 @@ def on_live(device: Optional[str] = None, language: Optional[str] = None,
             json: bool = False, debug: bool = False, config: Optional[str] = None,
             no_formatting: bool = False, sample_rate: Optional[int] = None, **kwargs):
     """Live conversation mode"""
-    # Build kwargs dict for _build_args
-    options = {
-        'device': device, 'language': language, 'model': model,
-        'json': json, 'debug': debug, 'config': config,
-        'no_formatting': no_formatting, 'sample_rate': sample_rate
-    }
-    args = _build_args('live', **options)
+    from src.modes.conversation import ConversationMode
     
-    if tap_to_talk:
-        args.extend(['--tap-to-talk', tap_to_talk])
+    args = create_args_object(
+        device=device, language=language, model=model,
+        tap_to_talk=tap_to_talk, json=json, debug=debug,
+        config=config, no_formatting=no_formatting,
+        sample_rate=sample_rate or 16000
+    )
     
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    mode = ConversationMode(args)
+    return asyncio.run(mode.run())
 
 
-
-
-# Server and processing commands
+# Server command
 def on_serve(port: int = 8769, host: str = "0.0.0.0", 
              debug: bool = False, config: Optional[str] = None, **kwargs):
     """Start transcription server"""
-    args = ['serve']
+    from src.transcription.server import TranscriptionServer
     
-    args.extend(['--port', str(port)])
-    args.extend(['--host', host])
+    args = create_args_object(
+        port=port, host=host, debug=debug, config=config
+    )
     
-    if debug:
-        args.append('--debug')
-    if config:
-        args.extend(['--config', config])
-    
-    sys.argv = ['stt'] + args
-    return legacy_main()
-
-
+    # Server mode is a bit different - it starts directly
+    server = TranscriptionServer(port=port, host=host)
+    try:
+        asyncio.run(server.start())
+        return 0
+    except KeyboardInterrupt:
+        return 0
+    except Exception as e:
+        if debug:
+            import traceback
+            traceback.print_exc()
+        print(f"Server error: {e}")
+        return 1
 
 
 # System commands
 def on_status(**kwargs):
     """Show system status"""
-    args = ['status']
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    try:
+        from src.utils.system_status import show_system_status
+        show_system_status()
+        return 0
+    except ImportError:
+        print("System status module not available")
+        return 1
 
 
 def on_models(**kwargs):
     """List available models"""
-    args = ['models']
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    print("Available Whisper models:")
+    print("  tiny    - Fastest, least accurate (39M parameters)")
+    print("  base    - Fast, good accuracy (74M parameters)")
+    print("  small   - Balanced speed/accuracy (244M parameters)")
+    print("  medium  - Slower, better accuracy (769M parameters)")
+    print("  large   - Slowest, best accuracy (1550M parameters)")
+    return 0
 
 
 # Configuration commands
 def on_config_list(**kwargs):
     """List all configuration"""
-    args = ['config', 'list']
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    from src.core.config import Config
+    
+    config = Config()
+    config.list_all()
+    return 0
 
 
 def on_config_get(key: str, **kwargs):
     """Get configuration value"""
-    args = ['config', 'get', key]
-    sys.argv = ['stt'] + args
-    return legacy_main()
+    from src.core.config import Config
+    
+    config = Config()
+    value = config.get(key)
+    if value is not None:
+        print(f"{key}: {value}")
+        return 0
+    else:
+        print(f"Configuration key '{key}' not found")
+        return 1
 
 
 def on_config_set(key: str, value: str, **kwargs):
     """Set configuration value"""
-    args = ['config', 'set', key, value]
-    sys.argv = ['stt'] + args
-    return legacy_main()
-
-
+    from src.core.config import Config
+    
+    config = Config()
+    try:
+        config.set(key, value)
+        print(f"Set {key} = {value}")
+        return 0
+    except Exception as e:
+        print(f"Error setting configuration: {e}")
+        return 1
 
 
 # Hook for custom initialization if needed
