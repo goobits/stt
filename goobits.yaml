@@ -4,10 +4,13 @@ command_name: stt
 display_name: "Speech-to-Text CLI"
 description: "High-quality real-time speech transcription tool"
 
+# CLI generation configuration
+cli_output_path: "stt/cli.py"
+
 # Python requirements
 python:
   minimum_version: "3.8"
-  maximum_version: "3.11"
+  maximum_version: "3.13"
 
 # Dependencies
 dependencies:
