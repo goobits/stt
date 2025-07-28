@@ -4,8 +4,8 @@ Verification script to check if all test dependencies are properly installed.
 Run this before running the test suite to ensure everything is set up correctly.
 """
 
-import sys
 import importlib
+import sys
 
 
 def check_dependency(module_name, description, allow_display_errors=False):

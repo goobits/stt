@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import io
 import wave
+
 import numpy as np
 import opuslib
-from typing import Tuple
 
 # Setup standardized logging
 try:
-    from ..config import get_logger
+    from goobits_stt.core.config import get_logger
 
     logger = get_logger(__name__)
 except ImportError:

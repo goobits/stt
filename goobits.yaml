@@ -5,7 +5,8 @@ display_name: "Speech-to-Text CLI"
 description: "High-quality real-time speech transcription tool"
 
 # CLI generation configuration
-cli_output_path: "stt/cli.py"
+cli_output_path: "src/goobits_stt/cli.py"
+hooks_path: "src/goobits_stt/app_hooks.py"
 
 # Python requirements
 python:

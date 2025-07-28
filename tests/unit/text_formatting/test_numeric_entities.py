@@ -78,7 +78,6 @@ class TestCardinalNumbers:
             result = format_transcription(input_text)
             # Note: Current implementation may not format large numbers with commas
             # This test documents expected behavior
-            print(f"Large number test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_idiomatic_numbers_not_converted(self, preloaded_formatter):
         """Test that idiomatic expressions with numbers are not converted."""
@@ -111,7 +110,6 @@ class TestCardinalNumbers:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Note: Some of these expectations may not match current implementation
-            print(f"Context test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestOrdinalNumbers:
@@ -187,7 +185,6 @@ class TestOrdinalNumbers:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # For now, just capture what happens - we'll update expectations after implementing context awareness
-            print(f"Ordinal context test: '{input_text}' -> '{result}' (expected after implementation: '{expected}')")
 
 
 class TestNumericRanges:

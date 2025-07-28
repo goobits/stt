@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import ssl
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal
+
 from goobits_stt.core.config import get_config, setup_logging
 
 # Get config and logger

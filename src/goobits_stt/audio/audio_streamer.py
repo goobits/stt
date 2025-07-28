@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import asyncio
-import numpy as np
-from typing import Optional
 import weakref
-from aiohttp import web
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy as np
+    from aiohttp import web
 
 # Setup standardized logging
 try:
-    from ..config import get_logger
+    from goobits_stt.core.config import get_logger
+
     from .encoder import OpusEncoder
 
     logger = get_logger(__name__)

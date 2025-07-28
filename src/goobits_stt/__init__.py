@@ -13,10 +13,10 @@ __version__ = "1.0.0"
 __author__ = "GOOBITS Team"
 
 # Import key classes for easy access
-from .modes.listen_once import ListenOnceMode
 from .modes.conversation import ConversationMode
-from .modes.tap_to_talk import TapToTalkMode
 from .modes.hold_to_talk import HoldToTalkMode
+from .modes.listen_once import ListenOnceMode
+from .modes.tap_to_talk import TapToTalkMode
 
 __all__ = [
     "ConversationMode",

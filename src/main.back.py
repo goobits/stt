@@ -30,11 +30,11 @@ click.rich_click.COMMAND_GROUPS = {
 GOOBITS STT - Pure speech-to-text engine with multiple operation modes
 """
 
+import argparse
 import asyncio
 import json
-import sys
-import argparse
 import os
+import sys
 from pathlib import Path
 
 RICH_AVAILABLE = True

@@ -17,14 +17,15 @@ Design Benefits:
 from __future__ import annotations
 
 import asyncio
-import uuid
-from typing import Optional, Dict, Any
-from dataclasses import dataclass
-
-from goobits_stt.core.config import get_config, setup_logging
-from .client import StreamingAudioClient
-from goobits_stt.audio.capture import PipeBasedAudioStreamer
 import contextlib
+import uuid
+from dataclasses import dataclass
+from typing import Any
+
+from goobits_stt.audio.capture import PipeBasedAudioStreamer
+from goobits_stt.core.config import get_config, setup_logging
+
+from .client import StreamingAudioClient
 
 # Setup logging and config
 logger = setup_logging(__name__, log_filename="transcription.txt")

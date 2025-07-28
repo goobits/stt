@@ -716,11 +716,6 @@ class TestFilenameEdgeCasesAndRegressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # This documents the current behavior, which may be incorrect
-            print(f"GREEDY FILENAME ISSUE - Input: '{input_text}'")
-            print(f"                       Expected: '{expected}'")
-            print(f"                       Actual: '{result}'")
-            print("                       Issue: Filename detection is too greedy")
-            print()
 
     def test_filename_boundary_detection(self, preloaded_formatter):
         """Test that filename detection respects word boundaries."""
@@ -738,7 +733,6 @@ class TestFilenameEdgeCasesAndRegressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Boundary detection may not work perfectly
-            print(f"Boundary test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_ambiguous_dot_patterns(self, preloaded_formatter):
         """Test ambiguous cases where 'dot' could mean different things."""
@@ -757,7 +751,6 @@ class TestFilenameEdgeCasesAndRegressions:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            print(f"Ambiguous dot: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 if __name__ == "__main__":

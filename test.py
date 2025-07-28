@@ -4,10 +4,12 @@
 Single entry point for all testing functionality: running tests, viewing history,
 comparing runs, and detailed analysis.
 """
-import sys
-import subprocess
 import argparse
+import importlib.util
 import os
+import subprocess
+import sys
+
 
 # Auto-detect and use test environment if available
 def check_and_use_test_env():
@@ -254,15 +256,14 @@ def main():
     if known_args.summary:
         print("🚀 Running tests in sequential mode (required for summary)...")
     elif not known_args.sequential and known_args.parallel != "off":
-        try:
-            import xdist
+        if importlib.util.find_spec("xdist") is not None:
             workers = known_args.parallel if known_args.parallel != "auto" else "7"
             
             # Only add if not already specified
             if not any(arg.startswith("-n") for arg in pytest_args):
                 cmd.extend(["-n", workers])
                 print(f"🚀 Running tests in parallel with {workers} workers...")
-        except ImportError:
+        else:
             print("⚠️  pytest-xdist not installed. Install with: pip install pytest-xdist")
             print("Falling back to sequential execution...")
     else:
@@ -286,8 +287,8 @@ def main():
         
         # Try using rich for better terminal management
         try:
-            from rich.live import Live
             from rich.console import Console
+            from rich.live import Live
             from rich.panel import Panel
             from rich.text import Text
             

@@ -11,12 +11,13 @@ This mode provides automatic speech detection and transcription of a single utte
 from __future__ import annotations
 
 import asyncio
-import time
-from typing import Dict, Any, Optional
 import sys
+import time
+from typing import Any
+
+from goobits_stt.audio.vad import SileroVAD
 
 from .base_mode import BaseMode
-from goobits_stt.audio.vad import SileroVAD
 
 try:
     import numpy as np

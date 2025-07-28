@@ -4,18 +4,19 @@ CLI Smoke Tests - "Does it still work?" tests
 
 These tests detect when the app is fundamentally broken:
 - Import errors
-- Config file corruption  
+- Config file corruption
 - Basic CLI functionality
 - Startup crashes
 
 NOT testing edge cases or complex logic - just "can the app start?"
 """
 
-import pytest
-import sys
-import subprocess
 import os
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 
 class TestCLIImports:
@@ -23,7 +24,7 @@ class TestCLIImports:
 
     def test_cli_creation_functions_import(self):
         """Can we import and create CLI parsers without explosions?"""
-        from goobits_stt.main import create_rich_cli, async_main
+        from goobits_stt.main import async_main, create_rich_cli
 
         # Test that CLI creation doesn't crash
         cli = create_rich_cli()
@@ -38,10 +39,10 @@ class TestCLIImports:
 
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
-        from goobits_stt.modes.listen_once import ListenOnceMode
         from goobits_stt.modes.conversation import ConversationMode
-        from goobits_stt.modes.tap_to_talk import TapToTalkMode
         from goobits_stt.modes.hold_to_talk import HoldToTalkMode
+        from goobits_stt.modes.listen_once import ListenOnceMode
+        from goobits_stt.modes.tap_to_talk import TapToTalkMode
 
         # Just importing without crashing is the test
         assert ListenOnceMode is not None
@@ -177,8 +178,9 @@ class TestBaseModeLogic:
 
     def test_base_mode_can_be_created(self):
         """Can we create a BaseMode subclass without crashing?"""
-        from goobits_stt.modes.base_mode import BaseMode
         from types import SimpleNamespace
+
+        from goobits_stt.modes.base_mode import BaseMode
 
         # Create mock args
         args = SimpleNamespace(
@@ -204,8 +206,9 @@ class TestBaseModeLogic:
 
     def test_mode_name_generation(self):
         """Test that mode name generation works correctly."""
-        from goobits_stt.modes.base_mode import BaseMode
         from types import SimpleNamespace
+
+        from goobits_stt.modes.base_mode import BaseMode
 
         args = SimpleNamespace(debug=False, format="json", sample_rate=16000,
                              device=None, model="base", language=None)

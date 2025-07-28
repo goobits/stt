@@ -9,11 +9,12 @@ converter for better maintainability and performance.
 from __future__ import annotations
 
 import re
-from typing import Optional
+
+from goobits_stt.core.config import get_config, setup_logging
+
+from . import regex_patterns
 from .common import Entity, EntityType, NumberParser
 from .constants import get_resources
-from goobits_stt.core.config import get_config, setup_logging
-from . import regex_patterns
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 

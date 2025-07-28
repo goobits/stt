@@ -2,10 +2,10 @@
 """Generate self-signed SSL certificates for Matilda WebSocket server development.
 This script creates certificates suitable for development and testing purposes.
 """
-import os
-import sys
-import subprocess
 import datetime
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 # Add project root to path for imports
@@ -107,11 +107,12 @@ def generate_certificates_openssl(cert_dir: Path, key_file: Path, cert_file: Pat
 def generate_certificates_python(cert_dir: Path, key_file: Path, cert_file: Path, validity_days: int = 365) -> bool:
     """Generate certificates using Python cryptography library"""
     try:
+        import ipaddress
+
         from cryptography import x509
-        from cryptography.x509.oid import NameOID
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import rsa
-        import ipaddress
+        from cryptography.x509.oid import NameOID
 
         print("🔐 Generating SSL certificates using Python cryptography...")
 

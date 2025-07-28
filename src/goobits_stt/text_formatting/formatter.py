@@ -10,29 +10,29 @@ Clean architecture with 4 specialized classes:
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import re
-from typing import List, Optional
+
 from goobits_stt.core.config import get_config, setup_logging
-
-# Import common data structures
-from .common import EntityType, Entity, NumberParser
-from .utils import is_inside_entity
-
-# Import specialized formatters
-from .detectors.web_detector import WebEntityDetector
-from .detectors.code_detector import CodeEntityDetector
-from .detectors.numeric_detector import NumericalEntityDetector
-from .pattern_converter import PatternConverter as UnifiedPatternConverter
-from .capitalizer import SmartCapitalizer
-from .nlp_provider import get_nlp, get_punctuator
 
 # Import centralized regex patterns
 from . import regex_patterns
+from .capitalizer import SmartCapitalizer
+
+# Import common data structures
+from .common import Entity, EntityType, NumberParser
 
 # Import resource loader for i18n constants
 from .constants import get_resources
-import contextlib
+from .detectors.code_detector import CodeEntityDetector
+from .detectors.numeric_detector import NumericalEntityDetector
+
+# Import specialized formatters
+from .detectors.web_detector import WebEntityDetector
+from .nlp_provider import get_nlp, get_punctuator
+from .pattern_converter import PatternConverter as UnifiedPatternConverter
+from .utils import is_inside_entity
 
 # Setup config and logging
 config = get_config()
@@ -1078,7 +1078,8 @@ class TextFormatter:
 
         # Filter profanity using centralized pattern creation
         profanity_pattern = regex_patterns.create_profanity_pattern(self.profanity_words)
-        return profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
+        result: str = profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
+        return result
 
 
     def _apply_filters(self, text: str) -> str:

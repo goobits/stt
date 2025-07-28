@@ -13,15 +13,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
+import sys
 import tempfile
+import time
 import wave
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-import sys
+from typing import Any
 
-from goobits_stt.core.config import get_config, setup_logging
 from goobits_stt.audio.capture import PipeBasedAudioStreamer
+from goobits_stt.core.config import get_config, setup_logging
 
 try:
     import numpy as np
@@ -73,7 +73,8 @@ class BaseMode(ABC):
     def _get_mode_config(self) -> dict[str, Any]:
         """Get mode-specific configuration from config.json."""
         mode_name = self._get_mode_name()
-        return self.config.get("modes", {}).get(mode_name, {})
+        result: dict[str, Any] = self.config.get("modes", {}).get(mode_name, {})
+        return result
 
     @abstractmethod
     async def run(self):

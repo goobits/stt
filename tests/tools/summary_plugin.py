@@ -3,11 +3,12 @@ Simplified pytest plugin for clean failure summaries.
 Generates YAML/JSON reports with proper value extraction.
 """
 
-import pytest
-import yaml
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
+
+import pytest
+import yaml
 
 
 def extract_failure_details(longrepr: str) -> dict:

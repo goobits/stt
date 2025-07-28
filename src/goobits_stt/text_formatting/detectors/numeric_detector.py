@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Dict, Any
-from ..common import Entity, EntityType, NumberParser
-from ..utils import is_inside_entity
+from typing import Any
+
 from goobits_stt.core.config import setup_logging
-from .. import regex_patterns
-from ..constants import get_resources
+from goobits_stt.text_formatting import regex_patterns
+from goobits_stt.text_formatting.common import Entity, EntityType, NumberParser
+from goobits_stt.text_formatting.constants import get_resources
+from goobits_stt.text_formatting.utils import is_inside_entity
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -18,14 +19,16 @@ logger = setup_logging(__name__, log_filename="text_formatting.txt", include_con
 # Math expression parsing
 try:
     from pyparsing import (
-        Word,
-        nums,
-        alphas,
-        alphanums,
         Optional as OptionalPP,
-        oneOf,
+    )
+    from pyparsing import (
         ParseException,
+        Word,
+        alphanums,
+        alphas,
         infixNotation,
+        nums,
+        oneOf,
         opAssoc,
     )
 
@@ -164,7 +167,7 @@ class NumericalEntityDetector:
 
         """
         if nlp is None:
-            from ..nlp_provider import get_nlp
+            from goobits_stt.text_formatting.nlp_provider import get_nlp
 
             nlp = get_nlp()
 

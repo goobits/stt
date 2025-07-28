@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
-from ..common import Entity, EntityType
-from ..utils import is_inside_entity, overlaps_with_entity
+
 from goobits_stt.core.config import setup_logging
-from .. import regex_patterns
-from ..constants import get_resources
+from goobits_stt.text_formatting import regex_patterns
+from goobits_stt.text_formatting.common import Entity, EntityType
+from goobits_stt.text_formatting.constants import get_resources
+from goobits_stt.text_formatting.utils import is_inside_entity, overlaps_with_entity
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -24,7 +24,7 @@ class CodeEntityDetector:
 
         """
         if nlp is None:
-            from ..nlp_provider import get_nlp
+            from goobits_stt.text_formatting.nlp_provider import get_nlp
 
             nlp = get_nlp()
 
@@ -506,7 +506,7 @@ class CodeEntityDetector:
                         if words:
                             last_word = words[-1].lower()
                             # Check if it's a number word
-                            from ..common import NumberParser
+                            from goobits_stt.text_formatting.common import NumberParser
 
                             parser = NumberParser(language=self.language)
                             if last_word in parser.all_number_words or last_word.isdigit():

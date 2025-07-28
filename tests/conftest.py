@@ -1,15 +1,15 @@
 """Custom pytest configuration and formatters for beautiful test output."""
 from __future__ import annotations
 
-import pytest
-import sys
-import os
 import logging
+import os
+import sys
 from pathlib import Path
+
+import pytest
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from typing import List, Tuple, Optional
+from rich.table import Table
 
 # CRITICAL: Set environment variable BEFORE any imports that might load models
 os.environ["STT_DISABLE_PUNCTUATION"] = "1"
@@ -190,7 +190,6 @@ def preloaded_nlp_models():
     import os
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
-    print("\n🚀 Preloading NLP models for test session...")
     try:
         from goobits_stt.text_formatting.nlp_provider import get_nlp, get_punctuator
 
@@ -198,10 +197,8 @@ def preloaded_nlp_models():
         nlp = get_nlp()
         punctuator = get_punctuator()
 
-        print("✅ NLP models preloaded successfully")
         return {"nlp": nlp, "punctuator": punctuator}
     except ImportError as e:
-        print(f"⚠️  Could not preload NLP models: {e}")
         return None
 
 
@@ -215,7 +212,6 @@ def preloaded_formatter(preloaded_nlp_models):
     from goobits_stt.text_formatting.nlp_provider import reset_models
     reset_models()
 
-    print("🚀 Preloading formatter function with caching (PUNCTUATION DISABLED)...")
     try:
         from goobits_stt.text_formatting.formatter import format_transcription
 
@@ -232,7 +228,6 @@ def preloaded_formatter(preloaded_nlp_models):
         # Warm up the formatter with a test call to ensure models are loaded
         test_result = cached_format_transcription("test warmup")
 
-        print("✅ Formatter preloaded successfully with result caching")
         yield cached_format_transcription
 
         # Clean up environment variable after tests
@@ -240,7 +235,6 @@ def preloaded_formatter(preloaded_nlp_models):
             del os.environ["STT_DISABLE_PUNCTUATION"]
 
     except ImportError as e:
-        print(f"⚠️  Could not preload formatter: {e}")
         yield None
 
 
@@ -251,6 +245,7 @@ def raw_formatter():
     capitalization disabled for predictable unit testing of entity conversion.
     """
     import os
+
     from goobits_stt.text_formatting.formatter import TextFormatter
 
     # Set environment variable to disable punctuation
@@ -283,22 +278,18 @@ def raw_formatter():
 @pytest.fixture(scope="session")
 def preloaded_config():
     """Preload config once per test session."""
-    print("🚀 Preloading configuration...")
     try:
         from goobits_stt.core.config import get_config
 
         config = get_config()
-        print("✅ Configuration preloaded successfully")
         return config
     except ImportError as e:
-        print(f"⚠️  Could not preload config: {e}")
         return None
 
 
 @pytest.fixture(scope="session")
 def preloaded_test_audio():
     """Preload common audio test data once per test session."""
-    print("🚀 Preloading test audio data...")
     try:
         import numpy as np
 
@@ -327,17 +318,14 @@ def preloaded_test_audio():
             "time_array": t,
         }
 
-        print("✅ Test audio data preloaded successfully")
         return audio_data
     except ImportError as e:
-        print(f"⚠️  Could not preload test audio: {e}")
         return None
 
 
 @pytest.fixture(scope="session")
 def preloaded_opus_codecs():
     """Preload Opus codecs once per test session."""
-    print("🚀 Preloading Opus codecs...")
     try:
         from goobits_stt.audio.decoder import OpusDecoder, OpusStreamDecoder
         from goobits_stt.transcription.client import OpusEncoder
@@ -358,10 +346,8 @@ def preloaded_opus_codecs():
             "channels": channels,
         }
 
-        print("✅ Opus codecs preloaded successfully")
         return codecs
     except ImportError as e:
-        print(f"⚠️  Could not preload Opus codecs: {e}")
         return None
 
 
@@ -372,6 +358,7 @@ def spanish_formatter():
     with punctuation disabled for predictable testing.
     """
     import os
+
     from goobits_stt.text_formatting.formatter import TextFormatter
 
     # Save the current value of the environment variable

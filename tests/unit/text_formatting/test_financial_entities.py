@@ -85,10 +85,9 @@ class TestSpokenCurrency:
             ("thirty francs", "₣30"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Currency detection may vary
-            print(f"Currency test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_currency_in_sentences(self, preloaded_formatter):
         """Test currency amounts in natural sentences."""
@@ -159,10 +158,9 @@ class TestCompoundCurrency:
             ("three euros and ninety nine cents", "€3.99"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # International currency support may vary
-            print(f"Compound currency test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestCurrencySymbols:
@@ -191,10 +189,9 @@ class TestCurrencySymbols:
             ("twenty GBP", "£20 GBP"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Currency code formatting may vary
-            print(f"Currency code with amount: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestStockSymbols:
@@ -240,10 +237,9 @@ class TestFinancialExpressions:
             ("on sale for nineteen ninety nine", "On sale for $19.99."),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Price pattern detection may vary
-            print(f"Price expression test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_financial_calculations(self, preloaded_formatter):
         """Test financial calculation expressions."""
@@ -254,10 +250,9 @@ class TestFinancialExpressions:
             ("thousand dollars divided by four", "$1,000 ÷ 4"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Complex financial expressions
-            print(f"Financial calculation: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_financial_ranges(self, preloaded_formatter):
         """Test financial range expressions."""
@@ -268,10 +263,9 @@ class TestFinancialExpressions:
             ("costs five to ten dollars", "Costs $5-10"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Range formatting may vary
-            print(f"Financial range: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestCurrencyEdgeCases:
@@ -289,10 +283,9 @@ class TestCurrencyEdgeCases:
             ("found fifty", "Found 50."),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Context detection for currency may vary
-            print(f"Ambiguous number test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_multiple_currencies(self, preloaded_formatter):
         """Test sentences with multiple currency amounts."""
@@ -303,10 +296,9 @@ class TestCurrencyEdgeCases:
             ("the fee is five dollars plus ten euros", "The fee is $5 plus €10."),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Multiple currency handling
-            print(f"Multiple currencies: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_currency_with_other_entities(self, preloaded_formatter):
         """Test currency mixed with other entity types."""
@@ -317,10 +309,9 @@ class TestCurrencyEdgeCases:
             ("save fifty percent on hundred dollar items", "Save 50% on $100 items."),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Mixed entity handling
-            print(f"Currency with entities: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestInternationalCurrencies:
@@ -335,10 +326,9 @@ class TestInternationalCurrencies:
             ("thirty swiss francs", "CHF 30"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # International currency support
-            print(f"European currency: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_asian_currencies(self, preloaded_formatter):
         """Test Asian currency patterns."""
@@ -349,10 +339,9 @@ class TestInternationalCurrencies:
             ("hundred rupees", "₹100"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Asian currency support
-            print(f"Asian currency: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_cryptocurrency(self, preloaded_formatter):
         """Test cryptocurrency patterns."""
@@ -363,10 +352,9 @@ class TestInternationalCurrencies:
             ("point one bitcoin", "0.1 BTC"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Cryptocurrency support may not be implemented
-            print(f"Cryptocurrency: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 if __name__ == "__main__":

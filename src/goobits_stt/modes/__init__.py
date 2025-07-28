@@ -9,13 +9,13 @@ This module contains different operation modes for the STT engine:
 """
 from __future__ import annotations
 
-from typing import Optional, Type, TYPE_CHECKING
 import contextlib
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .conversation import ConversationMode as ConversationModeType
-    from .tap_to_talk import TapToTalkMode as TapToTalkModeType
     from .hold_to_talk import HoldToTalkMode as HoldToTalkModeType
+    from .tap_to_talk import TapToTalkMode as TapToTalkModeType
 
 # Import modes conditionally to avoid dependency issues
 ConversationMode: type | None = None

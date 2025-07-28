@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import contextlib
 import difflib
 import threading
 import time
-from typing import Dict, Any, Optional
-
+from typing import Any
 
 from .base_mode import BaseMode
-import contextlib
 
 try:
     import numpy as np
@@ -80,7 +79,7 @@ class ConversationMode(BaseMode):
 
         # Pre-buffer: always-on circular buffer for speech onset capture
         pre_buffer_chunks = int(self.pre_buffer_duration_s * self.chunks_per_second)
-        self.pre_buffer = collections.deque(maxlen=pre_buffer_chunks)
+        self.pre_buffer: collections.deque[np.ndarray] = collections.deque(maxlen=pre_buffer_chunks)
 
         # Main buffer: dynamic list for utterance processing (no hard limit)
         self.main_buffer = []
@@ -118,7 +117,7 @@ class ConversationMode(BaseMode):
 
         # Streaming transcription (Phase 0 & 1)
         self.last_transcription = ""
-        self.last_partial_time = 0
+        self.last_partial_time: float = 0.0
         self.partial_processing_interval = self.chunk_processing_interval_ms / 1000.0  # Convert ms to seconds
 
         # LocalAgreement-2 state (Phase 1)
@@ -774,7 +773,8 @@ class ConversationMode(BaseMode):
 
                 return formatted
             # For final results, apply full formatting
-            return self.text_formatter.format_transcription(text)
+            result: str = self.text_formatter.format_transcription(text)
+            return result
 
         except Exception as e:
             self.logger.warning(f"Text formatting error: {e}")

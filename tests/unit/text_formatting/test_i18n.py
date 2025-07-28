@@ -2,6 +2,7 @@
 """Tests for internationalization (i18n) support in text formatting."""
 
 import pytest
+
 from goobits_stt.text_formatting.constants import get_resources
 
 

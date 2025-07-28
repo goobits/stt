@@ -22,7 +22,7 @@ dev = [ "pytest>=6.0", "pytest-asyncio>=0.20.0", "pytest-xdist>=3.0.0", "pytest-
 audio = [ "webrtc-audio-processing>=0.1.0", "pygame>=2.1.0", "pyaudio>=0.2.11", "pydub>=0.25.1",]
 
 [project.scripts]
-stt = "stt.cli:cli_entry"
+stt = "goobits_stt.cli:cli_entry"
 stt-server = "goobits_stt.transcription.server:main"
 smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
@@ -31,15 +31,6 @@ exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_ca
 line-length = 120
 indent-width = 4
 target-version = "py38"
-
-[tool.ruff.lint]
-select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
-ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001", "D203", "D212",]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "G004", "D400", "D415"]  # Allow assert, f-strings in logging, and missing docstring punctuation in tests
-fixable = [ "ALL",]
-unfixable = []
 
 [tool.black]
 line-length = 120
@@ -74,6 +65,10 @@ disable = [ "missing-docstring", "too-few-public-methods", "too-many-arguments",
 exclude_dirs = [ "tests", "venv",]
 skips = [ "B602", "B603", "B607",]
 
+[tool.ruff.lint]
+select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001", "D203", "D212",]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -81,7 +76,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-"goobits_stt" = ["*.json", "text_formatting/resources/*.json"]
+goobits_stt = [ "*.json", "text_formatting/resources/*.json",]
 
 [tool.coverage.run]
 source = [ "src",]
@@ -92,7 +87,12 @@ precision = 2
 show_missing = true
 skip_covered = false
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [ "S101", "G004", "D400", "D415",]
+fixable = [ "ALL",]
+unfixable = []
+
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["goobits_stt*", "examples*"]
-exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
+where = [ "src",]
+include = [ "goobits_stt*", "examples*",]
+exclude = [ "tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist",]

@@ -4,21 +4,22 @@ Server Integration Verification Tests
 
 Tests the server functionality end-to-end, particularly:
 - AsyncIO event loop handling (the fix we just made)
-- Server startup without crashes  
+- Server startup without crashes
 - Basic WebSocket connectivity
 - Graceful shutdown handling
 
 These tests verify that the server actually works, complementing the CLI smoke tests.
 """
 
-import pytest
-import subprocess
-import sys
-import time
 import os
 import signal
 import socket
+import subprocess
+import sys
+import time
 from pathlib import Path
+
+import pytest
 
 try:
     import websockets
@@ -50,7 +51,7 @@ class TestServerAsyncIO:
     def test_serve_command_starts_without_event_loop_error(self):
         """
         Verify the asyncio.run() fix works - server starts without RuntimeError
-        
+
         This is the KEY test for the recent asyncio event loop fix.
         Previously this would fail with: 'asyncio.run() cannot be called from a running event loop'
         """

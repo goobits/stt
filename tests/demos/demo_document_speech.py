@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Phase 1 Demo: Document to Speech Pipeline."""
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from document_parsing.markdown_parser import MarkdownParser

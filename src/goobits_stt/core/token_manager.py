@@ -8,10 +8,10 @@ import base64
 import json
 import logging
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Optional, Any, Set
-import uuid
+from typing import Any
 
 import jwt
 
@@ -179,7 +179,7 @@ class TokenManager:
             logger.error(f"Failed to generate token: {e}")
             raise ValueError(f"Token generation failed: {e}") from e
 
-    def validate_token(self, token: str, mark_as_used: bool = False) -> dict[str, Any] | None:
+    def validate_token(self, token: str, mark_as_used: bool = False) -> Any | None:
         """
         Validate a JWT token
 

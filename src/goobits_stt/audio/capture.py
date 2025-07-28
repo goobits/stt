@@ -7,12 +7,12 @@ from arecord, eliminating filesystem buffering issues entirely.
 """
 from __future__ import annotations
 
-import time
-import threading
-import subprocess
 import asyncio
-from typing import Optional, Dict, Any, List
+import subprocess
+import threading
+import time
 from dataclasses import dataclass
+from typing import Any
 
 try:
     import numpy as np
@@ -27,7 +27,7 @@ except ImportError:
 
 # Setup standardized logging
 try:
-    from ..config import setup_logging
+    from goobits_stt.core.config import setup_logging
 
     logger = setup_logging(__name__, log_filename="audio_capture.txt")
 

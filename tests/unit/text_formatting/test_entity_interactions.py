@@ -218,7 +218,6 @@ class TestNestedEntities:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Complex nested entities may not be fully implemented
-            print(f"Nested math test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestAdjacentEntities:
@@ -248,7 +247,6 @@ class TestAdjacentEntities:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Adjacent number handling may vary
-            print(f"Adjacent numbers test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_adjacent_code_entities(self, preloaded_formatter):
         """Test multiple code entities in sequence."""
@@ -313,7 +311,6 @@ class TestComplexEntityInteractions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Complex physics sentences may not format perfectly
-            print(f"Physics sentence test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_mixed_technical_content(self, preloaded_formatter):
         """Test sentences mixing various technical entities."""
@@ -415,7 +412,6 @@ class TestEdgeCaseInteractions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Partial matches should not trigger entity conversion
-            print(f"Partial match test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_entity_in_quoted_text(self, preloaded_formatter):
         """Test entities within quoted text."""
@@ -429,7 +425,6 @@ class TestEdgeCaseInteractions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Quote handling may vary
-            print(f"Quoted entity test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_spoken_url_vs_numbers(self, preloaded_formatter):
         """Test URLs with spoken numbers vs separate number entities."""
@@ -460,7 +455,6 @@ class TestEdgeCaseInteractions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # List formatting and capitalization may vary
-            print(f"List test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestMultipleAdjacentEntities:

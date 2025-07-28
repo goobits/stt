@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import threading
-from typing import Dict, Any
+from typing import Any
 
 # ==============================================================================
 # I18N RESOURCE LOADER

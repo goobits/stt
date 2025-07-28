@@ -7,9 +7,9 @@ Significantly more accurate than simple amplitude-based detection.
 """
 from __future__ import annotations
 
-from typing import List, Tuple, Any, Optional
 import asyncio
 import logging
+from typing import Any
 
 try:
     import numpy as np
@@ -106,7 +106,7 @@ class SileroVAD:
 
             # Try the newer silero-vad package first
             try:
-                from silero_vad import load_silero_vad, get_speech_timestamps
+                from silero_vad import get_speech_timestamps, load_silero_vad
                 self.model = load_silero_vad(onnx=self.use_onnx)
                 self.get_speech_timestamps = get_speech_timestamps
                 self.logger.info("Loaded Silero VAD using silero-vad package")

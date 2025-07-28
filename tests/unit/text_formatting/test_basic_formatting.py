@@ -44,7 +44,6 @@ class TestBasicCapitalization:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Some proper nouns may not be detected without full NLP
-            print(f"Proper noun test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_pronoun_i_capitalization(self, preloaded_formatter):
         """Test that pronoun 'I' is always capitalized."""
@@ -122,7 +121,6 @@ class TestBasicPunctuation:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Exclamation detection may depend on context analysis
-            print(f"Exclamation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_comma_in_lists(self, preloaded_formatter):
         """Test comma insertion in lists."""
@@ -136,7 +134,6 @@ class TestBasicPunctuation:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # List comma insertion may require advanced NLP
-            print(f"List comma test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_apostrophe_contractions(self, preloaded_formatter):
         """Test apostrophes in contractions."""
@@ -154,7 +151,6 @@ class TestBasicPunctuation:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Contraction detection may require specific patterns
-            print(f"Contraction test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestEntityProtection:
@@ -286,7 +282,6 @@ class TestSpecialPunctuationRules:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Abbreviation handling varies
-            print(f"Abbreviation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_no_double_punctuation(self, preloaded_formatter):
         """Test that we don't add double punctuation."""
@@ -415,7 +410,6 @@ class TestPunctuationModelIntegration:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Results depend on punctuation model availability
-            print(f"Punctuation model test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestEdgeCasesAndRegressions:
@@ -449,7 +443,6 @@ class TestEdgeCasesAndRegressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Filler word removal may vary
-            print(f"Filler word test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_casual_starters_capitalization(self, preloaded_formatter):
         """Test that casual conversation starters are still capitalized."""
@@ -464,7 +457,6 @@ class TestEdgeCasesAndRegressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Punctuation may vary
-            print(f"Casual starter test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_profanity_filtering(self, preloaded_formatter):
         """Test that profanity is replaced with asterisks."""
@@ -478,7 +470,6 @@ class TestEdgeCasesAndRegressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Profanity filtering may be configurable
-            print(f"Profanity test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_version_number_formatting(self, preloaded_formatter):
         """Test version number formatting."""
@@ -511,7 +502,6 @@ class TestIdiomaticExpressions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Some idiomatic expressions may still be converted
-            print(f"Idiomatic test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestComplexEdgeCases:
@@ -541,7 +531,6 @@ class TestComplexEdgeCases:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Complex punctuation may vary
-            print(f"Kitchen sink test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestCapitalizationEdgeCases:

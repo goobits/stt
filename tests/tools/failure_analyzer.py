@@ -4,14 +4,14 @@ Provides clean, deduplicated summaries of test failures.
 """
 from __future__ import annotations
 
-import pytest
-import yaml
 import json
 import re
-from pathlib import Path
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Dict, List, Tuple, Optional
+from pathlib import Path
+
+import pytest
+import yaml
 
 
 class FailureAnalyzer:

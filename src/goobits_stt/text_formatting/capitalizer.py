@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
-from goobits_stt.core.config import setup_logging
 
-# Import common data structures
-from .common import EntityType, Entity
-from .utils import is_inside_entity
-from .nlp_provider import get_nlp
+from goobits_stt.core.config import setup_logging
 
 # Import centralized regex patterns
 from . import regex_patterns
 
+# Import common data structures
+from .common import Entity, EntityType
+
 # Import resource loader for i18n constants
 from .constants import get_resources
+from .nlp_provider import get_nlp
+from .utils import is_inside_entity
 
 # Setup logging
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)

@@ -7,26 +7,27 @@ including WebSocket connections, streaming audio, batch processing, and circuit 
 """
 from __future__ import annotations
 
-import os
 import asyncio
-import websockets
-import json
 import base64
-import time
-import threading
-import wave
+import json
+import os
 import ssl
-import numpy as np
-from enum import Enum
+import threading
+import time
+import wave
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import Optional, Any, Tuple, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 
+import numpy as np
+import websockets
 
-from goobits_stt.utils.ssl import create_ssl_context
-from goobits_stt.core.config import get_config, setup_logging
 from goobits_stt.audio.encoder import OpusEncoder
 from goobits_stt.audio.opus_batch import OpusBatchEncoder
+from goobits_stt.core.config import get_config, setup_logging
+from goobits_stt.utils.ssl import create_ssl_context
 
 # Get config instance
 config = get_config()
@@ -491,8 +492,8 @@ class StreamingAudioClient:
 
     def save_debug_audio(self):
         """Save debug audio data for analysis."""
-        import time
         import tempfile
+        import time
 
         try:
             timestamp = int(time.time())

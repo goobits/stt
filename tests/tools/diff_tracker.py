@@ -1,16 +1,16 @@
 # tests/pytest_diff_tracker.py
 from __future__ import annotations
 
-import pytest
-import json
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict
-import os
 import glob
 import hashlib
-from functools import lru_cache
+import json
+import os
 import sys
+from datetime import datetime, timezone
+from functools import lru_cache
+from pathlib import Path
+
+import pytest
 
 # --- Constants ---
 HISTORY_DIR = Path(".test_artifacts")

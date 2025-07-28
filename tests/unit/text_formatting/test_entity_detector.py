@@ -2,6 +2,7 @@
 """Unit tests for EntityDetector, focusing on the data-driven _should_skip_cardinal logic."""
 
 import pytest
+
 from goobits_stt.text_formatting.formatter import EntityDetector
 
 

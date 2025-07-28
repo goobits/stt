@@ -4,6 +4,7 @@ WebSocket Matilda Server - Enables Mac clients to connect via WebSocket for spee
 Runs alongside the existing TCP server for local Ubuntu clients
 """
 from __future__ import annotations
+
 import os
 import sys
 
@@ -20,22 +21,23 @@ if os.environ.get("WEBSOCKET_SERVER_IP"):
 
 # All imports after path and environment setup
 import asyncio
-import websockets
-import json
 import base64
+import json
 import tempfile
-import traceback
 import time
-from collections import defaultdict
+import traceback
 import uuid
-from typing import Tuple
+from collections import defaultdict
+
+import websockets
 from faster_whisper import WhisperModel
-from goobits_stt.core.config import get_config, setup_logging
-from goobits_stt.core.token_manager import TokenManager
+
 from goobits_stt.audio.decoder import OpusStreamDecoder
 from goobits_stt.audio.opus_batch import OpusBatchDecoder
-from goobits_stt.utils.ssl import create_ssl_context
+from goobits_stt.core.config import get_config, setup_logging
+from goobits_stt.core.token_manager import TokenManager
 from goobits_stt.text_formatting.formatter import format_transcription
+from goobits_stt.utils.ssl import create_ssl_context
 
 # Get config instance and setup logging
 config = get_config()

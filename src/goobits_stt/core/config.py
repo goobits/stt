@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config.json"""
 from __future__ import annotations
+
 import json
 import logging
 import os
 import platform
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
 class ConfigLoader:
     """Load configuration from config.json"""
 
-    def __init__(self, config_path: Union[str, Path] | None = None) -> None:
+    def __init__(self, config_path: str | Path | None = None) -> None:
         if config_path is None:
             config_path = self._find_config_file()
 
@@ -76,8 +77,8 @@ class ConfigLoader:
 
     def _create_default_config(self) -> Path:
         """Create a default config file in temp directory"""
-        import tempfile
         import json
+        import tempfile
 
         default_config = {
             "whisper": {
@@ -527,7 +528,7 @@ class ConfigLoader:
 
     # Embedded server configuration
     @property
-    def embedded_server_enabled(self) -> Union[bool, str]:
+    def embedded_server_enabled(self) -> bool | str:
         """Get embedded server enabled setting"""
         value = self.get("server.embedded_server.enabled", "auto")
         if isinstance(value, bool):
@@ -714,7 +715,7 @@ def get_logger(module_name: str) -> logging.Logger:
     return setup_logging(module_name)
 
 
-def load_config(config_path: Union[str, Path] | None = None) -> ConfigLoader:
+def load_config(config_path: str | Path | None = None) -> ConfigLoader:
     """Load configuration from config file (alias for creating ConfigLoader)."""
     return ConfigLoader(config_path)
 

@@ -62,10 +62,9 @@ class TestMathExpressions:
             ("the derivative of x squared is two x", "The derivative of x² is 2x"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Complex expressions may not all be implemented yet
-            print(f"Complex math test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_mathematical_vs_idiomatic_context(self, preloaded_formatter):
         """Test that mathematical expressions are distinguished from idiomatic phrases."""
@@ -81,10 +80,9 @@ class TestMathExpressions:
             ("i have two plus years of experience", "I have 2 + years of experience."),  # Currently converts
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Note: Current implementation may convert some idiomatic expressions
-            print(f"Math vs idiomatic: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestPhysicsEquations:
@@ -153,10 +151,9 @@ class TestRootExpressions:
             ("square root of two x plus y", "√(2x + y)"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Complex root expressions may not be fully implemented
-            print(f"Complex root test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_nth_roots(self, preloaded_formatter):
         """Test nth root expressions."""
@@ -167,10 +164,9 @@ class TestRootExpressions:
             ("the nth root of x", "ⁿ√x"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Nth roots may not be implemented yet
-            print(f"Nth root test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestScientificNotation:
@@ -296,10 +292,9 @@ class TestMathematicalConstants:
             ("e approximately equals two point seven one eight", "e ≈ 2.718"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Some complex e expressions may not be implemented
-            print(f"E constant test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_other_mathematical_constants(self, preloaded_formatter):
         """Test other mathematical constant detection and formatting."""
@@ -310,10 +305,9 @@ class TestMathematicalConstants:
             ("alpha plus beta equals gamma", "α + β = γ"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Greek letters and complex constants may not be implemented
-            print(f"Other constant test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestAdvancedMathematicalNotation:
@@ -329,10 +323,9 @@ class TestAdvancedMathematicalNotation:
             ("partial derivative", "∂/∂x"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Advanced calculus notation may not be implemented
-            print(f"Calculus test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_summation_notation(self, preloaded_formatter):
         """Test summation and product notation."""
@@ -343,10 +336,9 @@ class TestAdvancedMathematicalNotation:
             ("sum of i squared", "Σi²"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Summation notation may not be implemented
-            print(f"Summation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_set_theory_notation(self, preloaded_formatter):
         """Test set theory notation patterns."""
@@ -359,10 +351,9 @@ class TestAdvancedMathematicalNotation:
             ("a is a subset of b", "A ⊆ B"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Set theory notation may not be implemented
-            print(f"Set theory test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_logic_notation(self, preloaded_formatter):
         """Test logic notation patterns."""
@@ -375,10 +366,9 @@ class TestAdvancedMathematicalNotation:
             ("implies", "⇒"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Logic notation may not be implemented
-            print(f"Logic test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 class TestMathematicalEntityInteractions:
@@ -394,10 +384,9 @@ class TestMathematicalEntityInteractions:
             ("square root of two pi", "√(2π)"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Complex expressions with constants may not be fully implemented
-            print(f"Constants in expressions: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_scientific_notation_with_units(self, preloaded_formatter):
         """Test scientific notation combined with units."""
@@ -408,10 +397,9 @@ class TestMathematicalEntityInteractions:
             ("nine point eight meters per second squared", "9.8 m/s²"),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Scientific notation with units may not be fully implemented
-            print(f"Scientific notation with units: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_mixed_mathematical_content(self, preloaded_formatter):
         """Test sentences with multiple types of mathematical entities."""
@@ -453,10 +441,9 @@ class TestMathematicalContextDetection:
             ("he's square with me", "He's square with me."),
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
             # Note: Context detection may not be perfect in current implementation
-            print(f"Context detection: '{input_text}' -> '{result}' (expected: '{expected}')")
 
     def test_physics_vs_general_context(self, preloaded_formatter):
         """Test distinguishing physics from general contexts."""
@@ -470,9 +457,8 @@ class TestMathematicalContextDetection:
             ("energy equals mass", "Energy = mass"),  # May still convert
         ]
 
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            print(f"Physics context: '{input_text}' -> '{result}' (expected: '{expected}')")
+        for input_text, _expected in test_cases:
+            format_transcription(input_text)
 
 
 class TestNestedMathEntityPatterns:

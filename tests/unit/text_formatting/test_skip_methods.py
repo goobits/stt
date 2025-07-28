@@ -2,6 +2,7 @@
 """Unit tests for the data-driven _should_skip_* methods in TextFormatter."""
 
 import pytest
+
 from goobits_stt.text_formatting.formatter import TextFormatter
 
 

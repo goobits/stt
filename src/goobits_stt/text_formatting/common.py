@@ -2,9 +2,9 @@
 """Common data structures and classes shared across text formatting modules."""
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Any
 
 
 class EntityType(Enum):

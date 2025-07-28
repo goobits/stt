@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Dict, Any, Optional, Callable
 from pathlib import Path
-
+from collections.abc import Callable
+from typing import Any
 
 from .base_mode import BaseMode
 

@@ -2,7 +2,6 @@
 """Shared utility functions for text formatting modules."""
 from __future__ import annotations
 
-from typing import List
 from .common import Entity
 
 

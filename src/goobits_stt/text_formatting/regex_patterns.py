@@ -12,10 +12,9 @@ explaining each component.
 from __future__ import annotations
 
 import re
-from typing import List, Pattern, Optional
-from .constants import get_resources
-from .common import NumberParser
 
+from .common import NumberParser
+from .constants import get_resources
 
 # ==============================================================================
 # COMMON PATTERN COMPONENTS
@@ -252,7 +251,7 @@ REPEATED_PUNCTUATION_PATTERNS = [
 
 
 # Profanity filtering pattern (built dynamically)
-def create_profanity_pattern(profanity_words: list[str]) -> Pattern:
+def create_profanity_pattern(profanity_words: list[str]) -> re.Pattern[str]:
     """
     Create a pattern to filter profanity words.
 
@@ -388,7 +387,7 @@ TECHNICAL_CONTENT_PATTERNS = [
 # ==============================================================================
 
 
-def build_spoken_url_pattern(language: str = "en") -> Pattern:
+def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -465,7 +464,7 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
 
 
 # Function to get pattern for specific language
-def get_spoken_url_pattern(language: str = "en") -> Pattern:
+def get_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the spoken URL pattern for the specified language."""
     return build_spoken_url_pattern(language)
 
@@ -474,7 +473,7 @@ def get_spoken_url_pattern(language: str = "en") -> Pattern:
 SPOKEN_URL_PATTERN = build_spoken_url_pattern("en")
 
 
-def build_spoken_email_pattern(language: str = "en") -> Pattern:
+def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken email pattern dynamically for the specified language."""
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
@@ -551,12 +550,12 @@ def build_spoken_email_pattern(language: str = "en") -> Pattern:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-def get_spoken_email_pattern(language: str = "en") -> Pattern:
+def get_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the spoken email pattern for the specified language."""
     return build_spoken_email_pattern(language)
 
 
-def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
+def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken protocol pattern dynamically for the specified language."""
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
@@ -610,7 +609,7 @@ def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-def get_spoken_protocol_pattern(language: str = "en") -> Pattern:
+def get_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the spoken protocol pattern for the specified language."""
     return build_spoken_protocol_pattern(language)
 
@@ -625,7 +624,7 @@ SPOKEN_PROTOCOL_PATTERN = build_spoken_protocol_pattern("en")
 # Pattern will be built dynamically after create_alternation_pattern is defined
 
 
-def build_port_number_pattern(language: str = "en") -> Pattern:
+def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the port number pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -669,7 +668,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
 
 
 # Create the pattern instance for immediate use
-def get_port_number_pattern(language: str = "en") -> Pattern:
+def get_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the port number pattern for the specified language."""
     return build_port_number_pattern(language)
 
@@ -709,7 +708,7 @@ URL_PARAMETER_PARSE_PATTERN = re.compile(
 # CODE-RELATED I18N-AWARE PATTERN BUILDERS
 # ==============================================================================
 
-def get_slash_command_pattern(language: str = "en") -> Pattern:
+def get_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern dynamically."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -723,7 +722,7 @@ def get_slash_command_pattern(language: str = "en") -> Pattern:
         """, re.VERBOSE | re.IGNORECASE
     )
 
-def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
+def get_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the dunder/underscore delimiter pattern dynamically."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -740,7 +739,7 @@ def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
         """, re.VERBOSE | re.IGNORECASE
     )
 
-def get_simple_underscore_pattern(language: str = "en") -> Pattern:
+def get_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore variable pattern dynamically."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -754,7 +753,7 @@ def get_simple_underscore_pattern(language: str = "en") -> Pattern:
         """, re.VERBOSE | re.IGNORECASE | re.UNICODE
     )
 
-def get_long_flag_pattern(language: str = "en") -> Pattern:
+def get_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long command flag pattern dynamically."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -763,7 +762,7 @@ def get_long_flag_pattern(language: str = "en") -> Pattern:
 
     return re.compile(rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE)
 
-def get_short_flag_pattern(language: str = "en") -> Pattern:
+def get_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short command flag pattern dynamically and safely."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -781,7 +780,7 @@ def get_short_flag_pattern(language: str = "en") -> Pattern:
     # without special casing, as long as the JSON files are correct.
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
-def get_assignment_pattern(language: str = "en") -> Pattern:
+def get_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern dynamically."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
@@ -1047,7 +1046,7 @@ SPOKEN_PHONE_PATTERN = re.compile(
 
 
 # Generic domain rescue for concatenated domains
-def create_domain_rescue_pattern(tld: str) -> Pattern:
+def create_domain_rescue_pattern(tld: str) -> re.Pattern[str]:
     """Create a pattern to rescue concatenated domains for a specific TLD."""
     return re.compile(
         rf"""
@@ -1110,7 +1109,7 @@ ABBREVIATION_RESTORATION_PATTERNS = {
 }
 
 
-def create_abbreviation_restoration_pattern(abbr: str) -> Pattern:
+def create_abbreviation_restoration_pattern(abbr: str) -> re.Pattern[str]:
     """Create a pattern to restore periods to abbreviations."""
     return re.compile(
         rf"""
@@ -1358,7 +1357,7 @@ def create_alternation_pattern(items: list[str], word_boundaries: bool = True) -
     return pattern
 
 
-def build_slash_command_pattern(language: str = "en") -> Pattern:
+def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -1387,7 +1386,7 @@ def build_slash_command_pattern(language: str = "en") -> Pattern:
 SLASH_COMMAND_PATTERN = build_slash_command_pattern("en")
 
 
-def build_underscore_delimiter_pattern(language: str = "en") -> Pattern:
+def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the underscore delimiter pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -1411,7 +1410,7 @@ def build_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     )
 
 
-def build_simple_underscore_pattern(language: str = "en") -> Pattern:
+def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -1442,7 +1441,7 @@ UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern("en")
 SIMPLE_UNDERSCORE_PATTERN = build_simple_underscore_pattern("en")
 
 
-def build_long_flag_pattern(language: str = "en") -> Pattern:
+def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -1460,7 +1459,7 @@ def build_long_flag_pattern(language: str = "en") -> Pattern:
     )
 
 
-def build_short_flag_pattern(language: str = "en") -> Pattern:
+def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
@@ -1485,7 +1484,7 @@ LONG_FLAG_PATTERN = build_long_flag_pattern("en")
 SHORT_FLAG_PATTERN = build_short_flag_pattern("en")
 
 
-def build_assignment_pattern(language: str = "en") -> Pattern:
+def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)

@@ -11,8 +11,8 @@ Examples:
 
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 # Add project root to path
