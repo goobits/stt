@@ -77,8 +77,7 @@ readonly REQUIRED_DEPS=("git" "pipx")
 readonly OPTIONAL_DEPS=("ffmpeg" "portaudio")
 
 # Enhanced dependency data (JSON format for complex dependencies)
-readonly REQUIRED_DEPS_JSON='[{"type": "command", "name": "git", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "pipx", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
-readonly OPTIONAL_DEPS_JSON='[{"type": "command", "name": "ffmpeg", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "portaudio", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
+# Note: Using installation.extras structure instead
 
 # Tree view helper functions
 tree_start() {
@@ -159,16 +158,8 @@ tree_final_node() {
 }
 
 get_version() {
-    # Try to extract version from various sources
-    local version=""
-    if command -v "$COMMAND_NAME" >/dev/null 2>&1; then
-        version=$("$COMMAND_NAME" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+[^ ]*' | head -1)
-    fi
-    if [[ -n "$version" ]]; then
-        echo "v$version"
-    else
-        echo ""
-    fi
+    # Return the version from pyproject.toml (hardcoded during build)
+    echo "v1.0.1"
 }
 
 get_elapsed_time() {
@@ -884,26 +875,49 @@ Thank you for using STT!
 # System dependencies installation (before Python packages)
 install_system_dependencies() {
     if command -v apt-get >/dev/null 2>&1; then
-        tree_sub_node "info" "Installing system packages (may require sudo)..."
+        # Check which packages are missing
+        local missing_packages=()
         
-        if sudo apt-get install -y portaudio19-dev >/dev/null 2>&1; then
-            tree_sub_node "success" "Installed apt package: portaudio19-dev"
+        
+        if ! dpkg -l | grep -q "^ii.*portaudio19-dev" 2>/dev/null; then
+            missing_packages+=("portaudio19-dev")
         else
-            tree_sub_node "warning" "Failed to install apt package: portaudio19-dev"
+            tree_sub_node "success" "✓ Already installed: portaudio19-dev"
         fi
         
-        if sudo apt-get install -y ffmpeg >/dev/null 2>&1; then
-            tree_sub_node "success" "Installed apt package: ffmpeg"
+        if ! dpkg -l | grep -q "^ii.*ffmpeg" 2>/dev/null; then
+            missing_packages+=("ffmpeg")
         else
-            tree_sub_node "warning" "Failed to install apt package: ffmpeg"
+            tree_sub_node "success" "✓ Already installed: ffmpeg"
         fi
         
-        if sudo apt-get install -y swig >/dev/null 2>&1; then
-            tree_sub_node "success" "Installed apt package: swig"
+        if ! dpkg -l | grep -q "^ii.*swig" 2>/dev/null; then
+            missing_packages+=("swig")
         else
-            tree_sub_node "warning" "Failed to install apt package: swig"
+            tree_sub_node "success" "✓ Already installed: swig"
         fi
         
+        
+        # Only prompt for sudo if there are missing packages
+        if [[ ${#missing_packages[@]} -gt 0 ]]; then
+            tree_sub_node "info" "Installing system packages: ${missing_packages[*]} (requires sudo)..."
+            
+            # Update package list first if we're installing anything
+            if ! sudo apt-get update >/dev/null 2>&1; then
+                tree_sub_node "warning" "Failed to update package list"
+            fi
+            
+            # Install each missing package
+            for pkg in "${missing_packages[@]}"; do
+                if sudo apt-get install -y "$pkg" >/dev/null 2>&1; then
+                    tree_sub_node "success" "Installed apt package: $pkg"
+                else
+                    tree_sub_node "warning" "Failed to install apt package: $pkg"
+                fi
+            done
+        else
+            tree_sub_node "success" "All system packages already installed"
+        fi
     else
         tree_sub_node "info" "apt-get not found - manual installation required for: portaudio19-dev, ffmpeg, swig"
     fi

@@ -53,21 +53,33 @@ click.rich_click.STYLE_COMMANDS_TABLE_COLUMN_WIDTH_RATIO = (1, 3)  # Command:Des
 
 # Hooks system - try to import app_hooks module
 app_hooks = None
+
+# Using configured hooks path: src/stt/app_hooks.py
 try:
-    # Try to import from the project root directory
-    script_dir = Path(__file__).parent.parent.parent
-    hooks_path = script_dir / "app_hooks.py"
+    # First try as a module import (e.g., "ttt.app_hooks")
+    module_path = "src/stt/app_hooks.py".replace(".py", "").replace("/", ".")
+    if module_path.startswith("src."):
+        module_path = module_path[4:]  # Remove 'src.' prefix
     
-    if hooks_path.exists():
-        spec = importlib.util.spec_from_file_location("app_hooks", hooks_path)
-        app_hooks = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(app_hooks)
-    else:
-        # Try to import from Python path
-        import app_hooks
-except (ImportError, FileNotFoundError):
+    try:
+        app_hooks = importlib.import_module(module_path)
+    except ImportError:
+        # If module import fails, try relative import
+        try:
+            from . import app_hooks
+        except ImportError:
+            # If relative import fails, try file-based import as last resort
+            script_dir = Path(__file__).parent.parent.parent
+            hooks_file = script_dir / "src/stt/app_hooks.py"
+            
+            if hooks_file.exists():
+                spec = importlib.util.spec_from_file_location("app_hooks", hooks_file)
+                app_hooks = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(app_hooks)
+except Exception:
     # No hooks module found, use default behavior
     pass
+
 
 # Built-in commands
 
@@ -704,12 +716,37 @@ def main(ctx, help_json=False, help_all=False):
     
 
     
-    \b
-    [bold yellow]💡 Quick Start:[/bold yellow][green]stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic][green]stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic][green]stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic][green]stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
-    \b
-    [bold yellow]🔑 Initial Setup:[/bold yellow]1. Check status:    [green]stt status[/green]2. Select model:    [green]stt config set model base[/green]3. Start listening: [green]stt listen[/green]
-    \b
-       [#B3B8C0]📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6][/#B3B8C0]
+    
+    [bold yellow]💡 Quick Start[/bold yellow]
+    
+    
+    [green]   stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic]
+    
+    
+    [green]   stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic]
+    
+    
+    [green]   stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic]
+    
+    
+    [green]   stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
+    
+    [green] [/green]
+    
+    [bold yellow]🔑 Initial Setup[/bold yellow]
+    
+    
+    [#B3B8C0]   1. Check status:    [/#B3B8C0][green]stt status[/green]
+    
+    [#B3B8C0]   2. Select model:    [/#B3B8C0][green]stt config set model base[/green]
+    
+    [#B3B8C0]   3. Start listening: [/#B3B8C0][green]stt listen[/green]
+    [green] [/green]
+    
+    
+    
+    [#B3B8C0]📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6][/#B3B8C0]
+    
     """
 
     
