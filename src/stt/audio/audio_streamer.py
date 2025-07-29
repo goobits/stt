@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 # Setup standardized logging
 try:
-    from goobits_stt.core.config import get_logger
+    from stt.core.config import get_logger
 
     from .encoder import OpusEncoder
 

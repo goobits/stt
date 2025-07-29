@@ -24,10 +24,10 @@ from typing import Any
 import numpy as np
 import websockets
 
-from goobits_stt.audio.encoder import OpusEncoder
-from goobits_stt.audio.opus_batch import OpusBatchEncoder
-from goobits_stt.core.config import get_config, setup_logging
-from goobits_stt.utils.ssl import create_ssl_context
+from stt.audio.encoder import OpusEncoder
+from stt.audio.opus_batch import OpusBatchEncoder
+from stt.core.config import get_config, setup_logging
+from stt.utils.ssl import create_ssl_context
 
 # Get config instance
 config = get_config()

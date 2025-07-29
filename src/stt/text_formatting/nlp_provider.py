@@ -8,7 +8,7 @@ and other AI models used by the text formatting system.
 import os
 import threading
 
-from goobits_stt.core.config import setup_logging
+from stt.core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 

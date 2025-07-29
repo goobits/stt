@@ -8,7 +8,7 @@ after transcription, which is critical for user experience.
 
 import pytest
 
-from goobits_stt.text_formatting.formatter import TextFormatter
+from stt.text_formatting.formatter import TextFormatter
 
 
 class TestSuffixHandling:

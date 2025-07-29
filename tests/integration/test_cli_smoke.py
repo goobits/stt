@@ -24,7 +24,7 @@ class TestCLIImports:
 
     def test_cli_creation_functions_import(self):
         """Can we import and create CLI parsers without explosions?"""
-        from goobits_stt.main import async_main, create_rich_cli
+        from stt.main import async_main, create_rich_cli
 
         # Test that CLI creation doesn't crash
         cli = create_rich_cli()
@@ -39,10 +39,10 @@ class TestCLIImports:
 
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
-        from goobits_stt.modes.conversation import ConversationMode
-        from goobits_stt.modes.hold_to_talk import HoldToTalkMode
-        from goobits_stt.modes.listen_once import ListenOnceMode
-        from goobits_stt.modes.tap_to_talk import TapToTalkMode
+        from stt.modes.conversation import ConversationMode
+        from stt.modes.hold_to_talk import HoldToTalkMode
+        from stt.modes.listen_once import ListenOnceMode
+        from stt.modes.tap_to_talk import TapToTalkMode
 
         # Just importing without crashing is the test
         assert ListenOnceMode is not None
@@ -69,7 +69,7 @@ class TestConfigSystem:
 
     def test_config_loader_direct(self):
         """Test creating ConfigLoader directly doesn't crash."""
-        from goobits_stt.core.config import ConfigLoader
+        from stt.core.config import ConfigLoader
 
         # Should be able to create without crashing
         config = ConfigLoader()
@@ -180,7 +180,7 @@ class TestBaseModeLogic:
         """Can we create a BaseMode subclass without crashing?"""
         from types import SimpleNamespace
 
-        from goobits_stt.modes.base_mode import BaseMode
+        from stt.modes.base_mode import BaseMode
 
         # Create mock args
         args = SimpleNamespace(
@@ -208,7 +208,7 @@ class TestBaseModeLogic:
         """Test that mode name generation works correctly."""
         from types import SimpleNamespace
 
-        from goobits_stt.modes.base_mode import BaseMode
+        from stt.modes.base_mode import BaseMode
 
         args = SimpleNamespace(debug=False, format="json", sample_rate=16000,
                              device=None, model="base", language=None)

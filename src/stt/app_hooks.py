@@ -28,7 +28,7 @@ def on_listen(
     try:
         # Use hold-to-talk mode if key specified, otherwise listen-once
         if hold_to_talk:
-            from goobits_stt.modes.hold_to_talk import HoldToTalkMode
+            from stt.modes.hold_to_talk import HoldToTalkMode
             mode = HoldToTalkMode(
                 model_size=model,
                 language=language,
@@ -41,7 +41,7 @@ def on_listen(
                 config_path=config,
             )
         else:
-            from goobits_stt.modes.listen_once import ListenOnceMode
+            from stt.modes.listen_once import ListenOnceMode
             mode = ListenOnceMode(
                 model_size=model,
                 language=language,
@@ -83,7 +83,7 @@ def on_live(
     try:
         # Use tap-to-talk mode if key specified, otherwise conversation mode
         if tap_to_talk:
-            from goobits_stt.modes.tap_to_talk import TapToTalkMode
+            from stt.modes.tap_to_talk import TapToTalkMode
             mode = TapToTalkMode(
                 model_size=model,
                 language=language,
@@ -96,7 +96,7 @@ def on_live(
                 config_path=config,
             )
         else:
-            from goobits_stt.modes.conversation import ConversationMode
+            from stt.modes.conversation import ConversationMode
             mode = ConversationMode(
                 model_size=model,
                 language=language,
@@ -132,7 +132,7 @@ def on_serve(
     """Handle the serve command - start transcription server"""
     try:
         # Create and run server
-        from goobits_stt.transcription.server import WebSocketServer
+        from stt.transcription.server import WebSocketServer
         server = WebSocketServer(
             host=host,
             port=port,
@@ -188,7 +188,7 @@ def on_status(**kwargs) -> int:
         
         # Load config to show current settings
         try:
-            from goobits_stt.core.config import Config
+            from stt.core.config import Config
             config = Config()
         except ImportError:
             # Use simple defaults if config module not available
@@ -229,7 +229,7 @@ def on_models(**kwargs) -> int:
 def on_config_show(json: bool = False, **kwargs) -> int:
     """Show all configuration settings"""
     try:
-        from goobits_stt.core.config import Config
+        from stt.core.config import Config
         config = Config()
         
         if json:
@@ -252,7 +252,7 @@ def on_config_show(json: bool = False, **kwargs) -> int:
 def on_config_get(key: str, **kwargs) -> int:
     """Get specific configuration value"""
     try:
-        from goobits_stt.core.config import Config
+        from stt.core.config import Config
         config = Config()
         value = config.get(key)
         print(f"{key}: {value}")
@@ -265,7 +265,7 @@ def on_config_get(key: str, **kwargs) -> int:
 def on_config_set(key: str, value: str, **kwargs) -> int:
     """Set configuration value"""
     try:
-        from goobits_stt.core.config import Config
+        from stt.core.config import Config
         config = Config()
         config.set(key, value)
         config.save()

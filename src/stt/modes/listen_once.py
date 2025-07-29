@@ -15,7 +15,7 @@ import sys
 import time
 from typing import Any
 
-from goobits_stt.audio.vad import SileroVAD
+from stt.audio.vad import SileroVAD
 
 from .base_mode import BaseMode
 

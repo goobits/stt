@@ -9,7 +9,7 @@ import opuslib
 
 # Setup standardized logging
 try:
-    from goobits_stt.core.config import get_logger
+    from stt.core.config import get_logger
 
     logger = get_logger(__name__)
 except ImportError:

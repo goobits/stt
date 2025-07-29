@@ -22,8 +22,8 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from goobits_stt.audio.capture import PipeBasedAudioStreamer
-from goobits_stt.core.config import get_config, setup_logging
+from stt.audio.capture import PipeBasedAudioStreamer
+from stt.core.config import get_config, setup_logging
 
 from .client import StreamingAudioClient
 

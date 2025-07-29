@@ -5,7 +5,7 @@ import ssl
 from pathlib import Path
 from typing import Literal
 
-from goobits_stt.core.config import get_config, setup_logging
+from stt.core.config import get_config, setup_logging
 
 # Get config and logger
 config = get_config()

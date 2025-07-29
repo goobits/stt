@@ -3,7 +3,7 @@
 
 import pytest
 
-from goobits_stt.text_formatting.formatter import EntityDetector
+from stt.text_formatting.formatter import EntityDetector
 
 
 class MockSpacyEntity:

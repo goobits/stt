@@ -3,8 +3,8 @@
 
 import pytest
 
-from goobits_stt.text_formatting.constants import get_resources
-from goobits_stt.text_formatting.formatter import TextFormatter
+from stt.text_formatting.constants import get_resources
+from stt.text_formatting.formatter import TextFormatter
 
 
 class TestSpanishI18n:

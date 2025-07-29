@@ -14,7 +14,7 @@ import contextlib
 import os
 import re
 
-from goobits_stt.core.config import get_config, setup_logging
+from stt.core.config import get_config, setup_logging
 
 # Import centralized regex patterns
 from . import regex_patterns

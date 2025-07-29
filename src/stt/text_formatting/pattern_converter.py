@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from goobits_stt.core.config import get_config, setup_logging
+from stt.core.config import get_config, setup_logging
 
 from . import regex_patterns
 from .common import Entity, EntityType, NumberParser

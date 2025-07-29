@@ -33,7 +33,7 @@ except ImportError:
 
 # Text formatting for streaming results
 try:
-    from goobits_stt.text_formatting import TextFormatter
+    from stt.text_formatting import TextFormatter
     TEXT_FORMATTING_AVAILABLE = True
 except ImportError:
     TEXT_FORMATTING_AVAILABLE = False
@@ -182,7 +182,7 @@ class ConversationMode(BaseMode):
     async def _initialize_vad(self):
         """Initialize Silero VAD in executor to avoid blocking."""
         try:
-            from goobits_stt.audio.vad import SileroVAD
+            from stt.audio.vad import SileroVAD
             self.logger.info("Initializing Silero VAD...")
 
             loop = asyncio.get_event_loop()

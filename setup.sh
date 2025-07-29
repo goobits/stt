@@ -853,11 +853,11 @@ show_dev_success_message() {
 ✅ Your local changes will be reflected immediately - no reinstalling needed!
 
 Development workflow:
-  - Edit code in src/goobits_stt/ directory
+  - Edit code in src/stt/ directory
   - Test immediately with: stt listen
   - Run tests with: ./test.py
-  - Format code with: ruff format src/goobits_stt/
-  - Check types with: mypy src/goobits_stt/
+  - Format code with: ruff format src/stt/
+  - Check types with: mypy src/stt/
 
 💡 No need to run ./setup.sh upgrade after code changes!
 "

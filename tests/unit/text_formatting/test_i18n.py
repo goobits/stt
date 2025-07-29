@@ -3,7 +3,7 @@
 
 import pytest
 
-from goobits_stt.text_formatting.constants import get_resources
+from stt.text_formatting.constants import get_resources
 
 
 class TestI18nResourceLoader:

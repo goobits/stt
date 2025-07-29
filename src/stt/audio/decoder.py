@@ -9,7 +9,7 @@ import opuslib
 
 # Setup standardized logging
 try:
-    from goobits_stt.core.config import setup_logging
+    from stt.core.config import setup_logging
 
     logger = setup_logging(__name__, log_filename="audio_decoder.txt")
 except ImportError:

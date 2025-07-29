@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from goobits_stt.core.config import setup_logging
+from stt.core.config import setup_logging
 
 # Import centralized regex patterns
 from . import regex_patterns

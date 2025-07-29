@@ -27,7 +27,7 @@ except ImportError:
 
 # Setup standardized logging
 try:
-    from goobits_stt.core.config import setup_logging
+    from stt.core.config import setup_logging
 
     logger = setup_logging(__name__, log_filename="audio_capture.txt")
 
@@ -99,7 +99,7 @@ class PipeBasedAudioStreamer:
 
         # Get config for cross-platform audio tools
         try:
-            from goobits_stt.core.config import get_config
+            from stt.core.config import get_config
             self.config = get_config()
         except ImportError:
             self.config = None

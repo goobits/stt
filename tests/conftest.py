@@ -21,18 +21,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin"]
 
 # Disable excessive logging during tests for performance
-logging.getLogger("goobits_stt.text_formatting").setLevel(logging.CRITICAL)
-logging.getLogger("goobits_stt.text_formatting.formatter").setLevel(logging.CRITICAL)
-logging.getLogger("goobits_stt.text_formatting.detectors").setLevel(logging.CRITICAL)
-logging.getLogger("goobits_stt.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
-logging.getLogger("goobits_stt.core").setLevel(logging.CRITICAL)
-logging.getLogger("goobits_stt.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
+logging.getLogger("stt.text_formatting").setLevel(logging.CRITICAL)
+logging.getLogger("stt.text_formatting.formatter").setLevel(logging.CRITICAL)
+logging.getLogger("stt.text_formatting.detectors").setLevel(logging.CRITICAL)
+logging.getLogger("stt.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
+logging.getLogger("stt.core").setLevel(logging.CRITICAL)
+logging.getLogger("stt.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
 
 # Also disable the root logger for these modules to catch all sub-loggers
 for logger_name in [
-    "goobits_stt.text_formatting.formatter",
-    "goobits_stt.text_formatting.detectors",
-    "goobits_stt.text_formatting.pattern_converter",
+    "stt.text_formatting.formatter",
+    "stt.text_formatting.detectors",
+    "stt.text_formatting.pattern_converter",
 ]:
     logging.getLogger(logger_name).disabled = True
 
@@ -191,7 +191,7 @@ def preloaded_nlp_models():
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
     try:
-        from goobits_stt.text_formatting.nlp_provider import get_nlp, get_punctuator
+        from stt.text_formatting.nlp_provider import get_nlp, get_punctuator
 
         # Warm up both models
         nlp = get_nlp()
@@ -209,11 +209,11 @@ def preloaded_formatter(preloaded_nlp_models):
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
     # Reset any cached models to ensure the environment variable takes effect
-    from goobits_stt.text_formatting.nlp_provider import reset_models
+    from stt.text_formatting.nlp_provider import reset_models
     reset_models()
 
     try:
-        from goobits_stt.text_formatting.formatter import format_transcription
+        from stt.text_formatting.formatter import format_transcription
 
         # Cache for formatter results during testing
         cache = {}
@@ -246,7 +246,7 @@ def raw_formatter():
     """
     import os
 
-    from goobits_stt.text_formatting.formatter import TextFormatter
+    from stt.text_formatting.formatter import TextFormatter
 
     # Set environment variable to disable punctuation
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
@@ -279,7 +279,7 @@ def raw_formatter():
 def preloaded_config():
     """Preload config once per test session."""
     try:
-        from goobits_stt.core.config import get_config
+        from stt.core.config import get_config
 
         config = get_config()
         return config
@@ -327,8 +327,8 @@ def preloaded_test_audio():
 def preloaded_opus_codecs():
     """Preload Opus codecs once per test session."""
     try:
-        from goobits_stt.audio.decoder import OpusDecoder, OpusStreamDecoder
-        from goobits_stt.transcription.client import OpusEncoder
+        from stt.audio.decoder import OpusDecoder, OpusStreamDecoder
+        from stt.transcription.client import OpusEncoder
 
         sample_rate = 16000
         channels = 1
@@ -359,7 +359,7 @@ def spanish_formatter():
     """
     import os
 
-    from goobits_stt.text_formatting.formatter import TextFormatter
+    from stt.text_formatting.formatter import TextFormatter
 
     # Save the current value of the environment variable
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
@@ -383,5 +383,5 @@ def spanish_formatter():
 @pytest.fixture
 def preloaded_formatter():
     """Provide preloaded text formatter for tests."""
-    from goobits_stt.text_formatting.formatter import format_transcription
+    from stt.text_formatting.formatter import format_transcription
     return format_transcription

@@ -32,12 +32,12 @@ from collections import defaultdict
 import websockets
 from faster_whisper import WhisperModel
 
-from goobits_stt.audio.decoder import OpusStreamDecoder
-from goobits_stt.audio.opus_batch import OpusBatchDecoder
-from goobits_stt.core.config import get_config, setup_logging
-from goobits_stt.core.token_manager import TokenManager
-from goobits_stt.text_formatting.formatter import format_transcription
-from goobits_stt.utils.ssl import create_ssl_context
+from stt.audio.decoder import OpusStreamDecoder
+from stt.audio.opus_batch import OpusBatchDecoder
+from stt.core.config import get_config, setup_logging
+from stt.core.token_manager import TokenManager
+from stt.text_formatting.formatter import format_transcription
+from stt.utils.ssl import create_ssl_context
 
 # Get config instance and setup logging
 config = get_config()

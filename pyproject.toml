@@ -22,8 +22,8 @@ dev = [ "pytest>=6.0", "pytest-asyncio>=0.20.0", "pytest-xdist>=3.0.0", "pytest-
 audio = [ "webrtc-audio-processing>=0.1.0", "pygame>=2.1.0", "pyaudio>=0.2.11", "pydub>=0.25.1",]
 
 [project.scripts]
-stt = "goobits_stt.cli:cli_entry"
-stt-server = "goobits_stt.transcription.server:main"
+stt = "stt.cli:cli_entry"
+stt-server = "stt.transcription.server:main"
 smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
 [tool.ruff]
@@ -76,7 +76,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-goobits_stt = [ "*.json", "text_formatting/resources/*.json",]
+stt = [ "*.json", "text_formatting/resources/*.json",]
 
 [tool.coverage.run]
 source = [ "src",]
@@ -94,5 +94,5 @@ unfixable = []
 
 [tool.setuptools.packages.find]
 where = [ "src",]
-include = [ "goobits_stt*", "examples*",]
+include = [ "stt*", "examples*",]
 exclude = [ "tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist",]
