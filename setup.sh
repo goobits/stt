@@ -667,7 +667,9 @@ install_with_pipx() {
         tree_node "info" "Installing in development mode" "$(update_progress)"
         tree_sub_node "info" "Using pipx for isolated environment"
 
-        (cd "$PROJECT_DIR" && pipx install --editable "$DEVELOPMENT_PATH" --force) &
+        
+        (cd "$PROJECT_DIR" && pipx install --editable "$DEVELOPMENT_PATH[audio]" --force) &
+        
         local install_pid=$!
 
         tree_sub_node "progress" "Creating development environment..."
@@ -686,7 +688,9 @@ install_with_pipx() {
         tree_node "info" "Installing from PyPI" "$(update_progress)"
         tree_sub_node "info" "Using pipx for isolated environment"
 
-        pipx install "$PYPI_NAME" --force &
+        
+        pipx install "$PYPI_NAME[audio]" --force &
+        
         local install_pid=$!
 
         tree_sub_node "progress" "Downloading and installing package..."
@@ -711,7 +715,9 @@ install_with_pip() {
 
     if [[ "$install_dev" == "true" ]]; then
         tree_sub_node "progress" "Installing in development mode with pip..."
-        (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH" --user) &
+        
+        (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[audio]" --user) &
+        
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -725,7 +731,9 @@ install_with_pip() {
         fi
     else
         tree_sub_node "progress" "Installing from PyPI with pip..."
-        python3 -m pip install "$PYPI_NAME" --user &
+        
+        python3 -m pip install "$PYPI_NAME[audio]" --user &
+        
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -767,7 +775,9 @@ upgrade_package() {
         tree_sub_node "progress" "Upgrading with pip..."
 
         # Capture pip output to prevent it from breaking tree structure
-        python3 -m pip install --upgrade "$PYPI_NAME" --user >/dev/null 2>&1 &
+        
+        python3 -m pip install --upgrade "$PYPI_NAME[audio]" --user >/dev/null 2>&1 &
+        
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -810,6 +820,9 @@ show_install_success_message() {
     echo "STT has been installed successfully!
 You can now use 'stt' from your terminal.
 
+⚠️  IMPORTANT: For audio device support, install with:
+   pipx install goobits-stt[audio] --force
+
 Quick start:
   stt listen              # Record and transcribe once
   stt live                # Interactive conversation mode
@@ -822,6 +835,9 @@ show_dev_success_message() {
     echo
     echo "STT has been installed in development mode!
 ✅ Your local changes will be reflected immediately - no reinstalling needed!
+
+⚠️  IMPORTANT: For audio device support, install with:
+   cd /workspace/stt && pipx install -e .[audio] --force
 
 Development workflow:
   - Edit code in src/goobits_stt/ directory
