@@ -668,7 +668,9 @@ install_with_pipx() {
         tree_sub_node "info" "Using pipx for isolated environment"
 
         
+        
         (cd "$PROJECT_DIR" && pipx install --editable "$DEVELOPMENT_PATH[audio]" --force) &
+        
         
         local install_pid=$!
 
@@ -679,6 +681,9 @@ install_with_pipx() {
 
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Development installation completed" "" "true"
+            
+            install_additional_extras
+            
             show_dev_success_message
         else
             tree_sub_node "error" "Development installation failed" "" "true"
@@ -689,7 +694,9 @@ install_with_pipx() {
         tree_sub_node "info" "Using pipx for isolated environment"
 
         
+        
         pipx install "$PYPI_NAME[audio]" --force &
+        
         
         local install_pid=$!
 
@@ -700,6 +707,9 @@ install_with_pipx() {
 
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Installation completed" "" "true"
+            
+            install_additional_extras
+            
             show_install_success_message
         else
             tree_sub_node "error" "Installation failed" "" "true"
@@ -716,7 +726,9 @@ install_with_pip() {
     if [[ "$install_dev" == "true" ]]; then
         tree_sub_node "progress" "Installing in development mode with pip..."
         
+        
         (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[audio]" --user) &
+        
         
         show_spinner $!
         wait $!
@@ -732,7 +744,9 @@ install_with_pip() {
     else
         tree_sub_node "progress" "Installing from PyPI with pip..."
         
+        
         python3 -m pip install "$PYPI_NAME[audio]" --user &
+        
         
         show_spinner $!
         wait $!
@@ -776,7 +790,9 @@ upgrade_package() {
 
         # Capture pip output to prevent it from breaking tree structure
         
+        
         python3 -m pip install --upgrade "$PYPI_NAME[audio]" --user >/dev/null 2>&1 &
+        
         
         show_spinner $!
         wait $!
@@ -866,6 +882,35 @@ Thank you for using STT!
 "
     echo
 }
+
+
+# Additional extras installation
+install_additional_extras() {
+    
+    
+    
+    # Install apt packages
+    if command -v apt-get >/dev/null 2>&1; then
+        tree_sub_node "info" "Installing system packages (may require sudo)..."
+        
+        if sudo apt-get install -y libportaudio2-dev >/dev/null 2>&1; then
+            tree_sub_node "success" "Installed apt package: libportaudio2-dev"
+        else
+            tree_sub_node "warning" "Failed to install apt package: libportaudio2-dev"
+        fi
+        
+        if sudo apt-get install -y ffmpeg >/dev/null 2>&1; then
+            tree_sub_node "success" "Installed apt package: ffmpeg"
+        else
+            tree_sub_node "warning" "Failed to install apt package: ffmpeg"
+        fi
+        
+    else
+        tree_sub_node "info" "apt-get not found - manual installation required for: libportaudio2-dev, ffmpeg"
+    fi
+    
+}
+
 
 # Shell integration
 setup_shell_integration() {

@@ -31,7 +31,9 @@ dependencies:
 installation:
   pypi_name: "goobits-stt"
   development_path: "."
-  extras: ["audio"]  # Include audio dependencies like pyaudio
+  extras:
+    python: ["audio"]  # Python extras including pyaudio
+    apt: ["libportaudio2-dev", "ffmpeg"]  # System packages for audio support
 
 shell_integration:
   enabled: false
