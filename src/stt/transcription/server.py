@@ -27,7 +27,7 @@ import tempfile
 import time
 import traceback
 import uuid
-from collections import defaultdict
+# defaultdict import removed - no longer needed with token bucket rate limiter
 
 import websockets
 from faster_whisper import WhisperModel
@@ -66,9 +66,13 @@ class MatildaWebSocketServer:
         if self.ssl_enabled:
             self.ssl_context = self._setup_ssl_context()
 
-        # Rate limiting: max 10 requests per minute per IP
-        self.rate_limits = defaultdict(list)
-        self.max_requests_per_minute = 10
+        # Rate limiting: Token bucket algorithm for robust rate limiting
+        from stt.core.rate_limiter import TokenBucketRateLimiter
+        self.rate_limiter = TokenBucketRateLimiter(
+            rate=10.0 / 60.0,  # 10 requests per minute = ~0.167 requests/second
+            capacity=20.0,     # Allow bursts up to 20 requests
+            cleanup_interval=3600.0  # Clean up inactive clients every hour
+        )
 
         # Client tracking
         self.connected_clients = set()
@@ -119,20 +123,22 @@ class MatildaWebSocketServer:
             raise
 
     def check_rate_limit(self, client_ip):
-        """Check if client is within rate limits"""
-        now = time.time()
-        minute_ago = now - 60
-
-        # Clean old entries
-        self.rate_limits[client_ip] = [timestamp for timestamp in self.rate_limits[client_ip] if timestamp > minute_ago]
-
-        # Check if under limit
-        if len(self.rate_limits[client_ip]) >= self.max_requests_per_minute:
-            return False
-
-        # Add current request
-        self.rate_limits[client_ip].append(now)
-        return True
+        """Check if client is within rate limits using token bucket algorithm"""
+        allowed = self.rate_limiter.allow_request(client_ip)
+        
+        if not allowed:
+            # Get client status for better error messages
+            status = self.rate_limiter.get_client_status(client_ip)
+            wait_time = status.get("wait_time_seconds", 0)
+            
+            logger.warning(
+                f"Rate limit exceeded for {client_ip}. "
+                f"Current tokens: {status.get('tokens', 0):.2f}/{status.get('capacity', 0)}. "
+                f"Estimated wait time: {wait_time:.1f}s",
+                extra={"event": "rate_limit_exceeded", "client_ip": client_ip, "wait_time": wait_time}
+            )
+        
+        return allowed
 
     async def handle_client(self, websocket, path=None):
         """Handle individual WebSocket client connections"""
@@ -169,7 +175,9 @@ class MatildaWebSocketServer:
                         logger.warning("Invalid JSON received", extra={"event": "json_decode_error"})
                         await self.send_error(websocket, "Invalid JSON format")
                     except Exception as e:
-                        logger.exception("Error processing message", extra={"event": "message_processing_error", "error": str(e)})
+                        logger.exception(
+                            "Error processing message", extra={"event": "message_processing_error", "error": str(e)}
+                        )
                         await self.send_error(websocket, f"Processing error: {e!s}")
 
             except websockets.exceptions.ConnectionClosed:
@@ -287,7 +295,12 @@ class MatildaWebSocketServer:
 
         # Check rate limiting
         if not self.check_rate_limit(client_ip):
-            await self.send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.")
+            status = self.rate_limiter.get_client_status(client_ip)
+            wait_time = status.get("wait_time_seconds", 0)
+            await self.send_error(
+                websocket, 
+                f"Rate limit exceeded. Please wait {wait_time:.1f} seconds before trying again."
+            )
             return
 
         # Check if model is loaded
@@ -456,7 +469,12 @@ class MatildaWebSocketServer:
 
         # Check rate limiting
         if not self.check_rate_limit(client_ip):
-            await self.send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.")
+            status = self.rate_limiter.get_client_status(client_ip)
+            wait_time = status.get("wait_time_seconds", 0)
+            await self.send_error(
+                websocket, 
+                f"Rate limit exceeded. Please wait {wait_time:.1f} seconds before trying again."
+            )
             return
 
         # Log chunk statistics (no waiting needed - WebSocket ensures order)
@@ -591,7 +609,9 @@ class MatildaWebSocketServer:
                 await asyncio.Future()
         except OSError as e:
             if e.errno == 98 or "Address already in use" in str(e):
-                logger.error(f"Port {server_port} is already in use. Please choose a different port or stop the service using that port.")
+                logger.error(
+                    f"Port {server_port} is already in use. Please choose a different port or stop the service using that port."
+                )
                 raise RuntimeError(f"Port {server_port} is already in use") from e
             logger.error(f"Failed to bind to {server_host}:{server_port}: {e}")
             raise

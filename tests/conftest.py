@@ -1,4 +1,5 @@
 """Custom pytest configuration and formatters for beautiful test output."""
+
 from __future__ import annotations
 
 import logging
@@ -14,8 +15,10 @@ from rich.table import Table
 # CRITICAL: Set environment variable BEFORE any imports that might load models
 os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
-# Add the project root to the path for all tests
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+# Add the src directory to the path for all tests to find the stt module
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add the root directory to find tests.tools
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Register plugins
 pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin"]
@@ -188,6 +191,7 @@ def preloaded_nlp_models():
     """Preload NLP models once per test session to avoid repeated loading."""
     # Enable no-punctuation mode for testing FIRST
     import os
+
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
     try:
@@ -210,6 +214,7 @@ def preloaded_formatter(preloaded_nlp_models):
 
     # Reset any cached models to ensure the environment variable takes effect
     from stt.text_formatting.nlp_provider import reset_models
+
     reset_models()
 
     try:
@@ -384,4 +389,5 @@ def spanish_formatter():
 def preloaded_formatter():
     """Provide preloaded text formatter for tests."""
     from stt.text_formatting.formatter import format_transcription
+
     return format_transcription

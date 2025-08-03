@@ -401,33 +401,33 @@ def build_spoken_letter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken letter pattern dynamically from keywords in constants."""
     # Get resources for the specified language
     resources = get_resources(language)
-    
+
     # Get letter case keywords and letter keywords from resources
     letter_case_keywords = resources.get("letters", {})
     letter_keywords = resources.get("spoken_keywords", {}).get("letters", {})
-    
+
     # Create pattern for case words (capital, uppercase, lowercase, etc.)
     case_words = list(letter_case_keywords.keys())
     case_words_escaped = [re.escape(word) for word in case_words]
     case_pattern = "|".join(case_words_escaped) if case_words_escaped else "capital|uppercase|lowercase|small"
-    
+
     # Create pattern for individual letters A-Z
-    letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-    letters_lower = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+    letters = [chr(i) for i in range(ord("A"), ord("Z") + 1)]
+    letters_lower = [chr(i) for i in range(ord("a"), ord("z") + 1)]
     all_letters = letters + letters_lower
-    
+
     # Add any custom letter pronunciations from resources
     letter_pronunciations = []
     for key, value in letter_keywords.items():
         if len(value) == 1 and value.isalpha():
             letter_pronunciations.append(re.escape(key))
-    
+
     # Create letter pattern (including phonetic pronunciations if available)
     if letter_pronunciations:
         letter_pattern = "|".join(letter_pronunciations + [re.escape(letter) for letter in all_letters])
     else:
         letter_pattern = "|".join(re.escape(letter) for letter in all_letters)
-    
+
     # Check language to determine word order
     if language == "es":
         # Spanish: "A mayúscula" (letter + case)
@@ -447,7 +447,7 @@ def build_spoken_letter_pattern(language: str = "en") -> re.Pattern[str]:
         ({letter_pattern})                  # Capture group 2: letter
         \b                                  # Word boundary
         """
-    
+
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
@@ -455,39 +455,39 @@ def build_letter_sequence_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the letter sequence pattern for sequences like 'A B C' dynamically."""
     # Get resources for the specified language
     resources = get_resources(language)
-    
+
     # Get letter case keywords and letter keywords from resources
     letter_case_keywords = resources.get("letters", {})
     letter_keywords = resources.get("spoken_keywords", {}).get("letters", {})
-    
+
     # Create pattern for case words (capital, uppercase, lowercase, etc.)
     case_words = list(letter_case_keywords.keys())
     case_words_escaped = [re.escape(word) for word in case_words]
     case_pattern = "|".join(case_words_escaped) if case_words_escaped else "capital|uppercase|lowercase|small"
-    
+
     # Create pattern for individual letters A-Z
-    letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-    letters_lower = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+    letters = [chr(i) for i in range(ord("A"), ord("Z") + 1)]
+    letters_lower = [chr(i) for i in range(ord("a"), ord("z") + 1)]
     all_letters = letters + letters_lower
-    
+
     # Add any custom letter pronunciations from resources
     letter_pronunciations = []
     for key, value in letter_keywords.items():
         if len(value) == 1 and value.isalpha():
             letter_pronunciations.append(re.escape(key))
-    
+
     # Create letter pattern (including phonetic pronunciations if available)
     if letter_pronunciations:
         letter_pattern = "|".join(letter_pronunciations + [re.escape(letter) for letter in all_letters])
     else:
         letter_pattern = "|".join(re.escape(letter) for letter in all_letters)
-    
+
     # Create a single letter unit pattern that can optionally have a case modifier
     letter_unit = rf"""
         (?:({case_pattern})\s+)?        # Optional case modifier
         ({letter_pattern})              # Letter
     """
-    
+
     # Create the letter sequence pattern - matches 2 or more letter units
     pattern_str = rf"""
     \b                                  # Word boundary
@@ -498,7 +498,7 @@ def build_letter_sequence_pattern(language: str = "en") -> re.Pattern[str]:
     ){{1,}}                             # One or more additional letters
     \b                                  # Word boundary
     """
-    
+
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
@@ -690,7 +690,9 @@ def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     colon_pattern = "|".join(re.escape(k) for k in colon_keywords_sorted)
     slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
-    question_pattern = "|".join(re.escape(k) for k in question_keywords_sorted) if question_keywords_sorted else "question\\s+mark"
+    question_pattern = (
+        "|".join(re.escape(k) for k in question_keywords_sorted) if question_keywords_sorted else "question\\s+mark"
+    )
 
     pattern_str = rf"""
     \b                                  # Word boundary
@@ -835,6 +837,7 @@ URL_PARAMETER_PARSE_PATTERN = re.compile(
 # CODE-RELATED I18N-AWARE PATTERN BUILDERS
 # ==============================================================================
 
+
 def get_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern dynamically."""
     resources = get_resources(language)
@@ -846,8 +849,10 @@ def get_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(
         rf"""
         \b(?:{slash_pattern})\s+([a-zA-Z][a-zA-Z0-9_-]*)
-        """, re.VERBOSE | re.IGNORECASE
+        """,
+        re.VERBOSE | re.IGNORECASE,
     )
+
 
 def get_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the dunder/underscore delimiter pattern dynamically."""
@@ -863,8 +868,10 @@ def get_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
         ([a-zA-Z][\w-]*)
         ((?:\s+{underscore_pattern})+)
         (?=\s|$)
-        """, re.VERBOSE | re.IGNORECASE
+        """,
+        re.VERBOSE | re.IGNORECASE,
     )
+
 
 def get_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore variable pattern dynamically."""
@@ -877,8 +884,10 @@ def get_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(
         rf"""
         \b([\w][\w0-9_-]*)\s+(?:{underscore_pattern})\s+([\w][\w0-9_-]*)\b
-        """, re.VERBOSE | re.IGNORECASE | re.UNICODE
+        """,
+        re.VERBOSE | re.IGNORECASE | re.UNICODE,
     )
+
 
 def get_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long command flag pattern dynamically."""
@@ -887,7 +896,10 @@ def get_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_pattern = "|".join(re.escape(k) for k in sorted(dash_keywords, key=len, reverse=True))
 
-    return re.compile(rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE)
+    return re.compile(
+        rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE
+    )
+
 
 def get_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short command flag pattern dynamically and safely."""
@@ -907,6 +919,7 @@ def get_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     # without special casing, as long as the JSON files are correct.
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
+
 def get_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern dynamically."""
     resources = get_resources(language)
@@ -924,8 +937,10 @@ def get_assignment_pattern(language: str = "en") -> re.Pattern[str]:
             .+?
         )
         (?=\s*(?:;|\n|$)|--|\+\+) # Ends at semicolon, newline, end, or other operator
-        """, re.VERBOSE | re.IGNORECASE
+        """,
+        re.VERBOSE | re.IGNORECASE,
     )
+
 
 # ==============================================================================
 # CODE-RELATED PATTERNS
@@ -1507,8 +1522,6 @@ def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-
-
 # Backward compatibility: default English pattern
 SLASH_COMMAND_PATTERN = build_slash_command_pattern("en")
 
@@ -1561,8 +1574,6 @@ def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-
-
 # Backward compatibility: default English patterns
 UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern("en")
 SIMPLE_UNDERSCORE_PATTERN = build_simple_underscore_pattern("en")
@@ -1604,8 +1615,6 @@ def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
-
-
 # Backward compatibility: default English patterns
 LONG_FLAG_PATTERN = build_long_flag_pattern("en")
 SHORT_FLAG_PATTERN = build_short_flag_pattern("en")
@@ -1638,8 +1647,6 @@ def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
         """,
         re.VERBOSE | re.IGNORECASE,
     )
-
-
 
 
 # Backward compatibility: default English pattern

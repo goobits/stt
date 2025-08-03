@@ -59,9 +59,12 @@ class TestServerAsyncIO:
         port = find_free_port()
 
         # Start server in subprocess with timeout
-        process = subprocess.Popen([
-            *cli_cmd, "serve", f"--port={port}", "--debug"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
+        process = subprocess.Popen(
+            [*cli_cmd, "serve", f"--port={port}", "--debug"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=get_test_env(),
+        )
 
         try:
             # Wait briefly for startup
@@ -76,10 +79,12 @@ class TestServerAsyncIO:
                 stderr_text = stderr.decode()
 
                 # CRITICAL: Should NOT contain the asyncio.run() error
-                assert "asyncio.run() cannot be called from a running event loop" not in stderr_text, \
-                    f"AsyncIO error found in stderr: {stderr_text}"
-                assert not ("RuntimeError" in stderr_text and "event loop" in stderr_text), \
-                    f"AsyncIO RuntimeError found: {stderr_text}"
+                assert (
+                    "asyncio.run() cannot be called from a running event loop" not in stderr_text
+                ), f"AsyncIO error found in stderr: {stderr_text}"
+                assert not (
+                    "RuntimeError" in stderr_text and "event loop" in stderr_text
+                ), f"AsyncIO RuntimeError found: {stderr_text}"
 
                 # If it exited, check if it was due to missing dependencies (acceptable)
                 # or a real error (not acceptable)
@@ -91,17 +96,19 @@ class TestServerAsyncIO:
                         "no module named",
                         "dependency",
                         "package not found",
-                        "import error"
+                        "import error",
                     ]
 
                     has_acceptable_error = any(err in error_text for err in acceptable_errors)
 
                     # If no acceptable error, this is a real problem
                     if not has_acceptable_error:
-                        pytest.fail(f"Server exited with unexpected error. "
-                                  f"Return code: {poll_result}, "
-                                  f"Stdout: {stdout_text}, "
-                                  f"Stderr: {stderr_text}")
+                        pytest.fail(
+                            f"Server exited with unexpected error. "
+                            f"Return code: {poll_result}, "
+                            f"Stdout: {stdout_text}, "
+                            f"Stderr: {stderr_text}"
+                        )
             else:
                 # Process is still running - this is good! The server started successfully
                 # We'll terminate it in the finally block
@@ -123,9 +130,9 @@ class TestServerAsyncIO:
         """Verify serve command help works (quick smoke test)"""
         cli_cmd = get_cli_command()
 
-        result = subprocess.run([
-            *cli_cmd, "serve", "--help"
-        ], check=False, capture_output=True, text=True, timeout=10, env=get_test_env())
+        result = subprocess.run(
+            [*cli_cmd, "serve", "--help"], check=False, capture_output=True, text=True, timeout=10, env=get_test_env()
+        )
 
         # Should exit with 0 and show help text
         assert result.returncode == 0, f"Help command failed: {result.stderr}"
@@ -143,9 +150,9 @@ class TestServerStartupShutdown:
         port = find_free_port()
 
         # Start server in subprocess
-        process = subprocess.Popen([
-            *cli_cmd, "serve", f"--port={port}"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
+        process = subprocess.Popen(
+            [*cli_cmd, "serve", f"--port={port}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env()
+        )
 
         try:
             # Wait for startup
@@ -162,13 +169,13 @@ class TestServerStartupShutdown:
                 stderr_text = stderr.decode()
 
                 # Check if server actually started (shows it's working)
-                server_started = any(indicator in stdout_text.lower() for indicator in [
-                    "websocket server", "server on", "starting", "initializing"
-                ])
+                server_started = any(
+                    indicator in stdout_text.lower()
+                    for indicator in ["websocket server", "server on", "starting", "initializing"]
+                )
 
                 if not server_started:
-                    pytest.fail(f"Server didn't start properly. "
-                              f"Stdout: {stdout_text}, Stderr: {stderr_text}")
+                    pytest.fail(f"Server didn't start properly. " f"Stdout: {stdout_text}, Stderr: {stderr_text}")
 
                 # For SIGINT handling, we primarily want to ensure:
                 # 1. Server started successfully (checked above)
@@ -183,27 +190,35 @@ class TestServerStartupShutdown:
 
                 # Check for serious crash indicators (these are always bad)
                 serious_crash_indicators = ["traceback", "segmentation fault", "core dumped", "fatal error"]
-                has_serious_crash = any(indicator in (stdout_text + stderr_text).lower()
-                                      for indicator in serious_crash_indicators)
+                has_serious_crash = any(
+                    indicator in (stdout_text + stderr_text).lower() for indicator in serious_crash_indicators
+                )
 
                 if has_serious_crash:
-                    pytest.fail(f"Server had serious crash during shutdown. "
-                              f"Return code: {returncode}, "
-                              f"Output: {stdout_text + stderr_text}")
+                    pytest.fail(
+                        f"Server had serious crash during shutdown. "
+                        f"Return code: {returncode}, "
+                        f"Output: {stdout_text + stderr_text}"
+                    )
 
                 # If exit code is 1, it should have a clean shutdown message or be interrupted cleanly
                 if returncode == 1:
                     clean_shutdown_indicators = ["aborted", "interrupted", "sigint", "keyboard"]
-                    has_clean_shutdown = any(indicator in (stdout_text + stderr_text).lower()
-                                           for indicator in clean_shutdown_indicators)
+                    has_clean_shutdown = any(
+                        indicator in (stdout_text + stderr_text).lower() for indicator in clean_shutdown_indicators
+                    )
 
                     # Also check it's not a Python exception causing exit code 1
-                    python_exception = any(indicator in (stdout_text + stderr_text).lower()
-                                         for indicator in ["traceback", "exception:", "error occurred"])
+                    python_exception = any(
+                        indicator in (stdout_text + stderr_text).lower()
+                        for indicator in ["traceback", "exception:", "error occurred"]
+                    )
 
                     if python_exception and not has_clean_shutdown:
-                        pytest.fail(f"Server exited with code 1 due to exception, not clean SIGINT. "
-                                  f"Output: {stdout_text + stderr_text}")
+                        pytest.fail(
+                            f"Server exited with code 1 due to exception, not clean SIGINT. "
+                            f"Output: {stdout_text + stderr_text}"
+                        )
 
             except subprocess.TimeoutExpired:
                 # Server didn't respond to SIGINT in time
@@ -229,27 +244,37 @@ class TestServerStartupShutdown:
 
             # Try to start server on occupied port
             try:
-                result = subprocess.run([
-                    *cli_cmd, "serve", f"--port={port}"
-                ], check=False, capture_output=True, text=True, timeout=15, env=get_test_env())
+                result = subprocess.run(
+                    [*cli_cmd, "serve", f"--port={port}"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    env=get_test_env(),
+                )
             except subprocess.TimeoutExpired as e:
                 # Server hung - this is a REAL ISSUE that should be reported
                 stdout_text = e.output.decode() if e.output else ""
                 stderr_text = e.stderr.decode() if e.stderr else ""
 
                 # Check if server showed startup attempt
-                startup_attempted = any(indicator in (stdout_text + stderr_text).lower() for indicator in [
-                    "server", "websocket", "starting", "initializing"
-                ])
+                startup_attempted = any(
+                    indicator in (stdout_text + stderr_text).lower()
+                    for indicator in ["server", "websocket", "starting", "initializing"]
+                )
 
                 if startup_attempted:
                     # This is actually a bug - server should detect port conflicts, not hang
-                    pytest.fail(f"SERVER BUG: Server hangs on port conflicts instead of failing gracefully. "
-                              f"This should be fixed in the server code. "
-                              f"Stdout: {stdout_text}, Stderr: {stderr_text}")
+                    pytest.fail(
+                        f"SERVER BUG: Server hangs on port conflicts instead of failing gracefully. "
+                        f"This should be fixed in the server code. "
+                        f"Stdout: {stdout_text}, Stderr: {stderr_text}"
+                    )
                 else:
-                    pytest.fail(f"Server timed out without showing startup attempt. "
-                              f"Stdout: {stdout_text}, Stderr: {stderr_text}")
+                    pytest.fail(
+                        f"Server timed out without showing startup attempt. "
+                        f"Stdout: {stdout_text}, Stderr: {stderr_text}"
+                    )
 
             stdout_text = result.stdout
             stderr_text = result.stderr
@@ -265,9 +290,10 @@ class TestServerStartupShutdown:
             # Either #1 or #2 is acceptable behavior
 
             # Check for signs the server attempted to start and encountered the conflict
-            startup_attempted = any(indicator in error_text for indicator in [
-                "server", "websocket", "starting", "initializing", "port", "bind", "address"
-            ])
+            startup_attempted = any(
+                indicator in error_text
+                for indicator in ["server", "websocket", "starting", "initializing", "port", "bind", "address"]
+            )
 
             # Check for crash indicators (bad)
             crash_indicators = ["traceback", "segfault", "core dumped"]
@@ -279,12 +305,14 @@ class TestServerStartupShutdown:
             # As long as it didn't crash and showed some attempt to handle the port issue, it's good
             if not startup_attempted:
                 # This might be a dependency issue, which is acceptable
-                dependency_issue = any(err in error_text for err in [
-                    "modulenotfounderror", "no module named", "import error"
-                ])
+                dependency_issue = any(
+                    err in error_text for err in ["modulenotfounderror", "no module named", "import error"]
+                )
                 if not dependency_issue:
-                    pytest.fail(f"Server didn't show any startup attempt or port handling. "
-                              f"Stdout: {stdout_text}, Stderr: {stderr_text}")
+                    pytest.fail(
+                        f"Server didn't show any startup attempt or port handling. "
+                        f"Stdout: {stdout_text}, Stderr: {stderr_text}"
+                    )
 
             # If we get here, server either handled the conflict or had dependency issues - both OK
 
@@ -303,9 +331,12 @@ class TestBasicServerFunctionality:
         port = find_free_port()
 
         # Start server
-        process = subprocess.Popen([
-            *cli_cmd, "serve", f"--port={port}", "--debug"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
+        process = subprocess.Popen(
+            [*cli_cmd, "serve", f"--port={port}", "--debug"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=get_test_env(),
+        )
 
         # Wait for startup
         time.sleep(3)
@@ -369,15 +400,17 @@ class TestBasicServerFunctionality:
             # or connection-related (not acceptable)
             error_str = str(e).lower()
             auth_related = any(word in error_str for word in ["auth", "token", "permission", "forbidden"])
-            connection_refused = any(phrase in error_str for phrase in [
-                "connection refused", "connect call failed", "multiple exceptions"
-            ])
+            connection_refused = any(
+                phrase in error_str for phrase in ["connection refused", "connect call failed", "multiple exceptions"]
+            )
 
             if connection_refused:
                 # Server might not be running on the expected port
                 # But we should be more specific about when this is acceptable
-                pytest.skip(f"Could not connect to server on port {port}. "
-                          f"This might be a test fixture issue or server startup problem: {e}")
+                pytest.skip(
+                    f"Could not connect to server on port {port}. "
+                    f"This might be a test fixture issue or server startup problem: {e}"
+                )
             elif not auth_related:
                 # Log more details for debugging unexpected errors
                 pytest.fail(f"Unexpected WebSocket connection error (not auth or connection related): {e}")
@@ -393,9 +426,12 @@ class TestServerConfigurationHandling:
         port = find_free_port()
 
         # Start server with specific host
-        process = subprocess.Popen([
-            *cli_cmd, "serve", f"--port={port}", "--host=127.0.0.1"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
+        process = subprocess.Popen(
+            [*cli_cmd, "serve", f"--port={port}", "--host=127.0.0.1"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=get_test_env(),
+        )
 
         try:
             time.sleep(2)
@@ -426,9 +462,12 @@ class TestServerConfigurationHandling:
         port = find_free_port()
 
         # Start server with debug flag
-        process = subprocess.Popen([
-            *cli_cmd, "serve", f"--port={port}", "--debug"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
+        process = subprocess.Popen(
+            [*cli_cmd, "serve", f"--port={port}", "--debug"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=get_test_env(),
+        )
 
         try:
             time.sleep(2)
@@ -439,8 +478,9 @@ class TestServerConfigurationHandling:
                 stderr_text = stderr.decode()
 
                 # Primary assertion: our fix works
-                assert "asyncio.run() cannot be called from a running event loop" not in stderr_text, \
-                    f"AsyncIO error still present: {stderr_text}"
+                assert (
+                    "asyncio.run() cannot be called from a running event loop" not in stderr_text
+                ), f"AsyncIO error still present: {stderr_text}"
 
         finally:
             if process.poll() is None:

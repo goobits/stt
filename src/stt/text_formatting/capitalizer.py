@@ -168,9 +168,11 @@ class SmartCapitalizer:
                 should_capitalize = True
 
                 # Check for protected entities at the start
-                for entity in (entities or []):
+                for entity in entities or []:
                     if entity.start <= first_letter_index < entity.end:
-                        logger.debug(f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}")
+                        logger.debug(
+                            f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}"
+                        )
                         # Don't capitalize if it's a strictly protected type
                         if entity.type in self.STRICTLY_PROTECTED_TYPES:
                             logger.debug(f"Entity {entity.type} is strictly protected")
@@ -182,7 +184,9 @@ class SmartCapitalizer:
                                 logger.debug("CLI command is entire text, not capitalizing")
                                 should_capitalize = False
                                 break
-                            logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
+                            logger.debug(
+                                f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization"
+                            )
                             # Otherwise, allow normal capitalization for CLI commands at sentence start
                         # Special rule for versions starting with 'v' (e.g., v1.2)
                         elif entity.type == EntityType.VERSION and entity.text.startswith("v"):
@@ -259,7 +263,8 @@ class SmartCapitalizer:
                 # Add context check for variable 'i'
                 preceding_text = text[max(0, start - 25) : start].lower()
                 is_variable_context = any(
-                    keyword in preceding_text for keyword in ["variable is", "counter is", "iterator is", "for i in", "variable i", "letter i"]
+                    keyword in preceding_text
+                    for keyword in ["variable is", "counter is", "iterator is", "for i in", "variable i", "letter i"]
                 )
 
                 if not is_protected and not is_part_of_identifier and not is_variable_context:

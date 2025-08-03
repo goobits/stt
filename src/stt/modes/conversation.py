@@ -22,18 +22,22 @@ from .base_mode import BaseMode
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 # Text formatting for streaming results
 try:
     from stt.text_formatting import TextFormatter
+
     TEXT_FORMATTING_AVAILABLE = True
 except ImportError:
     TEXT_FORMATTING_AVAILABLE = False
@@ -50,11 +54,7 @@ class ConversationMode(BaseMode):
         self.wake_word_callback = wake_word_callback
         # Load exit phrases from wake_word config if available, otherwise use defaults
         wake_word_config = self.config.get("wake_word", {})
-        self.exit_phrases = wake_word_config.get("exit_phrases", [
-            "goodbye jarvis",
-            "stop listening",
-            "sleep jarvis"
-        ])
+        self.exit_phrases = wake_word_config.get("exit_phrases", ["goodbye jarvis", "stop listening", "sleep jarvis"])
 
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
@@ -98,8 +98,8 @@ class ConversationMode(BaseMode):
 
         # VAD-based speech timing
         self.speech_start_chunk_idx = None  # Index in main_buffer where speech actually started
-        self.speech_end_chunk_idx = None    # Index where speech ended
-        self.total_chunks_processed = 0     # Total chunks seen since utterance start
+        self.speech_end_chunk_idx = None  # Index where speech ended
+        self.total_chunks_processed = 0  # Total chunks seen since utterance start
         self.vad = None  # Silero VAD instance
         self.vad_threshold = mode_config.get("vad_threshold", 0.5)
         self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.5)
@@ -145,12 +145,16 @@ class ConversationMode(BaseMode):
                 self.logger.warning(f"Text formatting initialization failed: {e}")
                 self.text_formatter = None
 
-        self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
-                        f"min_speech={self.min_speech_duration}s, "
-                        f"max_silence={self.max_silence_duration}s")
-        self.logger.info(f"Streaming config: interval={self.chunk_processing_interval_ms}ms, "
-                        f"buffer={self.max_buffer_duration_s}s, "
-                        f"partial_enabled={self.enable_partial_results}")
+        self.logger.info(
+            f"VAD config: threshold={self.vad_threshold}, "
+            f"min_speech={self.min_speech_duration}s, "
+            f"max_silence={self.max_silence_duration}s"
+        )
+        self.logger.info(
+            f"Streaming config: interval={self.chunk_processing_interval_ms}ms, "
+            f"buffer={self.max_buffer_duration_s}s, "
+            f"partial_enabled={self.enable_partial_results}"
+        )
 
     async def run(self):
         """Main conversation mode loop."""
@@ -178,11 +182,11 @@ class ConversationMode(BaseMode):
         finally:
             await self._cleanup()
 
-
     async def _initialize_vad(self):
         """Initialize Silero VAD in executor to avoid blocking."""
         try:
             from stt.audio.vad import SileroVAD
+
             self.logger.info("Initializing Silero VAD...")
 
             loop = asyncio.get_event_loop()
@@ -193,8 +197,8 @@ class ConversationMode(BaseMode):
                     threshold=self.vad_threshold,
                     min_speech_duration=self.min_speech_duration,
                     min_silence_duration=self.max_silence_duration,
-                    use_onnx=True  # Faster inference
-                )
+                    use_onnx=True,  # Faster inference
+                ),
             )
 
             self.logger.info("Silero VAD initialized successfully")
@@ -286,14 +290,18 @@ class ConversationMode(BaseMode):
                         # Check if we need to segment long utterances
                         if len(self.main_buffer) % 50 == 0:  # Check every 50 chunks (5 seconds)
                             buffer_duration = len(self.main_buffer) / self.chunks_per_second
-                            self.logger.debug(f"📊 Buffer check: {buffer_duration:.1f}s ({len(self.main_buffer)} chunks)")
+                            self.logger.debug(
+                                f"📊 Buffer check: {buffer_duration:.1f}s ({len(self.main_buffer)} chunks)"
+                            )
                             asyncio.create_task(self._check_buffer_segmentation())
 
                         # Phase 0: Process partial results during speech (if enabled)
                         if self.enable_partial_results and self.vad_state == "speech":
                             current_time = time.time()
-                            if (current_time - self.last_partial_time >= self.partial_processing_interval and
-                                len(self.main_buffer) > 5):  # At least minimum audio chunks
+                            if (
+                                current_time - self.last_partial_time >= self.partial_processing_interval
+                                and len(self.main_buffer) > 5
+                            ):  # At least minimum audio chunks
                                 await self._process_partial_utterance()
                                 self.last_partial_time = current_time
 
@@ -322,7 +330,9 @@ class ConversationMode(BaseMode):
                                     # Mark end of speech for VAD-based trimming
                                     self.speech_end_chunk_idx = len(self.main_buffer)
 
-                                    self.logger.warning(f"🛑 UTTERANCE COMPLETE ({speech_duration:.2f}s) - Processing final result...")
+                                    self.logger.warning(
+                                        f"🛑 UTTERANCE COMPLETE ({speech_duration:.2f}s) - Processing final result..."
+                                    )
                                     self.logger.info(f"   📍 Speech ended at buffer index {self.speech_end_chunk_idx}")
                                     self.vad_state = "silence"
 
@@ -340,7 +350,9 @@ class ConversationMode(BaseMode):
                                 else:
                                     # Too short, reset
                                     self.logger.debug(f"Speech too short ({speech_duration:.2f}s), ignoring")
-                                    self.logger.info(f"❌ UTTERANCE TOO SHORT ({speech_duration:.2f}s < {self.min_speech_duration}s) - Discarding")
+                                    self.logger.info(
+                                        f"❌ UTTERANCE TOO SHORT ({speech_duration:.2f}s < {self.min_speech_duration}s) - Discarding"
+                                    )
                                     self.vad_state = "silence"
                                     speech_start = None
                                     await self._cancel_partial_processing()
@@ -387,7 +399,9 @@ class ConversationMode(BaseMode):
         """Check if main buffer needs segmentation for long utterances."""
         if len(self.main_buffer) > self.segment_max_chunks:
             duration_s = len(self.main_buffer) / self.chunks_per_second
-            self.logger.warning(f"🚨 LONG UTTERANCE DETECTED: {duration_s:.1f}s ({len(self.main_buffer)} chunks > {self.segment_max_chunks})")
+            self.logger.warning(
+                f"🚨 LONG UTTERANCE DETECTED: {duration_s:.1f}s ({len(self.main_buffer)} chunks > {self.segment_max_chunks})"
+            )
             self.logger.warning("   ✂️  Segmenting buffer to prevent overflow...")
             await self._process_buffer_segment()
 
@@ -404,10 +418,12 @@ class ConversationMode(BaseMode):
                 segment_end = min(len(self.main_buffer), start_idx + self.segment_max_chunks)
                 segment_chunks = self.main_buffer[start_idx:segment_end]
 
-                self.logger.warning(f"   📝 VAD-TRIMMED SEGMENT #{self.segment_count} (buffer {start_idx}:{segment_end})")
+                self.logger.warning(
+                    f"   📝 VAD-TRIMMED SEGMENT #{self.segment_count} (buffer {start_idx}:{segment_end})"
+                )
             else:
                 # Fallback: use regular segmentation
-                segment_chunks = self.main_buffer[:self.segment_max_chunks]
+                segment_chunks = self.main_buffer[: self.segment_max_chunks]
                 self.logger.warning(f"   📝 REGULAR SEGMENT #{self.segment_count} (no VAD timing)")
 
             segment_duration = len(segment_chunks) / self.chunks_per_second
@@ -425,8 +441,7 @@ class ConversationMode(BaseMode):
                 self.logger.info(f"   🧠 Context for segment: '{context_prompt[:100]}...'")
 
                 result = await loop.run_in_executor(
-                    None,
-                    lambda: self._transcribe_audio_with_vad_stats(segment_audio, context_prompt.strip())
+                    None, lambda: self._transcribe_audio_with_vad_stats(segment_audio, context_prompt.strip())
                 )
 
                 if result.get("success"):
@@ -437,7 +452,7 @@ class ConversationMode(BaseMode):
                         "text": segment_text,
                         "segment_number": self.segment_count,
                         "duration": segment_duration,
-                        "timestamp": time.time()
+                        "timestamp": time.time(),
                     }
                     self.accumulated_segments.append(segment_info)
 
@@ -450,13 +465,16 @@ class ConversationMode(BaseMode):
 
             # Keep overlap for context continuity
             remaining_chunks = len(self.main_buffer) - (self.segment_max_chunks - self.overlap_chunks)
-            self.main_buffer = self.main_buffer[self.segment_max_chunks - self.overlap_chunks:]
+            self.main_buffer = self.main_buffer[self.segment_max_chunks - self.overlap_chunks :]
 
-            self.logger.warning(f"   ♾️  Trimmed buffer: {remaining_chunks} chunks remaining ({remaining_chunks/self.chunks_per_second:.1f}s)")
+            self.logger.warning(
+                f"   ♾️  Trimmed buffer: {remaining_chunks} chunks remaining ({remaining_chunks/self.chunks_per_second:.1f}s)"
+            )
 
         except Exception as e:
             self.logger.error(f"Error processing buffer segment: {e}")
             import traceback
+
             self.logger.error(f"Traceback: {traceback.format_exc()}")
 
     async def _process_partial_utterance(self) -> None:
@@ -485,9 +503,7 @@ class ConversationMode(BaseMode):
             return
 
         # Start new partial processing task
-        self.partial_processing_task = asyncio.create_task(
-            self._do_partial_processing(utterance_data, utterance_hash)
-        )
+        self.partial_processing_task = asyncio.create_task(self._do_partial_processing(utterance_data, utterance_hash))
 
     async def _do_partial_processing(self, utterance_data: np.ndarray, utterance_hash: int) -> None:
         """Actual partial processing implementation."""
@@ -504,7 +520,9 @@ class ConversationMode(BaseMode):
             # Use ONLY conversation context (NOT confirmed_text to prevent feedback)
             loop = asyncio.get_event_loop()
             context_prompt = self.conversation_context.strip()
-            result = await loop.run_in_executor(None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt))
+            result = await loop.run_in_executor(
+                None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt)
+            )
 
             # Check if task was cancelled during processing
             if asyncio.current_task().cancelled():
@@ -523,7 +541,7 @@ class ConversationMode(BaseMode):
 
                     if self.confirmed_text:  # Only send non-empty confirmed text
                         # Calculate provisional text (remainder of latest transcription)
-                        provisional_text = new_transcription[len(stable_prefix):]
+                        provisional_text = new_transcription[len(stable_prefix) :]
 
                         # Apply streaming-aware text formatting
                         formatted_confirmed = self._format_text_for_streaming(self.confirmed_text, is_partial=True)
@@ -531,20 +549,21 @@ class ConversationMode(BaseMode):
 
                         # Send the confirmed + provisional partial result
                         partial_result = {
-                            "text": formatted_confirmed + (" " + formatted_provisional if formatted_provisional else ""),
+                            "text": formatted_confirmed
+                            + (" " + formatted_provisional if formatted_provisional else ""),
                             "confirmed_text": formatted_confirmed,
                             "provisional_text": formatted_provisional,
                             "is_partial": True,
                             "status": "partial",
                             "success": True,
                             "language": "auto",  # Add required field
-                            "duration": 0.0,     # Add required field
-                            "confidence": 0.7,   # Add required field for base method
+                            "duration": 0.0,  # Add required field
+                            "confidence": 0.7,  # Add required field for base method
                             "streaming_confidence": {
-                                "confirmed": 0.9,   # High confidence for agreed-upon text
-                                "provisional": 0.5  # Lower confidence for changing text
+                                "confirmed": 0.9,  # High confidence for agreed-upon text
+                                "provisional": 0.5,  # Lower confidence for changing text
                             },
-                            "timestamp": time.time()
+                            "timestamp": time.time(),
                         }
                         await self._send_transcription(partial_result)
 
@@ -559,7 +578,9 @@ class ConversationMode(BaseMode):
         except Exception as e:
             self.logger.debug(f"Error processing partial utterance: {e}")
             # Log more details for debugging
-            self.logger.debug(f"Utterance chunks: {len(self.main_buffer)}, Context: '{self.conversation_context[:50]}...'")
+            self.logger.debug(
+                f"Utterance chunks: {len(self.main_buffer)}, Context: '{self.conversation_context[:50]}...'"
+            )
             # Don't re-raise - partial results are optional
         finally:
             self.processing_count = max(0, self.processing_count - 1)
@@ -571,7 +592,9 @@ class ConversationMode(BaseMode):
 
         self.logger.warning(f"🏁 FINALIZING UTTERANCE (duration: {total_duration:.1f}s)")
         self.logger.warning(f"   📊 Accumulated segments: {len(self.accumulated_segments)}")
-        self.logger.warning(f"   📊 Remaining buffer: {len(self.main_buffer)} chunks ({len(self.main_buffer)/self.chunks_per_second:.1f}s)")
+        self.logger.warning(
+            f"   📊 Remaining buffer: {len(self.main_buffer)} chunks ({len(self.main_buffer)/self.chunks_per_second:.1f}s)"
+        )
 
         # Log accumulated segments for debugging
         for i, seg in enumerate(self.accumulated_segments):
@@ -597,7 +620,9 @@ class ConversationMode(BaseMode):
                     end_idx = min(len(self.main_buffer), self.speech_end_chunk_idx + cushion_chunks)
 
                     speech_buffer = self.main_buffer[start_idx:end_idx]
-                    self.logger.warning(f"   ✂️  VAD-trimmed buffer: {start_idx}:{end_idx} ({len(speech_buffer)} chunks, {len(speech_buffer)/self.chunks_per_second:.1f}s)")
+                    self.logger.warning(
+                        f"   ✂️  VAD-trimmed buffer: {start_idx}:{end_idx} ({len(speech_buffer)} chunks, {len(speech_buffer)/self.chunks_per_second:.1f}s)"
+                    )
                     utterance_data = np.concatenate(speech_buffer)
                 else:
                     # Fallback: use entire buffer if VAD timing not available
@@ -621,7 +646,9 @@ class ConversationMode(BaseMode):
                 self.logger.info(f"   🧠 Final context: '{context_prompt[:100]}...'")
 
                 loop = asyncio.get_event_loop()
-                result = await loop.run_in_executor(None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt.strip()))
+                result = await loop.run_in_executor(
+                    None, lambda: self._transcribe_audio_with_vad_stats(utterance_data, context_prompt.strip())
+                )
 
                 # Check if task was cancelled during processing
                 if asyncio.current_task().cancelled():
@@ -661,15 +688,13 @@ class ConversationMode(BaseMode):
                 "language": "auto",
                 "duration": total_duration,
                 "confidence": 0.95,
-                "streaming_confidence": {
-                    "final": 0.95
-                },
+                "streaming_confidence": {"final": 0.95},
                 "utterance_info": {
                     "total_segments": len(self.accumulated_segments),
                     "had_final_buffer": len(self.main_buffer) > 0,
-                    "total_duration": total_duration
+                    "total_duration": total_duration,
                 },
-                "timestamp": time.time()
+                "timestamp": time.time(),
             }
 
             await self._send_transcription(final_result)
@@ -743,11 +768,14 @@ class ConversationMode(BaseMode):
             # We want blocks that start at the beginning of both strings
             if a_start == 0 and b_start == 0 and size > 0:
                 stable_prefix = previous_text[:size]
-                self.logger.debug(f"Advanced agreement: '{stable_prefix}' (from '{previous_text[:20]}...' + '{new_text[:20]}...')")
+                self.logger.debug(
+                    f"Advanced agreement: '{stable_prefix}' (from '{previous_text[:20]}...' + '{new_text[:20]}...')"
+                )
                 return stable_prefix
 
         # Fallback to simple commonprefix if no matching blocks found
         import os
+
         fallback = os.path.commonprefix([previous_text, new_text])
         self.logger.debug(f"Fallback to commonprefix: '{fallback}'")
         return fallback
@@ -779,9 +807,6 @@ class ConversationMode(BaseMode):
         except Exception as e:
             self.logger.warning(f"Text formatting error: {e}")
             return text  # Return original text if formatting fails
-
-
-
 
     def _contains_exit_phrase(self, text: str) -> bool:
         """Check if text contains any exit phrases for wake word mode."""

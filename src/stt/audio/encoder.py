@@ -1,4 +1,5 @@
 """Opus audio encoder for streaming audio to server."""
+
 from __future__ import annotations
 
 import numpy as np

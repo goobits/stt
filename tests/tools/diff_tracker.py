@@ -22,8 +22,14 @@ def pytest_addoption(parser):
     """Add options to pytest command line."""
     group = parser.getgroup("test-diff-tracker")
     group.addoption("--track-diff", action="store_true", default=False, help="Run tests and show diff vs last run.")
-    group.addoption("--history", nargs="?", const=10, type=int, metavar="N",
-                   help="Show test run history. Optional N specifies number of runs to show (default: 10).")
+    group.addoption(
+        "--history",
+        nargs="?",
+        const=10,
+        type=int,
+        metavar="N",
+        help="Show test run history. Optional N specifies number of runs to show (default: 10).",
+    )
     group.addoption(
         "--diff",
         dest="diff_range",

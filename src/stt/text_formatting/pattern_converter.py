@@ -55,7 +55,6 @@ class PatternConverter:
             EntityType.PORT_NUMBER: self.convert_port_number,
             EntityType.URL: self.convert_url,
             EntityType.EMAIL: self.convert_email,
-
             # Code converters
             EntityType.CLI_COMMAND: self.convert_cli_command,
             EntityType.PROGRAMMING_KEYWORD: self.convert_programming_keyword,
@@ -69,7 +68,6 @@ class PatternConverter:
             EntityType.SLASH_COMMAND: self.convert_slash_command,
             EntityType.UNDERSCORE_DELIMITER: self.convert_underscore_delimiter,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: self.convert_simple_underscore_variable,
-
             # Numeric converters
             EntityType.MATH_EXPRESSION: self.convert_math_expression,
             EntityType.CURRENCY: self.convert_currency,
@@ -99,7 +97,6 @@ class PatternConverter:
             EntityType.SCIENTIFIC_NOTATION: self.convert_scientific_notation,
             EntityType.MUSIC_NOTATION: self.convert_music_notation,
             EntityType.SPOKEN_EMOJI: self.convert_spoken_emoji,
-            
             # Spoken letter converters
             EntityType.SPOKEN_LETTER: self.convert_spoken_letter,
             EntityType.LETTER_SEQUENCE: self.convert_letter_sequence,
@@ -462,12 +459,12 @@ class PatternConverter:
         """Convert spoken domain like 'api dot service dot com' to 'api.service.com'"""
         # Get dot keywords from URL keywords
         dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
-        
+
         result = domain_text.strip()
         for dot_keyword in dot_keywords:
             # Replace spoken dot with actual dot
             result = result.replace(f" {dot_keyword} ", ".")
-        
+
         return result
 
     # ====================
@@ -488,13 +485,21 @@ class PatternConverter:
 
         # Strip common leading phrases to isolate the filename
         leading_phrases_to_strip = [
-            "edit the config file", "open the config file", "check the config file",
-            "edit the file", "open the file", "check the file", "save the file",
-            "the config file", "config file", "the file", "my favorite file is"
+            "edit the config file",
+            "open the config file",
+            "check the config file",
+            "edit the file",
+            "open the file",
+            "check the file",
+            "save the file",
+            "the config file",
+            "config file",
+            "the file",
+            "my favorite file is",
         ]
         for phrase in leading_phrases_to_strip:
             if text.lower().startswith(phrase):
-                text = text[len(phrase):].lstrip()
+                text = text[len(phrase) :].lstrip()
                 break
 
         # Check for Java package metadata
@@ -566,15 +571,15 @@ class PatternConverter:
 
         if not casing_words:
             return f".{extension}"  # Handle cases like ".bashrc"
-        
+
         # Apply fuzzy matching for common misspellings in markdown files
         if extension.lower() == "md":
             fuzzy_corrections = {
                 "clod": "claude",
-                "claud": "claude", 
+                "claud": "claude",
                 "cloud": "claude",
                 "readme": "readme",  # Keep as-is
-                "read": "readme",    # Expand "read" to "readme" for .md
+                "read": "readme",  # Expand "read" to "readme" for .md
             }
             casing_words = [fuzzy_corrections.get(word, word) for word in casing_words]
 
@@ -686,7 +691,9 @@ class PatternConverter:
             right = entity.metadata.get("right", "")
 
             # Check if right side contains math expressions - if so, convert operators first
-            has_math_operators = bool(re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE))
+            has_math_operators = bool(
+                re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE)
+            )
 
             if has_math_operators:
                 # Convert math operators in assignment expressions
@@ -697,7 +704,7 @@ class PatternConverter:
                 right = re.sub(r"\bover\b", "/", right, flags=re.IGNORECASE)
                 # Clean up extra spaces after operator substitution
                 right = re.sub(r"\s+", " ", right).strip()
-                
+
                 # Now try to parse individual number words that remain
                 def convert_number_words(text):
                     words = text.split()
@@ -710,7 +717,7 @@ class PatternConverter:
                         else:
                             converted_words.append(word)
                     return " ".join(converted_words)
-                    
+
                 right = convert_number_words(right)
             else:
                 # Try to parse number words for simple cases (no operators)
@@ -1506,7 +1513,7 @@ class PatternConverter:
         # Handle consecutive digits specially
         if entity.metadata and entity.metadata.get("consecutive_digits"):
             return entity.metadata.get("parsed_value", entity.text)
-        
+
         # Don't convert numbers that are part of hyphenated compounds
         # Check if this entity is immediately followed by a hyphen (like "One-on-one")
         if full_text:
@@ -1731,36 +1738,74 @@ class PatternConverter:
             whole_word = entity.metadata.get("whole_word", "").lower()
             numerator_word = entity.metadata.get("numerator_word", "").lower()
             denominator_word = entity.metadata.get("denominator_word", "").lower()
-            
+
             # Map number words to digits (extended for compound fractions)
             num_map = {
-                "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
-                "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
-                "eleven": "11", "twelve": "12"
+                "one": "1",
+                "two": "2",
+                "three": "3",
+                "four": "4",
+                "five": "5",
+                "six": "6",
+                "seven": "7",
+                "eight": "8",
+                "nine": "9",
+                "ten": "10",
+                "eleven": "11",
+                "twelve": "12",
             }
-            
+
             # Map denominator words to numbers
             denom_map = {
-                "half": "2", "halves": "2", "third": "3", "thirds": "3",
-                "quarter": "4", "quarters": "4", "fourth": "4", "fourths": "4",
-                "fifth": "5", "fifths": "5", "sixth": "6", "sixths": "6",
-                "seventh": "7", "sevenths": "7", "eighth": "8", "eighths": "8",
-                "ninth": "9", "ninths": "9", "tenth": "10", "tenths": "10",
+                "half": "2",
+                "halves": "2",
+                "third": "3",
+                "thirds": "3",
+                "quarter": "4",
+                "quarters": "4",
+                "fourth": "4",
+                "fourths": "4",
+                "fifth": "5",
+                "fifths": "5",
+                "sixth": "6",
+                "sixths": "6",
+                "seventh": "7",
+                "sevenths": "7",
+                "eighth": "8",
+                "eighths": "8",
+                "ninth": "9",
+                "ninths": "9",
+                "tenth": "10",
+                "tenths": "10",
             }
-            
+
             whole = num_map.get(whole_word)
             numerator = num_map.get(numerator_word)
             denominator = denom_map.get(denominator_word)
-            
+
             if whole and numerator and denominator:
                 # Create the x/y format first
                 fraction_str = f"{numerator}/{denominator}"
                 # Map common fractions to Unicode equivalents
                 unicode_fractions = {
-                    "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾",
-                    "1/5": "⅕", "2/5": "⅖", "3/5": "⅗", "4/5": "⅘", "1/6": "⅙",
-                    "5/6": "⅚", "1/7": "⅐", "1/8": "⅛", "3/8": "⅜", "5/8": "⅝",
-                    "7/8": "⅞", "1/9": "⅑", "1/10": "⅒"
+                    "1/2": "½",
+                    "1/3": "⅓",
+                    "2/3": "⅔",
+                    "1/4": "¼",
+                    "3/4": "¾",
+                    "1/5": "⅕",
+                    "2/5": "⅖",
+                    "3/5": "⅗",
+                    "4/5": "⅘",
+                    "1/6": "⅙",
+                    "5/6": "⅚",
+                    "1/7": "⅐",
+                    "1/8": "⅛",
+                    "3/8": "⅜",
+                    "5/8": "⅝",
+                    "7/8": "⅞",
+                    "1/9": "⅑",
+                    "1/10": "⅒",
                 }
                 unicode_fraction = unicode_fractions.get(fraction_str, f"{numerator}/{denominator}")
                 return f"{whole}{unicode_fraction}"
@@ -1848,7 +1893,7 @@ class PatternConverter:
 
         start_word = entity.metadata.get("start_word", "")
         end_word = entity.metadata.get("end_word", "")
-        unit = entity.metadata.get("unit") # The detector now provides this
+        unit = entity.metadata.get("unit")  # The detector now provides this
 
         start_num = self.number_parser.parse(start_word)
         end_num = self.number_parser.parse(end_word)
@@ -2303,8 +2348,8 @@ class PatternConverter:
             "metric tons": "t",
             "tonne": "t",
             "tonnes": "t",
-            "pound": "lbs",     # Imperial weight unit
-            "pounds": "lbs",    # Imperial weight unit
+            "pound": "lbs",  # Imperial weight unit
+            "pounds": "lbs",  # Imperial weight unit
             # Volume
             "milliliter": "mL",
             "milliliters": "mL",
@@ -2551,7 +2596,7 @@ class PatternConverter:
         Examples:
         - "capital A" → "A"
         - "lowercase b" → "b"
-        
+
         """
         if not entity.metadata:
             return entity.text
@@ -2579,7 +2624,7 @@ class PatternConverter:
         - "capital A B C" → "ABC"
         - "capital A lowercase b capital C" → "AbC"
         - Mixed case sequences handled properly
-        
+
         """
         if not entity.metadata:
             return entity.text

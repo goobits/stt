@@ -18,17 +18,21 @@ from .base_mode import BaseMode
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 try:
     from pynput.keyboard import Key, Listener
+
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
@@ -80,8 +84,6 @@ class HoldToTalkMode(BaseMode):
         finally:
             await self._cleanup()
 
-
-
     def _start_keyboard_listener(self):
         """Start the keyboard listener for press/release events."""
         try:
@@ -89,10 +91,7 @@ class HoldToTalkMode(BaseMode):
             self.target_key = self._parse_key(self.hotkey)
 
             # Create and start listener
-            self.keyboard_listener = Listener(
-                on_press=self._on_key_press,
-                on_release=self._on_key_release
-            )
+            self.keyboard_listener = Listener(on_press=self._on_key_press, on_release=self._on_key_release)
 
             self.keyboard_listener.start()
             self.logger.info(f"Keyboard listener started for: {self.hotkey}")
@@ -264,7 +263,6 @@ class HoldToTalkMode(BaseMode):
     async def _transcribe_recording(self):
         """Transcribe the recorded audio."""
         await self._process_and_transcribe_collected_audio()
-
 
     async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message with hotkey info."""

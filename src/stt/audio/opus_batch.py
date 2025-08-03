@@ -1,4 +1,5 @@
 """Opus batch encoder/decoder for compressing audio files."""
+
 from __future__ import annotations
 
 import io

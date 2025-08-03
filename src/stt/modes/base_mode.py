@@ -25,13 +25,16 @@ from stt.core.config import get_config, setup_logging
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 
@@ -46,7 +49,7 @@ class BaseMode(ABC):
             self.__class__.__name__,
             log_level="DEBUG" if args.debug else "WARNING",
             include_console=False,  # Never show logger output to console - use _send_* methods
-            include_file=True
+            include_file=True,
         )
 
         # Audio processing
@@ -63,10 +66,7 @@ class BaseMode(ABC):
 
         # Check dependencies
         if not NUMPY_AVAILABLE:
-            raise ImportError(
-                f"NumPy is required for {self.__class__.__name__}. "
-                "Install with: pip install numpy"
-            )
+            raise ImportError(f"NumPy is required for {self.__class__.__name__}. " "Install with: pip install numpy")
 
         self.logger.info(f"{self.__class__.__name__} initialized")
 
@@ -81,19 +81,33 @@ class BaseMode(ABC):
         """Main entry point for the mode. Must be implemented by subclasses."""
 
     async def _load_model(self):
-        """Load Whisper model asynchronously."""
+        """Load Whisper model asynchronously using ModelManager for efficient caching."""
         try:
-            from faster_whisper import WhisperModel
-
-            self.logger.info(f"Loading Whisper model: {self.args.model}")
-
-            # Load in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
+            from stt.core.model_manager import get_model_manager
+            from stt.core.config import load_config
+            
+            # Get model configuration from config
+            config = load_config()
+            device = getattr(self.args, 'device', None) or config.whisper_device
+            compute_type = getattr(self.args, 'compute_type', None) or config.whisper_compute_type
+            
+            self.logger.info(f"Loading Whisper model: {self.args.model} (device={device}, compute_type={compute_type})")
+            
+            # Use ModelManager for efficient loading and caching
+            model_manager = get_model_manager()
+            self.model = await model_manager.get_model(
+                model_name=self.args.model,
+                device=device,
+                compute_type=compute_type
             )
-
-            self.logger.info(f"Whisper model {self.args.model} loaded successfully")
+            
+            self.logger.info(f"Whisper model {self.args.model} loaded successfully via ModelManager")
+            
+            # Log cache status for debugging
+            cached_models = model_manager.get_cached_models()
+            memory_info = model_manager.memory_usage_estimate()
+            self.logger.debug(f"ModelManager status: {memory_info}")
+            self.logger.debug(f"Cached models: {list(cached_models.keys())}")
 
         except Exception as e:
             self.logger.error(f"Failed to load Whisper model: {e}")
@@ -112,7 +126,7 @@ class BaseMode(ABC):
                 chunk_duration_ms=chunk_duration_ms,
                 sample_rate=self.args.sample_rate,
                 audio_device=self.args.device,
-                debug=self.args.debug  # Pass debug flag to control logger output
+                debug=self.args.debug,  # Pass debug flag to control logger output
             )
 
             self.logger.info("Audio streamer setup completed")
@@ -154,17 +168,12 @@ class BaseMode(ABC):
                     "text": text,
                     "language": info.language if hasattr(info, "language") else "en",
                     "duration": len(audio_data) / self.args.sample_rate,
-                    "confidence": 0.95  # Placeholder - Whisper doesn't provide confidence
+                    "confidence": 0.95,  # Placeholder - Whisper doesn't provide confidence
                 }
 
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "text": "",
-                "duration": 0
-            }
+            return {"success": False, "error": str(e), "text": "", "duration": 0}
 
     async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message."""
@@ -173,7 +182,7 @@ class BaseMode(ABC):
             "mode": self._get_mode_name(),
             "status": status,
             "message": message,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Add any extra fields
@@ -196,7 +205,7 @@ class BaseMode(ABC):
             "language": result["language"],
             "duration": result["duration"],
             "confidence": result["confidence"],
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Add any extra fields
@@ -212,12 +221,7 @@ class BaseMode(ABC):
 
     async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message."""
-        result = {
-            "type": "error",
-            "mode": self._get_mode_name(),
-            "error": error_message,
-            "timestamp": time.time()
-        }
+        result = {"type": "error", "mode": self._get_mode_name(), "error": error_message, "timestamp": time.time()}
 
         # Add any extra fields
         if extra:
@@ -238,6 +242,7 @@ class BaseMode(ABC):
 
         # Convert CamelCase to snake_case
         import re
+
         return re.sub("([A-Z]+)", r"_\1", class_name).lower().strip("_")
 
     async def _process_and_transcribe_collected_audio(self, audio_chunks: list | None = None):

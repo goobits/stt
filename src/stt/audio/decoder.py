@@ -1,4 +1,5 @@
 """Opus audio decoder for streaming audio processing."""
+
 from __future__ import annotations
 
 import io
@@ -119,7 +120,6 @@ class OpusDecoder:
 
         # Convert to numpy array
         return np.frombuffer(pcm_data, dtype=np.int16)
-
 
     def reset(self):
         """Reset decoder and clear buffers."""

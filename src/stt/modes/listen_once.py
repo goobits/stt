@@ -21,13 +21,16 @@ from .base_mode import BaseMode
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 
@@ -58,10 +61,12 @@ class ListenOnceMode(BaseMode):
         self.speech_started = False
         self.recording_start_time = None
 
-        self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
-                        f"min_speech={self.min_speech_duration}s, "
-                        f"max_silence={self.max_silence_duration}s, "
-                        f"max_recording={self.max_recording_duration}s")
+        self.logger.info(
+            f"VAD config: threshold={self.vad_threshold}, "
+            f"min_speech={self.min_speech_duration}s, "
+            f"max_silence={self.max_silence_duration}s, "
+            f"max_recording={self.max_recording_duration}s"
+        )
 
     async def run(self):
         """Main listen-once mode execution."""
@@ -105,7 +110,6 @@ class ListenOnceMode(BaseMode):
         finally:
             await self._cleanup()
 
-
     async def _initialize_vad(self):
         """Initialize Silero VAD."""
         try:
@@ -119,8 +123,8 @@ class ListenOnceMode(BaseMode):
                     threshold=self.vad_threshold,
                     min_speech_duration=self.min_speech_duration,
                     min_silence_duration=self.max_silence_duration,
-                    use_onnx=True
-                )
+                    use_onnx=True,
+                ),
             )
 
             self.logger.info("Silero VAD initialized successfully")
@@ -155,7 +159,10 @@ class ListenOnceMode(BaseMode):
         while not utterance_complete:
             try:
                 # Check for timeout
-                if self.recording_start_time is not None and time.time() - self.recording_start_time > self.max_recording_duration:
+                if (
+                    self.recording_start_time is not None
+                    and time.time() - self.recording_start_time > self.max_recording_duration
+                ):
                     self.logger.warning("Maximum recording duration reached")
                     break
 
@@ -239,7 +246,6 @@ class ListenOnceMode(BaseMode):
 
         return result
 
-
     async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result with model info."""
         if extra is None:
@@ -247,7 +253,6 @@ class ListenOnceMode(BaseMode):
         if "model" in result:
             extra["model"] = self.args.model
         await super()._send_transcription(result, extra)
-
 
     async def _cleanup(self):
         """Clean up resources."""

@@ -71,7 +71,9 @@ class EntityDetector:
         # Sorting is no longer needed here as the main formatter will sort the final list.
         return entities
 
-    def _process_spacy_entities(self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None) -> None:
+    def _process_spacy_entities(
+        self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None
+    ) -> None:
         """Process SpaCy-detected entities."""
         if not self.nlp:
             return
@@ -135,12 +137,19 @@ class EntityDetector:
                                 if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
                                     # This is the key: we check our i18n file for specific exceptions.
                                     idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
-                                    if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
-                                        logger.debug(f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'.")
+                                    if (
+                                        ordinal_token.text.lower() in idiomatic_phrases
+                                        and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
+                                    ):
+                                        logger.debug(
+                                            f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'."
+                                        )
                                         continue
 
                                 # RULE 2: Skip if it's at sentence start and followed by comma ("First, we...")
-                                if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
+                                if (
+                                    ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i
+                                ) and next_token.text == ",":
                                     logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma")
                                     continue
 
@@ -152,7 +161,9 @@ class EntityDetector:
 
                             idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
                             if ordinal_text in idiomatic_phrases and following_text in idiomatic_phrases[ordinal_text]:
-                                logger.debug(f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources")
+                                logger.debug(
+                                    f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources"
+                                )
                                 continue
 
                         entity_type = label_to_type[ent.label_]
@@ -272,7 +283,9 @@ class EntityDetector:
 
             # Check if our CARDINAL entity is within this range match
             if abs_start <= ent.start_char and ent.end_char <= abs_end:
-                logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of range pattern '{range_match.group()}'")
+                logger.debug(
+                    f"Skipping CARDINAL '{ent.text}' because it's part of range pattern '{range_match.group()}'"
+                )
                 return True
 
         # Check if this number is followed by a known unit (prevents greedy CARDINAL detection)
@@ -314,7 +327,7 @@ class EntityDetector:
         entity_text_lower = ent.text.lower()
         if self.nlp and (" plus " in entity_text_lower or " times " in entity_text_lower):
             try:
-                doc = self.nlp(text) # Ensure we have the doc object
+                doc = self.nlp(text)  # Ensure we have the doc object
 
                 # Find the first token that starts at or after the end of our entity.
                 next_token = None
@@ -326,13 +339,17 @@ class EntityDetector:
                 if next_token:
                     # RULE: If a CARDINAL like "five plus" is followed by a NOUN ("years"), it's idiomatic.
                     if next_token.pos_ == "NOUN":
-                        logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}').")
+                        logger.debug(
+                            f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}')."
+                        )
                         return True
 
                     # RULE: If a CARDINAL like "two times" is followed by a comparative ("better"), it's idiomatic.
-                    if next_token.tag_ in ["JJR", "RBR"]: # JJR = Adj, Comparative; RBR = Adv, Comparative
-                         logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}').")
-                         return True
+                    if next_token.tag_ in ["JJR", "RBR"]:  # JJR = Adj, Comparative; RBR = Adv, Comparative
+                        logger.debug(
+                            f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}')."
+                        )
+                        return True
 
             except Exception as e:
                 logger.warning(f"SpaCy idiomatic check failed for '{ent.text}': {e}")
@@ -485,7 +502,18 @@ class EntityDetector:
             if prefix_words:
                 last_word = prefix_words[-1]
                 # Don't skip if preceded by enumeration words
-                if last_word in ["page", "chapter", "section", "part", "volume", "item", "step", "line", "row", "column"]:
+                if last_word in [
+                    "page",
+                    "chapter",
+                    "section",
+                    "part",
+                    "volume",
+                    "item",
+                    "step",
+                    "line",
+                    "row",
+                    "column",
+                ]:
                     return False  # This is enumeration context, convert to number
             # Otherwise, it's likely natural speech
             logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} of' pattern")
@@ -507,7 +535,9 @@ class EntityDetector:
             if prefix_words[-1] == "or" and ent_lower in ["one", "two", "three"]:
                 # Check if followed by a plural noun (examples, things, items, etc.)
                 if suffix_words[0] in ["examples", "things", "items", "options", "choices", "ways", "methods"]:
-                    logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'X or {ent.text} {suffix_words[0]}' pattern")
+                    logger.debug(
+                        f"Skipping CARDINAL '{ent.text}' - part of 'X or {ent.text} {suffix_words[0]}' pattern"
+                    )
                     return True
 
         # Check if it's followed by a unit (indicates numeric context)
@@ -522,8 +552,23 @@ class EntityDetector:
         if suffix_words and len(suffix_words) >= 2:
             first_word = suffix_words[0]
             second_word = suffix_words[1]
-            if first_word in ["test", "tests", "thing", "things", "item", "items", "example", "examples", "issue", "issues", "problem", "problems"] and second_word in ["for", "of"]:
-                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern")
+            if first_word in [
+                "test",
+                "tests",
+                "thing",
+                "things",
+                "item",
+                "items",
+                "example",
+                "examples",
+                "issue",
+                "issues",
+                "problem",
+                "problems",
+            ] and second_word in ["for", "of"]:
+                logger.debug(
+                    f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern"
+                )
                 return True
 
         # Check for "those NUMBER things/issues" pattern
@@ -655,7 +700,6 @@ class PatternConverter:
         return entity_type in self_punctuating_types
 
 
-
 class TextFormatter:
     """Main formatter orchestrating the pipeline"""
 
@@ -718,6 +762,10 @@ class TextFormatter:
                 doc = self.nlp(text)
             except (AttributeError, ValueError, IndexError) as e:
                 logger.warning(f"SpaCy processing failed for text: {e}")
+                # If SpaCy fails consistently, consider using fallback formatter
+                self._spacy_failure_count = getattr(self, '_spacy_failure_count', 0) + 1
+                if self._spacy_failure_count >= 3:
+                    logger.warning("Multiple SpaCy failures detected, consider using FallbackTextFormatter")
         # --- END OF NEW LOGIC ---
 
         # Track original punctuation state for later use
@@ -748,7 +796,9 @@ class TextFormatter:
         # Spoken letters are very specific patterns and should run early to avoid conflicts
         letter_entities = self.spoken_letter_detector.detect(text, final_entities)
         final_entities.extend(letter_entities)
-        logger.info(f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}")
+        logger.info(
+            f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}"
+        )
 
         code_entities = self.code_detector.detect(text, final_entities)
         final_entities.extend(code_entities)
@@ -764,7 +814,9 @@ class TextFormatter:
         # Finally, run the base SpaCy detector for general entities like DATE, TIME, etc.
         base_spacy_entities = self.entity_detector.detect_entities(text, final_entities, doc=doc)
         final_entities.extend(base_spacy_entities)
-        logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}")
+        logger.info(
+            f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}"
+        )
 
         # Phase 4 Fix: Deduplicate entities with identical boundaries and overlapping entities
         # This fixes cases where SpaCy and custom detectors find overlapping entities
@@ -790,11 +842,15 @@ class TextFormatter:
                     if entity_length > existing_length:
                         # Remove the shorter existing entity and add this longer one
                         deduplicated_entities.remove(existing)
-                        logger.debug(f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')")
+                        logger.debug(
+                            f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')"
+                        )
                         break
                     # Keep the existing longer/equal entity
                     overlaps_with_existing = True
-                    logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')")
+                    logger.debug(
+                        f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')"
+                    )
                     break
 
             if not overlaps_with_existing:
@@ -812,7 +868,7 @@ class TextFormatter:
             EntityType.FILENAME: 7,
             EntityType.UNDERSCORE_DELIMITER: 6,
             EntityType.LETTER_SEQUENCE: 5,  # Letter sequences should have high priority
-            EntityType.SPOKEN_LETTER: 5,   # Individual letters should have high priority
+            EntityType.SPOKEN_LETTER: 5,  # Individual letters should have high priority
             EntityType.TIME_AMPM: 4,  # Time entities should have priority
             EntityType.TIME: 4,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
@@ -827,14 +883,18 @@ class TextFormatter:
                     continue
 
                 # Check if entity is completely contained within other_entity OR overlaps with higher priority
-                is_contained_within = (other_entity.start <= entity.start and entity.end <= other_entity.end)
+                is_contained_within = other_entity.start <= entity.start and entity.end <= other_entity.end
                 is_overlapping = not (entity.end <= other_entity.start or other_entity.end <= entity.start)
-                has_higher_priority = entity_priorities.get(other_entity.type, 0) > entity_priorities.get(entity.type, 0)
+                has_higher_priority = entity_priorities.get(other_entity.type, 0) > entity_priorities.get(
+                    entity.type, 0
+                )
 
                 if (is_contained_within or is_overlapping) and has_higher_priority:
                     action = "contained within" if is_contained_within else "overlapping with"
-                    logger.debug(f"Removing lower-priority entity: {entity.type}('{entity.text}') "
-                               f"{action} {other_entity.type}('{other_entity.text}')")
+                    logger.debug(
+                        f"Removing lower-priority entity: {entity.type}('{entity.text}') "
+                        f"{action} {other_entity.type}('{other_entity.text}')"
+                    )
                     is_contained = True
                     break
 
@@ -861,7 +921,7 @@ class TextFormatter:
                 continue  # Skip overlapping entities
 
             # Add plain text part
-            plain_text_part = text[last_end:entity.start]
+            plain_text_part = text[last_end : entity.start]
             result_parts.append(plain_text_part)
             current_pos_in_result += len(plain_text_part)
 
@@ -907,8 +967,10 @@ class TextFormatter:
         has_cli_command = any(entity.type == EntityType.CLI_COMMAND for entity in converted_entities)
         # Check if cleaned text is a short lowercase version pattern (e.g., 'v1.0' not 'version 2.1')
         import re
-        has_lowercase_version = (any(entity.type == EntityType.VERSION for entity in converted_entities)
-                               and re.match(r"^v\d", cleaned_text))  # 'v' followed by digit
+
+        has_lowercase_version = any(entity.type == EntityType.VERSION for entity in converted_entities) and re.match(
+            r"^v\d", cleaned_text
+        )  # 'v' followed by digit
         skip_capitalization_for_cli = punctuation_was_removed and (has_cli_command or has_lowercase_version)
 
         final_text = cleaned_text
@@ -947,7 +1009,6 @@ class TextFormatter:
         text = self._apply_smart_quotes(text)
         logger.debug(f"Text after smart quotes: '{text}'")
 
-
         # Note: Suffix handling remains in hotkey_daemon for reliability
 
         logger.debug(f"Final formatted: '{text[:50]}...'")
@@ -975,14 +1036,56 @@ class TextFormatter:
 
         # Check if the text contains common verbs or action words that indicate it's a sentence
         words = text_stripped.lower().split()
-        common_verbs = {"git", "run", "use", "set", "install", "update", "create", "delete", "open", "edit", "save", "check", "test", "build", "deploy", "start", "stop"}
+        common_verbs = {
+            "git",
+            "run",
+            "use",
+            "set",
+            "install",
+            "update",
+            "create",
+            "delete",
+            "open",
+            "edit",
+            "save",
+            "check",
+            "test",
+            "build",
+            "deploy",
+            "start",
+            "stop",
+        }
         if any(word in common_verbs for word in words):
             logger.debug("Text contains common verbs - treating as sentence, not standalone technical")
             return False
 
         # Check if any word in the text is NOT inside a detected entity and is a common English word
         # This ensures we only treat text as standalone technical if it contains ZERO common words outside entities
-        common_words = {"the", "a", "is", "in", "for", "with", "and", "or", "but", "if", "when", "where", "what", "how", "why", "that", "this", "it", "to", "from", "on", "at", "by"}
+        common_words = {
+            "the",
+            "a",
+            "is",
+            "in",
+            "for",
+            "with",
+            "and",
+            "or",
+            "but",
+            "if",
+            "when",
+            "where",
+            "what",
+            "how",
+            "why",
+            "that",
+            "this",
+            "it",
+            "to",
+            "from",
+            "on",
+            "at",
+            "by",
+        }
         word_positions = []
         current_pos = 0
         for word in words:
@@ -1032,12 +1135,15 @@ class TextFormatter:
     def _clean_artifacts(self, text: str) -> str:
         """Clean audio artifacts and normalize text"""
         # Get context words from resources for i18n support
-        meta_discussion_words = self.resources.get("context_words", {}).get("meta_discussion",
-            ["words", "word", "term", "terms", "phrase", "phrases", "say", "says", "said", "saying", "using", "called"])
+        meta_discussion_words = self.resources.get("context_words", {}).get(
+            "meta_discussion",
+            ["words", "word", "term", "terms", "phrase", "phrases", "say", "says", "said", "saying", "using", "called"],
+        )
 
         # Define which artifacts should be preserved in meta-discussion contexts
-        contextual_artifacts = self.resources.get("filtering", {}).get("contextual_fillers",
-            ["like", "actually", "literally", "basically", "sort of", "kind of"])
+        contextual_artifacts = self.resources.get("filtering", {}).get(
+            "contextual_fillers", ["like", "actually", "literally", "basically", "sort of", "kind of"]
+        )
 
         # Remove various transcription artifacts using context-aware replacement
         if not hasattr(self, "_artifact_patterns"):
@@ -1056,8 +1162,7 @@ class TextFormatter:
                     # Check if meta word appears before the artifact (within reasonable distance)
                     # Allow up to 3 words between meta word and artifact
                     meta_pattern = re.compile(
-                        rf"\b{re.escape(meta_word)}\s+(?:\w+\s+){{0,3}}{re.escape(artifact_word)}\b",
-                        re.IGNORECASE
+                        rf"\b{re.escape(meta_word)}\s+(?:\w+\s+){{0,3}}{re.escape(artifact_word)}\b", re.IGNORECASE
                     )
                     if meta_pattern.search(text):
                         preserved = True
@@ -1089,7 +1194,6 @@ class TextFormatter:
         profanity_pattern = regex_patterns.create_profanity_pattern(self.profanity_words)
         result: str = profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
         return result
-
 
     def _apply_filters(self, text: str) -> str:
         """Apply configured filters"""
@@ -1242,7 +1346,25 @@ class TextFormatter:
                                     base_command_words = self.resources.get("context_words", {}).get(
                                         "command_words", []
                                     )
-                                    command_words = [*list(base_command_words), "drive", "use", "check", "select", "define", "access", "transpose", "download", "git", "contact", "email", "visit", "connect", "redis", "server", "ftp"]
+                                    command_words = [
+                                        *list(base_command_words),
+                                        "drive",
+                                        "use",
+                                        "check",
+                                        "select",
+                                        "define",
+                                        "access",
+                                        "transpose",
+                                        "download",
+                                        "git",
+                                        "contact",
+                                        "email",
+                                        "visit",
+                                        "connect",
+                                        "redis",
+                                        "server",
+                                        "ftp",
+                                    ]
                                     if prev_token.text.lower() in command_words:
                                         should_remove = True
 
@@ -1385,7 +1507,6 @@ class TextFormatter:
         # Add comma after i.e. and e.g. when followed by a word,
         # but NOT if a comma is already there.
         return re.sub(r"(\b(?:i\.e\.|e\.g\.))(?!,)(\s+[a-zA-Z])", r"\1,\2", text)
-
 
     def _convert_orphaned_keywords(self, text: str) -> str:
         """
@@ -1589,12 +1710,16 @@ class TextFormatter:
                         coverage = entity_length / text_length if text_length > 0 else 0
 
                         if coverage >= 0.7:
-                            logger.debug(f"Removing trailing punctuation from standalone entity: '{text_stripped}' → '{text_no_punct}' (coverage: {coverage:.2f})")
+                            logger.debug(
+                                f"Removing trailing punctuation from standalone entity: '{text_stripped}' → '{text_no_punct}' (coverage: {coverage:.2f})"
+                            )
                             return text_no_punct
                     except (AttributeError, ZeroDivisionError):
                         # If we can't calculate coverage, fall back to simpler check
                         if len(text_no_punct.split()) == 1:  # Single word/entity
-                            logger.debug(f"Removing trailing punctuation from single-word entity: '{text_stripped}' → '{text_no_punct}'")
+                            logger.debug(
+                                f"Removing trailing punctuation from single-word entity: '{text_stripped}' → '{text_no_punct}'"
+                            )
                             return text_no_punct
 
         # If we get here, it's likely a sentence containing entities, keep punctuation
@@ -1610,6 +1735,27 @@ class TextFormatter:
 
 # Global formatter instance
 _formatter_instance = None
+
+
+def create_fallback_formatter(language: str = "en") -> 'FallbackTextFormatter':
+    """
+    Create a FallbackTextFormatter with the current TextFormatter as primary.
+    
+    Args:
+        language: Language for formatting
+        
+    Returns:
+        FallbackTextFormatter instance with comprehensive error handling
+    """
+    try:
+        from .fallback_formatter import FallbackTextFormatter
+        primary_formatter = TextFormatter(language=language)
+        return FallbackTextFormatter(primary_formatter=primary_formatter, language=language)
+    except Exception as e:
+        logger.error(f"Failed to create FallbackTextFormatter: {e}")
+        # Return a basic fallback that only does simple cleaning
+        from .fallback_formatter import FallbackTextFormatter
+        return FallbackTextFormatter(primary_formatter=None, language=language)
 
 
 def format_transcription(text: str, key_name: str = "", enter_pressed: bool = False) -> str:

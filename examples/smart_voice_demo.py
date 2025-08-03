@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import collections
 import importlib.util
+import json
 import os
 import sys
 import tempfile
@@ -34,8 +35,8 @@ project_root = Path(__file__).parent.parent.absolute()
 sys.path.insert(0, str(project_root))
 
 # Import GOOBITS components
-from src.core.config import setup_logging
-from src.modes.conversation import ConversationMode
+from src.stt.core.config import setup_logging
+from src.stt.modes.conversation import ConversationMode
 
 
 class ProductionMetrics:
@@ -139,7 +140,7 @@ def load_demo_config_from_goobits():
     global DEMO_CONFIG
 
     try:
-        from src.core.config import load_config
+        from src.stt.core.config import load_config
         main_config = load_config()
         demo_config_override = main_config.get("smart_voice_demo", {})
 
@@ -158,6 +159,34 @@ def load_demo_config_from_goobits():
         print(f"⚠️  Error loading GOOBITS config: {e} - using defaults")
         DEMO_CONFIG = DEFAULT_DEMO_CONFIG.copy()
         return DEMO_CONFIG
+
+
+def save_demo_config_template():
+    """Save demo configuration template to main config.json."""
+    try:
+        config_file = Path("config.json")
+        
+        if config_file.exists():
+            # Load existing config
+            with open(config_file, 'r') as f:
+                existing_config = json.load(f)
+        else:
+            existing_config = {}
+        
+        # Add demo config if not present
+        if "smart_voice_demo" not in existing_config:
+            existing_config["smart_voice_demo"] = DEFAULT_DEMO_CONFIG
+            
+            # Save updated config
+            with open(config_file, 'w') as f:
+                json.dump(existing_config, f, indent=2)
+            return True
+        else:
+            return False  # Already exists
+            
+    except Exception as e:
+        print(f"Error saving config template: {e}")
+        return False
 
 
 def get_platform_info():

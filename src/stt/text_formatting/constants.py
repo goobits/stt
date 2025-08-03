@@ -55,5 +55,3 @@ def get_resources(language: str = "en") -> dict[str, Any]:
             raise ValueError("Default language resource 'en.json' not found.") from None
         except json.JSONDecodeError as e:
             raise ValueError(f"Error decoding JSON from {language}.json") from e
-
-

@@ -1,4 +1,5 @@
 """Audio streaming with Opus encoding for WebGPU visualizers."""
+
 from __future__ import annotations
 
 import asyncio

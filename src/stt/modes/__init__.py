@@ -30,4 +30,11 @@ HoldToTalkMode: type | None = None
 with contextlib.suppress(ImportError):
     from .hold_to_talk import HoldToTalkMode
 
-__all__ = ["ConversationMode", "HoldToTalkMode", "TapToTalkMode", "ConversationModeType", "TapToTalkModeType", "HoldToTalkModeType"]
+__all__ = [
+    "ConversationMode",
+    "HoldToTalkMode",
+    "TapToTalkMode",
+    "ConversationModeType",
+    "TapToTalkModeType",
+    "HoldToTalkModeType",
+]

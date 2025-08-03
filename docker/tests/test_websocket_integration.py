@@ -9,12 +9,44 @@ import ssl
 import sys
 import tempfile
 import wave
+import pytest
 import numpy as np
 import websockets
 
-# Add docker src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from docker.src.api import DashboardAPI
+# Environment detection for Docker
+def is_docker_environment():
+    """Check if running in Docker environment"""
+    # Check for Docker-specific indicators
+    if (os.path.exists('/.dockerenv') or
+        os.environ.get('MATILDA_DOCKER_MODE') == '1' or
+        os.environ.get('DOCKER_CONTAINER') is not None):
+        return True
+    
+    # Check /proc/1/cgroup for docker indicators
+    try:
+        if os.path.exists('/proc/1/cgroup'):
+            with open('/proc/1/cgroup', 'r') as f:
+                content = f.read()
+                return 'docker' in content or 'containerd' in content
+    except (IOError, OSError):
+        pass
+    
+    return False
+
+# Skip all tests if not in Docker environment
+pytestmark = pytest.mark.skipif(
+    not is_docker_environment(),
+    reason="Docker tests require Docker environment with dependencies installed"
+)
+
+# Try to import Docker API - only available in Docker environment
+try:
+    # Add docker src to path
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+    from docker.src.api import DashboardAPI
+except ImportError as e:
+    # This will be caught by pytest skip marker above
+    DashboardAPI = None
 
 
 def create_test_audio():
@@ -36,6 +68,7 @@ def create_test_audio():
         return tmp_file.name, samples.tobytes()
 
 
+@pytest.mark.asyncio
 async def test_websocket_server_direct():
     """Test direct connection to WebSocket server"""
     print("\n1. Testing Direct WebSocket Connection")
@@ -105,6 +138,7 @@ async def test_websocket_server_direct():
         os.unlink(audio_file)
 
 
+@pytest.mark.asyncio
 async def test_docker_api_websocket():
     """Test Docker API WebSocket implementation"""
     print("\n2. Testing Docker API WebSocket Implementation")
@@ -116,6 +150,8 @@ async def test_docker_api_websocket():
     os.environ.setdefault("SSL_ENABLED", "true")
 
     # Create API instance
+    if DashboardAPI is None:
+        pytest.skip("DashboardAPI not available - Docker dependencies missing")
     api = DashboardAPI()
 
     print(f"API configured for: {api.websocket_host}:{api.websocket_port}")

@@ -55,7 +55,7 @@ class WebEntityDetector:
         self._detect_spoken_emails(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
-        # Detect protocol URLs 
+        # Detect protocol URLs
         self._detect_spoken_protocol_urls(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
@@ -135,7 +135,7 @@ class WebEntityDetector:
             if not at_match:
                 continue
 
-            username = email_text[:at_match.start()].strip()
+            username = email_text[: at_match.start()].strip()
             # domain = email_text[at_match.end():].strip()  # Unused variable
 
             # CONTEXT CHECK to avoid misinterpreting "docs at python.org"
@@ -151,14 +151,12 @@ class WebEntityDetector:
             should_skip = False
             # Skip if it's a clear location noun
             if username_lower in location_nouns:
-                logger.debug(
-                    f"Skipping email match '{email_text}' - '{username}' indicates location context"
-                )
+                logger.debug(f"Skipping email match '{email_text}' - '{username}' indicates location context")
                 should_skip = True
             # Skip ambiguous nouns only if it's not a common email username
             elif username_lower in ambiguous_nouns and username_lower not in common_email_usernames:
                 # Check if there's an email action word before this match
-                before_match = text[:match.start()].lower()
+                before_match = text[: match.start()].lower()
                 email_actions = self.resources.get("context_words", {}).get("email_actions", [])
                 has_email_action = any(before_match.endswith(action + " ") for action in email_actions)
 
@@ -183,9 +181,9 @@ class WebEntityDetector:
                 web_entities.append(
                     Entity(
                         start=match.start(1),  # Start of the email text
-                        end=match.end(1),      # End of the email text
+                        end=match.end(1),  # End of the email text
                         text=email_text,
-                        type=EntityType.SPOKEN_EMAIL
+                        type=EntityType.SPOKEN_EMAIL,
                     )
                 )
 
@@ -239,4 +237,3 @@ class WebEntityDetector:
                     entities.append(
                         Entity(start=start_pos, end=end_pos, text=token.text, type=EntityType.EMAIL, metadata=metadata)
                     )
-

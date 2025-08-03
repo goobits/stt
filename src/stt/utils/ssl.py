@@ -1,4 +1,5 @@
 """SSL utility functions for STT Hotkeys."""
+
 from __future__ import annotations
 
 import ssl

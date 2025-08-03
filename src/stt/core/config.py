@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Any
 
 
+class ConfigurationError(Exception):
+    """Raised when there's a configuration issue that prevents safe operation."""
+    pass
+
+
 class ConfigLoader:
     """Load configuration from config.json"""
 
@@ -46,6 +51,7 @@ class ConfigLoader:
         # Method 1: Try package data (for installed packages)
         try:
             import importlib.resources
+
             try:
                 # Python 3.9+ syntax
                 package_data = importlib.resources.files("src") / "config.json"
@@ -81,11 +87,7 @@ class ConfigLoader:
         import tempfile
 
         default_config = {
-            "whisper": {
-                "model": "base",
-                "device": "auto",
-                "compute_type": "auto"
-            },
+            "whisper": {"model": "base", "device": "auto", "compute_type": "auto"},
             "server": {
                 "websocket": {
                     "port": 8769,
@@ -100,52 +102,41 @@ class ConfigLoader:
                         "key_file": "ssl/server.key",
                         "verify_mode": "none",
                         "auto_generate_certs": True,
-                        "cert_validity_days": 365
-                    }
+                        "cert_validity_days": 365,
+                    },
                 }
             },
             "audio": {
                 "sample_rate": 16000,
                 "channels": 1,
-                "streaming": {
-                    "enabled": False,
-                    "opus_bitrate": 24000,
-                    "frame_size": 960,
-                    "buffer_ms": 100
-                }
+                "streaming": {"enabled": False, "opus_bitrate": 24000, "frame_size": 960, "buffer_ms": 100},
             },
-            "tools": {
-                "audio": {
-                    "linux": "arecord",
-                    "darwin": "arecord",
-                    "windows": "ffmpeg"
-                }
-            },
+            "tools": {"audio": {"linux": "arecord", "darwin": "arecord", "windows": "ffmpeg"}},
             "paths": {
                 "venv": {
                     "linux": "venv/bin/python",
                     "darwin": "venv/bin/python",
-                    "windows": "venv\\Scripts\\python.exe"
+                    "windows": "venv\\Scripts\\python.exe",
                 },
                 "temp_dir": {
                     "linux": "/tmp/goobits-stt",
                     "darwin": "/tmp/goobits-stt",
-                    "windows": "%TEMP%\\goobits-stt"
-                }
+                    "windows": "%TEMP%\\goobits-stt",
+                },
             },
             "modes": {
                 "conversation": {
                     "vad_threshold": 0.5,
                     "min_speech_duration_s": 0.5,
                     "max_silence_duration_s": 1.0,
-                    "speech_pad_duration_s": 0.3
+                    "speech_pad_duration_s": 0.3,
                 },
                 "listen_once": {
                     "vad_threshold": 0.5,
                     "min_speech_duration_s": 0.3,
                     "max_silence_duration_s": 0.8,
-                    "max_recording_duration_s": 30.0
-                }
+                    "max_recording_duration_s": 30.0,
+                },
             },
             "text_formatting": {
                 "filename_formats": {
@@ -162,13 +153,10 @@ class ConfigLoader:
                     "scss": "kebab-case",
                     "sass": "kebab-case",
                     "less": "kebab-case",
-                    "*": "lower_snake"
+                    "*": "lower_snake",
                 }
             },
-            "timing": {
-                "server_startup_delay": 1.0,
-                "server_stop_delay": 1.0
-            }
+            "timing": {"server_startup_delay": 1.0, "server_stop_delay": 1.0},
         }
 
         # Create temporary config file
@@ -271,18 +259,56 @@ class ConfigLoader:
         if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
             return str(config_key)
 
-        # 3. Auto-generate in memory only (no file modification)
+        # 3. Production enforcement or development fallback
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.warning("No valid JWT secret found in environment or config. Generating temporary secret for this session.")
-        logger.info("For production, set STT_JWT_SECRET environment variable with a secure 32+ character secret.")
-        return self._generate_secret_key()
+        
+        if self.is_production():
+            # In production, JWT secret MUST be provided via environment variable
+            raise ConfigurationError(
+                "JWT secret is required in production environments. "
+                "Please set the STT_JWT_SECRET environment variable with a secure 32+ character secret. "
+                "Example: export STT_JWT_SECRET=$(openssl rand -base64 32)"
+            )
+        else:
+            # Development only: use persistent file-based secret
+            return self._get_or_create_dev_secret(logger)
 
     def _generate_secret_key(self) -> str:
         """Generate a cryptographically secure secret key."""
         import secrets
 
         return secrets.token_urlsafe(32)
+
+    def _get_or_create_dev_secret(self, logger) -> str:
+        """Get or create a persistent development secret."""
+        import secrets
+        
+        secret_file = self.config_dir / ".jwt_secret"
+        
+        try:
+            if secret_file.exists():
+                secret = secret_file.read_text().strip()
+                if self._validate_secret_key(secret):
+                    return secret
+                else:
+                    logger.warning("Existing development JWT secret is invalid, regenerating...")
+            
+            # Generate new secret
+            secret = secrets.token_urlsafe(32)
+            secret_file.write_text(secret)
+            secret_file.chmod(0o600)  # Secure permissions
+            
+            logger.warning("Generated new development JWT secret and saved to .jwt_secret file")
+            logger.info("For production, set STT_JWT_SECRET environment variable instead")
+            
+            return secret
+            
+        except (OSError, IOError) as e:
+            logger.warning(f"Could not persist development JWT secret: {e}")
+            logger.warning("Using in-memory secret for this session only")
+            return secrets.token_urlsafe(32)
 
     def _validate_secret_key(self, key: str) -> bool:
         """Validate that secret key meets minimum security requirements."""
@@ -291,6 +317,20 @@ class ConfigLoader:
         # Check for minimum entropy (not all same character, etc.)
         return len(set(key)) >= 8  # At least 8 unique characters
 
+    def is_production(self) -> bool:
+        """Detect if running in production environment."""
+        # Check common production indicators
+        production_indicators = [
+            os.environ.get("NODE_ENV") == "production",
+            os.environ.get("ENVIRONMENT") == "production",
+            os.environ.get("STT_ENV") == "production",
+            os.environ.get("DOCKER_CONTAINER") is not None,
+            os.environ.get("KUBERNETES_SERVICE_HOST") is not None,
+            os.path.exists("/.dockerenv"),
+            # Check if running as a service (common in production)
+            os.environ.get("USER") in ("root", "stt", "app"),
+        ]
+        return any(production_indicators)
 
     @property
     def whisper_model(self) -> str:
@@ -608,16 +648,18 @@ class ConfigLoader:
     @property
     def filename_formats(self) -> dict[str, str]:
         """Get filename formatting rules per extension"""
-        return dict(self.get(
-            "text_formatting.filename_formats",
-            {
-                "md": "UPPER_SNAKE",
-                "json": "lower_snake",
-                "jsonl": "lower_snake",
-                "py": "lower_snake",
-                "*": "lower_snake",  # Default fallback
-            },
-        ))
+        return dict(
+            self.get(
+                "text_formatting.filename_formats",
+                {
+                    "md": "UPPER_SNAKE",
+                    "json": "lower_snake",
+                    "jsonl": "lower_snake",
+                    "py": "lower_snake",
+                    "*": "lower_snake",  # Default fallback
+                },
+            )
+        )
 
     def get_filename_format(self, extension: str) -> str:
         """Get formatting rule for a specific file extension"""
@@ -628,6 +670,7 @@ class ConfigLoader:
     def save(self) -> None:
         """Save the current configuration back to the config file"""
         import json
+
         with open(self.config_file, "w") as f:
             json.dump(self._config, f, indent=2)
 
@@ -649,6 +692,7 @@ def get_config() -> ConfigLoader:
 
 # ========================= CENTRALIZED LOGGING SETUP =========================
 
+
 def setup_logging(
     module_name: str,
     log_level: str | None = None,
@@ -658,7 +702,7 @@ def setup_logging(
 ) -> logging.Logger:
     """
     Setup standardized logging for STT modules (legacy interface).
-    
+
     DEPRECATED: Use setup_structured_logging for new code.
     This function maintained for backward compatibility.
 
@@ -676,6 +720,7 @@ def setup_logging(
     # Try to use new structured logging if available
     try:
         from .logging import get_logger as get_structured_logger
+
         return get_structured_logger(
             name=module_name,
             log_level=log_level,
@@ -685,7 +730,7 @@ def setup_logging(
     except ImportError:
         # Fallback to legacy implementation
         pass
-    
+
     logger = logging.getLogger(module_name)
 
     # Avoid duplicate handlers if already configured
@@ -737,7 +782,7 @@ def setup_logging(
 def get_logger(module_name: str) -> logging.Logger:
     """
     Get a logger for a module with default STT settings.
-    
+
     DEPRECATED: Use get_structured_logger for new code.
     This function maintained for backward compatibility.
     """
@@ -747,16 +792,17 @@ def get_logger(module_name: str) -> logging.Logger:
 def get_structured_logger(module_name: str, **kwargs) -> logging.Logger:
     """
     Get a structured logger with modern logging capabilities.
-    
+
     Args:
         module_name: Name of the module (usually __name__)
         **kwargs: Additional arguments passed to setup_structured_logging
-    
+
     Returns:
         ContextLogger instance with structured logging
     """
     try:
         from .logging import setup_structured_logging
+
         return setup_structured_logging(module_name, **kwargs)
     except ImportError:
         # Fallback to legacy logging

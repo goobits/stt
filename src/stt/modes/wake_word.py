@@ -20,17 +20,21 @@ from .base_mode import BaseMode
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 try:
     import pvporcupine
+
     PORCUPINE_AVAILABLE = True
 except ImportError:
     PORCUPINE_AVAILABLE = False
@@ -52,11 +56,7 @@ class WakeWordMode(BaseMode):
         self.confidence_threshold = wake_word_config.get("confidence_threshold", 0.7)
         self.detection_interval_ms = wake_word_config.get("detection_interval_ms", 100)
         self.conversation_timeout_s = wake_word_config.get("conversation_timeout_s", 300)
-        self.exit_phrases = wake_word_config.get("exit_phrases", [
-            "goodbye jarvis",
-            "stop listening",
-            "sleep jarvis"
-        ])
+        self.exit_phrases = wake_word_config.get("exit_phrases", ["goodbye jarvis", "stop listening", "sleep jarvis"])
 
         # Wake word model and state
         self.porcupine = None
@@ -65,7 +65,7 @@ class WakeWordMode(BaseMode):
         self.conversation_active = False
 
         # Audio processing for wake word (smaller chunks for responsiveness)
-        self.wake_word_chunk_size = 512   # 32ms at 16kHz for Porcupine
+        self.wake_word_chunk_size = 512  # 32ms at 16kHz for Porcupine
         self.audio_buffer = []
 
         # Callbacks and mode switching
@@ -74,19 +74,14 @@ class WakeWordMode(BaseMode):
 
         # Check dependencies
         if not PORCUPINE_AVAILABLE:
-            raise ImportError(
-                "Porcupine is required for WakeWordMode. "
-                "Install with: pip install pvporcupine"
-            )
+            raise ImportError("Porcupine is required for WakeWordMode. " "Install with: pip install pvporcupine")
 
         if not NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is required for WakeWordMode. "
-                "Install with: pip install numpy"
-            )
+            raise ImportError("NumPy is required for WakeWordMode. " "Install with: pip install numpy")
 
-        self.logger.info(f"WakeWordMode initialized - keyword: {self.keyword}, "
-                        f"threshold: {self.confidence_threshold}")
+        self.logger.info(
+            f"WakeWordMode initialized - keyword: {self.keyword}, " f"threshold: {self.confidence_threshold}"
+        )
 
     def _get_secure_access_key(self, config: dict[str, Any]) -> str | None:
         """Get access key from environment variables or config, prioritizing security."""
@@ -104,7 +99,7 @@ class WakeWordMode(BaseMode):
                     for line in f:
                         line = line.strip()
                         if line.startswith("PORCUPINE_ACCESS_KEY="):
-                            access_key = line.split("=", 1)[1].strip().strip('"\'')
+                            access_key = line.split("=", 1)[1].strip().strip("\"'")
                             if access_key:
                                 self.logger.info("Using Porcupine access key from .env file")
                                 return access_key
@@ -114,7 +109,9 @@ class WakeWordMode(BaseMode):
         # 3. Fall back to config file (discouraged for production)
         access_key = config.get("access_key")
         if access_key:
-            self.logger.warning("Using Porcupine access key from config.json - consider using environment variables for security")
+            self.logger.warning(
+                "Using Porcupine access key from config.json - consider using environment variables for security"
+            )
             return access_key
 
         return None
@@ -156,11 +153,7 @@ class WakeWordMode(BaseMode):
             # Load in executor to avoid blocking
             loop = asyncio.get_event_loop()
             self.porcupine = await loop.run_in_executor(
-                None,
-                lambda: pvporcupine.create(
-                    access_key=self.access_key,
-                    keywords=[self.keyword]
-                )
+                None, lambda: pvporcupine.create(access_key=self.access_key, keywords=[self.keyword])
             )
 
             self.logger.info("Porcupine model loaded successfully")
@@ -174,8 +167,7 @@ class WakeWordMode(BaseMode):
         """Setup audio streaming optimized for wake word detection."""
         # Use smaller buffer and faster chunk processing for wake word responsiveness
         await self._setup_audio_streamer(
-            maxsize=50,  # Smaller buffer for wake word
-            chunk_duration_ms=32  # 32ms chunks for quick detection
+            maxsize=50, chunk_duration_ms=32  # Smaller buffer for wake word  # 32ms chunks for quick detection
         )
 
         # Start audio recording immediately
@@ -189,10 +181,7 @@ class WakeWordMode(BaseMode):
         while not self.stop_event.is_set() and self.wake_word_active:
             try:
                 # Get audio chunk with timeout
-                chunk = await asyncio.wait_for(
-                    self.audio_queue.get(),
-                    timeout=0.1
-                )
+                chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
 
                 # Add to buffer for wake word detection
                 self.audio_buffer.extend(chunk)
@@ -212,16 +201,14 @@ class WakeWordMode(BaseMode):
         """Process audio chunk for wake word detection."""
         try:
             # Extract the required chunk size (512 samples for Porcupine)
-            audio_chunk = np.array(self.audio_buffer[:self.wake_word_chunk_size], dtype=np.int16)
+            audio_chunk = np.array(self.audio_buffer[: self.wake_word_chunk_size], dtype=np.int16)
 
             # Remove processed chunk from buffer
-            self.audio_buffer = self.audio_buffer[self.wake_word_chunk_size:]
+            self.audio_buffer = self.audio_buffer[self.wake_word_chunk_size :]
 
             # Run wake word detection in executor
             loop = asyncio.get_event_loop()
-            keyword_index = await loop.run_in_executor(
-                None, lambda: self.porcupine.process(audio_chunk)
-            )
+            keyword_index = await loop.run_in_executor(None, lambda: self.porcupine.process(audio_chunk))
 
             # Check for wake word detection
             if keyword_index >= 0:
@@ -234,10 +221,11 @@ class WakeWordMode(BaseMode):
     async def _handle_wake_word_detected(self, keyword_index: int):
         """Handle wake word detection and transition to conversation mode."""
         try:
-            await self._send_status("activated", "Wake word detected! Activating conversation...", {
-                "keyword_index": keyword_index,
-                "keyword": self.keyword
-            })
+            await self._send_status(
+                "activated",
+                "Wake word detected! Activating conversation...",
+                {"keyword_index": keyword_index, "keyword": self.keyword},
+            )
 
             # Transition to conversation mode
             await self._activate_conversation_mode()
@@ -266,8 +254,7 @@ class WakeWordMode(BaseMode):
 
             # Pass the wake word callback to enable built-in exit phrase detection
             self.conversation_mode = ConversationMode(
-                conversation_args,
-                wake_word_callback=self._return_to_wake_word_mode
+                conversation_args, wake_word_callback=self._return_to_wake_word_mode
             )
 
             # Start conversation mode
@@ -277,7 +264,6 @@ class WakeWordMode(BaseMode):
         except Exception as e:
             self.logger.error(f"Failed to activate conversation mode: {e}")
             await self._return_to_wake_word_mode()
-
 
     async def _return_to_wake_word_mode(self):
         """Return from conversation mode to wake word listening."""

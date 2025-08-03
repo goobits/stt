@@ -109,7 +109,7 @@ class CodeEntityDetector:
                         end=match.end(),
                         text=match.group(0),
                         type=EntityType.FILENAME,
-                        metadata={"is_package": True}
+                        metadata={"is_package": True},
                     )
                     entities.append(new_entity)
                     all_entities.append(new_entity)
@@ -135,7 +135,9 @@ class CodeEntityDetector:
             if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 
-            logger.debug(f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}")
+            logger.debug(
+                f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}"
+            )
 
             if " at " in text[max(0, match.start() - 10) : match.start()]:
                 continue
@@ -166,19 +168,25 @@ class CodeEntityDetector:
 
                 # Special handling for "file" - stop if preceded by articles or stop words
                 if token.text.lower() == "file" and i > 0:
-                    prev_token = doc[i-1].text.lower()
+                    prev_token = doc[i - 1].text.lower()
                     if prev_token in ["the", "a", "an", "this", "that"] or prev_token in filename_stop_words:
                         break
 
                 # Don't treat "file" as a stop word if it's part of a compound filename
                 # Allow "file" when it's at the start OR when it's clearly part of a filename phrase
-                is_file_in_compound = (token.text.lower() == "file" and 
-                                     (len(filename_tokens) == 0 or  # At start (like "makefile")
-                                      (len(filename_tokens) > 0 and filename_tokens[-1].text.lower() not in ["the", "a", "an", "this", "that"])))
+                is_file_in_compound = token.text.lower() == "file" and (
+                    len(filename_tokens) == 0  # At start (like "makefile")
+                    or (
+                        len(filename_tokens) > 0
+                        and filename_tokens[-1].text.lower() not in ["the", "a", "an", "this", "that"]
+                    )
+                )
                 is_stop_word_filtered = is_stop_word and not is_file_in_compound
 
                 if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
-                    logger.debug(f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})")
+                    logger.debug(
+                        f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})"
+                    )
                     break
 
                 if len(filename_tokens) >= 8:
@@ -205,7 +213,9 @@ class CodeEntityDetector:
             logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
 
-    def _detect_spoken_operators(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_spoken_operators(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect spoken operators using SpaCy token context analysis.
 
@@ -418,7 +428,9 @@ class CodeEntityDetector:
                     )
                 )
 
-    def _detect_abbreviations(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_abbreviations(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect Latin abbreviations that should remain lowercase."""
         abbrev_pattern = regex_patterns.ABBREVIATION_PATTERN
         for match in abbrev_pattern.finditer(text):
@@ -428,7 +440,9 @@ class CodeEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=match.group(1), type=EntityType.ABBREVIATION)
                 )
 
-    def _detect_command_flags(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_command_flags(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detects spoken command-line flags like 'dash dash verbose' or 'dash f'."""
         # Pattern for long flags: --flag
         for match in self.long_flag_pattern.finditer(text):
@@ -467,7 +481,9 @@ class CodeEntityDetector:
                         )
                     )
 
-    def _detect_preformatted_flags(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_preformatted_flags(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detects already-formatted command flags (like --MESSAGE) and normalizes them to lowercase."""
         if all_entities is None:
             all_entities = entities
@@ -493,7 +509,9 @@ class CodeEntityDetector:
                 # Update all_entities to include newly found entity for subsequent overlap checks
                 all_entities.append(entities[-1])
 
-    def _detect_slash_commands(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_slash_commands(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detects spoken slash commands like 'slash commit' -> '/commit'."""
         slash_command_pattern = self.slash_command_pattern
         matches = list(slash_command_pattern.finditer(text))
@@ -630,7 +648,6 @@ class CodeEntityDetector:
                 if not has_valid_context:
                     continue
 
-
                 logger.debug(f"Found simple underscore variable: '{match.group(0)}' -> '{first_word}_{second_word}'")
                 entities.append(
                     Entity(
@@ -759,7 +776,9 @@ class CodeEntityDetector:
                         continue
                 else:
                     # If no words left after removing action verb, skip this match
-                    logger.debug(f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after removing action verb")
+                    logger.debug(
+                        f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after removing action verb"
+                    )
                     continue
 
             # If no command verb detected, use the full match
@@ -800,4 +819,3 @@ class CodeEntityDetector:
                             metadata={"keyword": match.group(0)},
                         )
                     )
-

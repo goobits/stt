@@ -2,6 +2,7 @@
 Pytest plugin for failure analysis with YAML/JSON export.
 Provides clean, deduplicated summaries of test failures.
 """
+
 from __future__ import annotations
 
 import json

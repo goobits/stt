@@ -17,7 +17,7 @@ __author__ = "GOOBITS Team"
 
 __all__ = [
     "ConversationMode",
-    "HoldToTalkMode", 
+    "HoldToTalkMode",
     "ListenOnceMode",
     "TapToTalkMode",
 ]

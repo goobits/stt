@@ -2,6 +2,7 @@
 JWT Token Management System for STT Server
 Handles token generation, validation, and one-time use enforcement
 """
+
 from __future__ import annotations
 
 import base64

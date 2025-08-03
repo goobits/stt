@@ -242,28 +242,29 @@ class NumericalEntityDetector:
 
         return numerical_entities
 
-    def _detect_consecutive_digits(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_consecutive_digits(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect consecutive digit sequences like 'six four four' -> '644'."""
         # Build pattern for single digits (zero through nine)
         single_digits = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
         digit_pattern = "|".join(single_digits)
-        
+
         # Pattern for consecutive single digits (3 or more for specificity)
         consecutive_pattern = re.compile(
-            rf"\b({digit_pattern})\s+({digit_pattern})\s+({digit_pattern})(?:\s+({digit_pattern}))?\b",
-            re.IGNORECASE
+            rf"\b({digit_pattern})\s+({digit_pattern})\s+({digit_pattern})(?:\s+({digit_pattern}))?\b", re.IGNORECASE
         )
-        
+
         for match in consecutive_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Extract the digit words and convert to digits
                 digit_words = [g for g in match.groups() if g is not None]
-                
+
                 # Convert words to digits
                 digit_map = {word: str(i) for i, word in enumerate(single_digits)}
                 digits = [digit_map[word.lower()] for word in digit_words]
-                
+
                 entities.append(
                     Entity(
                         start=match.start(),
@@ -274,7 +275,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_numerical_entities(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_numerical_entities(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
         # First, handle patterns that don't need SpaCy
         self._detect_numeric_ranges_simple(text, entities, all_entities)
@@ -331,15 +334,17 @@ class NumericalEntityDetector:
                     if unit_lemma in currency_units:
                         # Special handling for "pounds" - check context
                         if unit_token.text.lower() in ["pound", "pounds"]:
-                            prefix_context = text[:number_tokens[0].idx].lower()
+                            prefix_context = text[: number_tokens[0].idx].lower()
                             currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
                             weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
 
                             # If it has clear weight context OR lacks currency context, treat as weight.
-                            if any(ctx in prefix_context for ctx in weight_contexts) or not any(ctx in prefix_context for ctx in currency_contexts):
-                                entity_type = EntityType.METRIC_WEIGHT # Treat as weight, will be converted to 'lbs'
+                            if any(ctx in prefix_context for ctx in weight_contexts) or not any(
+                                ctx in prefix_context for ctx in currency_contexts
+                            ):
+                                entity_type = EntityType.METRIC_WEIGHT  # Treat as weight, will be converted to 'lbs'
                             else:
-                                entity_type = EntityType.CURRENCY # It has currency context, so it's money
+                                entity_type = EntityType.CURRENCY  # It has currency context, so it's money
                         else:
                             entity_type = EntityType.CURRENCY
                     elif unit_lemma in percent_units:
@@ -511,12 +516,14 @@ class NumericalEntityDetector:
                         if unit in currency_units:
                             # Special handling for "pounds" - check context
                             if unit.lower() in ["pound", "pounds"]:
-                                prefix_context = text[:match.start()].lower()
+                                prefix_context = text[: match.start()].lower()
                                 currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
                                 weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
 
                                 # If it has clear weight context OR lacks currency context, treat as weight.
-                                if any(ctx in prefix_context for ctx in weight_contexts) or not any(ctx in prefix_context for ctx in currency_contexts):
+                                if any(ctx in prefix_context for ctx in weight_contexts) or not any(
+                                    ctx in prefix_context for ctx in currency_contexts
+                                ):
                                     entity_type = EntityType.METRIC_WEIGHT
                                 else:
                                     entity_type = EntityType.CURRENCY
@@ -545,7 +552,9 @@ class NumericalEntityDetector:
                         )
                     )
 
-    def _detect_math_expressions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_math_expressions(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect and parse math expressions using SpaCy context analysis."""
         # Look for patterns that might be math expressions to avoid parsing every word
         # Match simple and complex math expressions, including optional trailing punctuation
@@ -761,7 +770,9 @@ class NumericalEntityDetector:
 
         return False
 
-    def _detect_time_expressions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_time_expressions(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect time expressions in spoken form."""
         # Use centralized time expression patterns
         time_patterns = [
@@ -829,7 +840,9 @@ class NumericalEntityDetector:
                         )
                     )
 
-    def _detect_phone_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_phone_numbers(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect phone numbers spoken as individual digits."""
         # Use centralized phone pattern
         for match in regex_patterns.SPOKEN_PHONE_PATTERN.finditer(text):
@@ -867,8 +880,13 @@ class NumericalEntityDetector:
                     if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
                         # This is the key: we check our i18n file for specific exceptions.
                         idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
-                        if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
-                            logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'.")
+                        if (
+                            ordinal_token.text.lower() in idiomatic_phrases
+                            and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
+                        ):
+                            logger.debug(
+                                f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'."
+                            )
                             continue
 
                     # Skip if it's at sentence start and followed by comma ("First, we...")
@@ -900,7 +918,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_time_relative(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_time_relative(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect relative time expressions (quarter past three, half past two, etc.)."""
         for match in regex_patterns.SPOKEN_TIME_RELATIVE_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
@@ -948,14 +968,14 @@ class NumericalEntityDetector:
                         text=match.group(),
                         type=EntityType.FRACTION,
                         metadata={
-                            "whole_word": match.group(1), 
-                            "numerator_word": match.group(2), 
+                            "whole_word": match.group(1),
+                            "numerator_word": match.group(2),
                             "denominator_word": match.group(3),
-                            "is_compound": True
+                            "is_compound": True,
                         },
                     )
                 )
-        
+
         # Then detect simple fractions
         for match in regex_patterns.SPOKEN_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
@@ -990,7 +1010,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_version_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_version_numbers(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """Detect version numbers in spoken form (e.g., 'version two point five')."""
         # Skip if text already contains properly formatted version numbers (e.g., "2.0.1")
         if re.search(r"\b\d+\.\d+(?:\.\d+)*\b", text):
@@ -1400,7 +1422,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_root_expressions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_root_expressions(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect square root and cube root expressions.
 
@@ -1429,7 +1453,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_math_constants(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_math_constants(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect mathematical constants.
 
@@ -1457,7 +1483,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_scientific_notation(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_scientific_notation(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect scientific notation expressions.
 
@@ -1519,7 +1547,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_music_notation(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_music_notation(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect music notation expressions.
 
@@ -1550,7 +1580,9 @@ class NumericalEntityDetector:
                     )
                 )
 
-    def _detect_spoken_emojis(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+    def _detect_spoken_emojis(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
         """
         Detect spoken emoji expressions using a tiered system.
 
@@ -1651,5 +1683,3 @@ class NumericalEntityDetector:
                             metadata={"parsed_value": parsed_number},
                         )
                     )
-
-

@@ -81,9 +81,14 @@ class TestCLICommands:
         # Test status command via subprocess to avoid async complexity
         main_py = Path(__file__).parent.parent.parent / "stt.py"
 
-        result = subprocess.run([
-            sys.executable, str(main_py), "status"
-        ], check=False, capture_output=True, text=True, timeout=30, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)})
+        result = subprocess.run(
+            [sys.executable, str(main_py), "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)},
+        )
 
         # Should not crash (may not have status implementation yet, but shouldn't crash)
         # We just verify it doesn't have a Python syntax error or import failure
@@ -96,9 +101,14 @@ class TestCLICommands:
         # Test models command via subprocess to avoid async complexity
         main_py = Path(__file__).parent.parent.parent / "stt.py"
 
-        result = subprocess.run([
-            sys.executable, str(main_py), "models"
-        ], check=False, capture_output=True, text=True, timeout=30, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)})
+        result = subprocess.run(
+            [sys.executable, str(main_py), "models"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)},
+        )
 
         # Should not crash (may not have models implementation yet, but shouldn't crash)
         # We just verify it doesn't have a Python syntax error or import failure
@@ -109,9 +119,14 @@ class TestCLICommands:
     def test_help_command_works(self):
         """Does --help work without crashing?"""
         # Test that help can be displayed via subprocess
-        result = subprocess.run([
-            "stt", "--help"
-        ], check=False, capture_output=True, text=True, timeout=10, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)})
+        result = subprocess.run(
+            ["stt", "--help"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)},
+        )
 
         # Should exit with 0 and show help text
         assert result.returncode == 0
@@ -127,9 +142,9 @@ class TestCLICommands:
         env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
 
         # Test config help
-        result = subprocess.run([
-            "stt", "config", "--help"
-        ], check=False, capture_output=True, text=True, timeout=10, env=env)
+        result = subprocess.run(
+            ["stt", "config", "--help"], check=False, capture_output=True, text=True, timeout=10, env=env
+        )
 
         assert result.returncode == 0
         assert "set" in result.stdout.lower()
@@ -137,9 +152,9 @@ class TestCLICommands:
         assert "list" in result.stdout.lower()
 
         # Test config list (should show current config)
-        result = subprocess.run([
-            "stt", "config", "list"
-        ], check=False, capture_output=True, text=True, timeout=10, env=env)
+        result = subprocess.run(
+            ["stt", "config", "list"], check=False, capture_output=True, text=True, timeout=10, env=env
+        )
 
         # May fail due to missing dependencies, but should not be a syntax error
         if result.returncode != 0:
@@ -152,9 +167,9 @@ class TestCLICommands:
         subcommands = ["listen", "live", "serve", "status", "models"]
 
         for subcommand in subcommands:
-            result = subprocess.run([
-                "stt", subcommand, "--help"
-            ], check=False, capture_output=True, text=True, timeout=10, env=env)
+            result = subprocess.run(
+                ["stt", subcommand, "--help"], check=False, capture_output=True, text=True, timeout=10, env=env
+            )
 
             # Should show help for that specific subcommand
             assert result.returncode == 0, f"Help failed for subcommand: {subcommand}"
@@ -171,14 +186,7 @@ class TestBaseModeLogic:
         from stt.modes.base_mode import BaseMode
 
         # Create mock args
-        args = SimpleNamespace(
-            debug=False,
-            format="json",
-            sample_rate=16000,
-            device=None,
-            model="base",
-            language=None
-        )
+        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
 
         # Create a concrete implementation for testing
         class TestMode(BaseMode):
@@ -198,8 +206,7 @@ class TestBaseModeLogic:
 
         from stt.modes.base_mode import BaseMode
 
-        args = SimpleNamespace(debug=False, format="json", sample_rate=16000,
-                             device=None, model="base", language=None)
+        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
 
         class TestSampleMode(BaseMode):
             async def run(self):
