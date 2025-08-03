@@ -223,6 +223,9 @@ class NumericalEntityDetector:
         self._detect_measurements(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
+        self._detect_dollar_cents(text, numerical_entities, all_entities)
+
+        all_entities = entities + numerical_entities
         self._detect_metric_units(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
@@ -1681,5 +1684,47 @@ class NumericalEntityDetector:
                             text=number_text,
                             type=EntityType.CARDINAL,
                             metadata={"parsed_value": parsed_number},
+                        )
+                    )
+
+    def _detect_dollar_cents(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """Detect 'X dollars and Y cents' patterns and convert to DOLLAR_CENTS entities."""
+        # Pattern to match "X dollars and Y cents"
+        # Supports both word numbers and digits
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        
+        # Pattern for numbers (digits or words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        # Complete pattern for "X dollars and Y cents"
+        dollar_cents_pattern = re.compile(
+            rf"\b({number_pattern})\s+dollars?\s+and\s+({number_pattern})\s+cents?\b",
+            re.IGNORECASE
+        )
+
+        for match in dollar_cents_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                dollars_text = match.group(1).strip()
+                cents_text = match.group(2).strip()
+                
+                # Parse the dollar and cent amounts
+                dollars_value = self.number_parser.parse(dollars_text)
+                cents_value = self.number_parser.parse(cents_text)
+                
+                # Only create entity if both parts parse successfully
+                if dollars_value and cents_value:
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.DOLLAR_CENTS,
+                            metadata={
+                                "dollars": dollars_value,
+                                "cents": cents_value
+                            },
                         )
                     )

@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.absolute()
+project_root = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(0, str(project_root))
 
 # Try to import demo dependencies
