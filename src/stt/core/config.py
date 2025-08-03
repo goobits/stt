@@ -649,7 +649,6 @@ def get_config() -> ConfigLoader:
 
 # ========================= CENTRALIZED LOGGING SETUP =========================
 
-
 def setup_logging(
     module_name: str,
     log_level: str | None = None,
@@ -658,7 +657,10 @@ def setup_logging(
     log_filename: str | None = None,
 ) -> logging.Logger:
     """
-    Setup standardized logging for STT modules.
+    Setup standardized logging for STT modules (legacy interface).
+    
+    DEPRECATED: Use setup_structured_logging for new code.
+    This function maintained for backward compatibility.
 
     Args:
         module_name: Name of the module (usually __name__)
@@ -671,6 +673,19 @@ def setup_logging(
         Configured logger instance
 
     """
+    # Try to use new structured logging if available
+    try:
+        from .logging import get_logger as get_structured_logger
+        return get_structured_logger(
+            name=module_name,
+            log_level=log_level,
+            include_console=include_console,
+            include_file=include_file,
+        )
+    except ImportError:
+        # Fallback to legacy implementation
+        pass
+    
     logger = logging.getLogger(module_name)
 
     # Avoid duplicate handlers if already configured
@@ -720,8 +735,32 @@ def setup_logging(
 
 
 def get_logger(module_name: str) -> logging.Logger:
-    """Get a logger for a module with default STT settings."""
+    """
+    Get a logger for a module with default STT settings.
+    
+    DEPRECATED: Use get_structured_logger for new code.
+    This function maintained for backward compatibility.
+    """
     return setup_logging(module_name)
+
+
+def get_structured_logger(module_name: str, **kwargs) -> logging.Logger:
+    """
+    Get a structured logger with modern logging capabilities.
+    
+    Args:
+        module_name: Name of the module (usually __name__)
+        **kwargs: Additional arguments passed to setup_structured_logging
+    
+    Returns:
+        ContextLogger instance with structured logging
+    """
+    try:
+        from .logging import setup_structured_logging
+        return setup_structured_logging(module_name, **kwargs)
+    except ImportError:
+        # Fallback to legacy logging
+        return setup_logging(module_name)
 
 
 def load_config(config_path: str | Path | None = None) -> ConfigLoader:

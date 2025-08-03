@@ -34,14 +34,15 @@ from faster_whisper import WhisperModel
 
 from stt.audio.decoder import OpusStreamDecoder
 from stt.audio.opus_batch import OpusBatchDecoder
-from stt.core.config import get_config, setup_logging
+from stt.core.config import get_config, get_structured_logger
+from stt.core.logging import LogContext, set_context
 from stt.core.token_manager import TokenManager
 from stt.text_formatting.formatter import format_transcription
 from stt.utils.ssl import create_ssl_context
 
-# Get config instance and setup logging
+# Get config instance and setup structured logging
 config = get_config()
-logger = setup_logging(__name__, log_filename="transcription.txt")
+logger = get_structured_logger(__name__, log_output="file", context={"component": "transcription_server"})
 
 
 class MatildaWebSocketServer:
@@ -138,41 +139,46 @@ class MatildaWebSocketServer:
         client_id = str(uuid.uuid4())[:8]
         client_ip = websocket.remote_address[0]
 
-        try:
-            self.connected_clients.add(websocket)
-            logger.info(f"Client {client_id} connected from {client_ip}")
+        # Set context for all logging in this client session
+        with LogContext(client_id=client_id, client_ip=client_ip, session_type="websocket"):
+            try:
+                self.connected_clients.add(websocket)
+                logger.info("Client connected", extra={"event": "client_connected"})
 
-            # Send welcome message
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "welcome",
-                        "message": "Connected to Matilda WebSocket Server",
-                        "client_id": client_id,
-                        "server_ready": self.model is not None,
-                    }
+                # Send welcome message
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "type": "welcome",
+                            "message": "Connected to Matilda WebSocket Server",
+                            "client_id": client_id,
+                            "server_ready": self.model is not None,
+                        }
+                    )
                 )
-            )
 
-            async for message in websocket:
-                try:
-                    data = json.loads(message)
-                    await self.process_message(websocket, data, client_ip, client_id)
+                async for message in websocket:
+                    try:
+                        data = json.loads(message)
+                        # Add request context for each message
+                        request_id = str(uuid.uuid4())[:8]
+                        with LogContext(request_id=request_id, message_type=data.get("type", "unknown")):
+                            await self.process_message(websocket, data, client_ip, client_id)
 
-                except json.JSONDecodeError:
-                    await self.send_error(websocket, "Invalid JSON format")
-                except Exception as e:
-                    logger.exception(f"Error processing message from {client_id}: {e}")
-                    await self.send_error(websocket, f"Processing error: {e!s}")
+                    except json.JSONDecodeError:
+                        logger.warning("Invalid JSON received", extra={"event": "json_decode_error"})
+                        await self.send_error(websocket, "Invalid JSON format")
+                    except Exception as e:
+                        logger.exception("Error processing message", extra={"event": "message_processing_error", "error": str(e)})
+                        await self.send_error(websocket, f"Processing error: {e!s}")
 
-        except websockets.exceptions.ConnectionClosed:
-            logger.info(f"Client {client_id} disconnected normally")
-        except Exception as e:
-            logger.exception(f"Error handling client {client_id}: {e}")
-            logger.exception(traceback.format_exc())
-        finally:
-            self.connected_clients.discard(websocket)
-            logger.info(f"Client {client_id} removed from active connections")
+            except websockets.exceptions.ConnectionClosed:
+                logger.info("Client disconnected normally", extra={"event": "client_disconnected", "reason": "normal"})
+            except Exception as e:
+                logger.exception("Error handling client", extra={"event": "client_error", "error": str(e)})
+            finally:
+                self.connected_clients.discard(websocket)
+                logger.info("Client removed from active connections", extra={"event": "client_cleanup"})
 
     async def process_message(self, websocket, data, client_ip, client_id):
         """Process different types of messages from clients"""
