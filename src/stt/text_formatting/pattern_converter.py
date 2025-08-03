@@ -1547,6 +1547,30 @@ class PatternConverter:
             if entity.start > 0 and full_text[entity.start - 1] == "-":
                 return entity.text
 
+        # Don't convert simple numbers in natural speech contexts
+        # Get surrounding context for analysis
+        if full_text and entity.text.lower() in ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]:
+            # Get words before and after the entity
+            start_context = max(0, entity.start - 50)  # 50 chars before
+            end_context = min(len(full_text), entity.end + 50)  # 50 chars after
+            context = full_text[start_context:end_context].lower()
+            
+            # Natural speech patterns where numbers should stay as words
+            natural_patterns = [
+                # Question words followed by simple numbers
+                r'\b(?:which|what)\s+(?:\w+\s+)*' + re.escape(entity.text.lower()) + r'\b',
+                # "one of" patterns  
+                r'\b' + re.escape(entity.text.lower()) + r'\s+of\b',
+                # Simple counting in questions
+                r'\b(?:how|which|what).*' + re.escape(entity.text.lower()) + r'.*(?:should|would|could|can)\b',
+                # Story/narrative contexts
+                r'\b(?:once|then|when).*' + re.escape(entity.text.lower()) + r'\b',
+            ]
+            
+            for pattern in natural_patterns:
+                if re.search(pattern, context):
+                    return entity.text  # Keep as word
+        
         # Use the more general parser
         parsed = self.number_parser.parse(entity.text)
         return parsed if parsed else entity.text

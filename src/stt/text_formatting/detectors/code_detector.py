@@ -743,45 +743,54 @@ class CodeEntityDetector:
             resources = get_resources(self.language)
             filename_actions = resources.get("context_words", {}).get("filename_actions", [])
 
-            # Check if the filename part starts with a command verb
+            # Filter out filename stop words and action words from the filename part
             filename_words = filename_part.split()
-            if filename_words and filename_words[0].lower() in filename_actions:
-                # Skip the command verb and only use the remaining words as filename
-                actual_filename_words = filename_words[1:]
-                if actual_filename_words:
-                    # Recalculate the match boundaries to exclude the command verb
-                    actual_filename = " ".join(actual_filename_words)
-                    # Find where the actual filename starts
-                    actual_start = text.find(actual_filename, match.start())
-                    if actual_start != -1:
-                        actual_match_text = f"{actual_filename} dot {extension}"
-                        actual_end = actual_start + len(actual_match_text)
+            filename_stop_words = resources.get("context_words", {}).get("filename_stop_words", [])
+            
+            # Remove action words and stop words from the beginning
+            filtered_words = []
+            for word in filename_words:
+                word_lower = word.lower()
+                if word_lower not in filename_actions and word_lower not in filename_stop_words:
+                    filtered_words.append(word)
+                elif not filtered_words:  # Only skip words at the beginning
+                    continue
+                else:  # Once we have content words, include everything else
+                    filtered_words.append(word)
+            
+            if filtered_words:
+                actual_filename = " ".join(filtered_words)
+                # Find where the actual filename starts in the original text
+                actual_start = text.find(actual_filename, match.start())
+                if actual_start != -1:
+                    actual_match_text = f"{actual_filename} dot {extension}"
+                    actual_end = actual_start + len(actual_match_text)
 
-                        entities.append(
-                            Entity(
-                                start=actual_start,
-                                end=actual_end,
-                                text=actual_match_text,
-                                type=EntityType.FILENAME,
-                                metadata={
-                                    "filename": actual_filename,
-                                    "extension": extension,
-                                    "method": "regex_fallback",
-                                },
-                            )
+                    entities.append(
+                        Entity(
+                            start=actual_start,
+                            end=actual_end,
+                            text=actual_match_text,
+                            type=EntityType.FILENAME,
+                            metadata={
+                                "filename": actual_filename,
+                                "extension": extension,
+                                "method": "regex_fallback",
+                            },
                         )
-                        logger.debug(
-                            f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'"
-                        )
-                        continue
-                else:
-                    # If no words left after removing action verb, skip this match
+                    )
                     logger.debug(
-                        f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after removing action verb"
+                        f"Detected filename (regex fallback): '{actual_match_text}' -> filename: '{actual_filename}', ext: '{extension}'"
                     )
                     continue
+            else:
+                # If no words left after filtering, skip this match
+                logger.debug(
+                    f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after filtering"
+                )
+                continue
 
-            # If no command verb detected, use the full match
+            # This code path should not be reached anymore due to the filtering above
             entities.append(
                 Entity(
                     start=match.start(),

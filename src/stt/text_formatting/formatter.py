@@ -1530,10 +1530,12 @@ class TextFormatter:
                     f"Punctuation model failed on text: '{text[:100]}{'...' if len(text) > 100 else ''}'.  Error: {e}"
                 )
 
-        # Add final punctuation intelligently
+        # Add final punctuation intelligently when punctuation model is not available
         if not is_standalone_technical and text and text.strip() and text.strip()[-1].isalnum():
             # Only add punctuation if it looks like a complete thought
-            if len(text.split()) > 2:
+            word_count = len(text.split())
+            # More lenient: 2+ words or known complete phrases get punctuation
+            if word_count >= 2 or text.lower().strip() in self.complete_sentence_phrases:
                 text += "."
                 logger.debug(f"Added final punctuation: '{text}'")
 
@@ -1551,13 +1553,6 @@ class TextFormatter:
         # Fix time formatting issues (e.g., "at 3:p m" -> "at 3 PM")
         text = re.sub(r"\b(\d+):([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
         text = re.sub(r"\b(\d+)\s+([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
-
-        # Add a more intelligent final punctuation check
-        if not is_standalone_technical and text and text.strip() and text.strip()[-1].isalnum():
-            word_count = len(text.split())
-            if word_count > 1 or text.lower().strip() in self.complete_sentence_phrases:
-                text += "."
-                logger.debug(f"Added final punctuation: '{text}'")
 
         return text
 
