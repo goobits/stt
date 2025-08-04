@@ -256,7 +256,7 @@ class CodeEntityDetector:
                         # Include single letter pronouns like 'i' which SpaCy tags as PRON
                         if (
                             (
-                                prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB"]
+                                prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB", "PUNCT"]  # Added PUNCT for single letters like 'x'
                                 or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
                             )  # Single letter like 'i'
                             and prev_token.text.isalpha()
