@@ -42,6 +42,12 @@ class CodeEntityDetector:
         self.short_flag_pattern = regex_patterns.get_short_flag_pattern(language)
         self.assignment_pattern = regex_patterns.get_assignment_pattern(language)
 
+    def _update_entities_state(self, entities, code_entities, all_entities):
+        """Update all_entities with newly found entities."""
+        all_entities.clear()
+        all_entities.extend(entities)
+        all_entities.extend(code_entities)
+
     def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
         """Detects all code-related entities."""
         code_entities: list[Entity] = []
@@ -50,34 +56,34 @@ class CodeEntityDetector:
         all_entities = entities[:]  # Start with copy of existing entities
 
         self._detect_filenames(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_cli_commands(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_programming_keywords(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_spoken_operators(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_assignment_operators(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_abbreviations(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_underscore_delimiters(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_simple_underscore_variables(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_command_flags(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_preformatted_flags(text, code_entities, all_entities)
-        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        self._update_entities_state(entities, code_entities, all_entities)
 
         self._detect_slash_commands(text, code_entities, all_entities)
 
@@ -762,8 +768,6 @@ class CodeEntityDetector:
 
             # Skip if this looks like it includes command verbs
             # Get the context before the match to check for command patterns
-            max(0, match.start() - 20)
-            # before_context = text[context_start : match.start()].strip().lower()  # Unused variable
 
             # Known filename action words that should not be part of the filename
             resources = get_resources(self.language)
@@ -815,20 +819,6 @@ class CodeEntityDetector:
                     f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after filtering"
                 )
                 continue
-
-            # This code path should not be reached anymore due to the filtering above
-            entities.append(
-                Entity(
-                    start=match.start(),
-                    end=match.end(),
-                    text=full_filename,
-                    type=EntityType.FILENAME,
-                    metadata={"filename": filename_part, "extension": extension, "method": "regex_fallback"},
-                )
-            )
-            logger.debug(
-                f"Detected filename (regex fallback): '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'"
-            )
 
     def _detect_programming_keywords(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None

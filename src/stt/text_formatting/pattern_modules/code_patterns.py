@@ -97,9 +97,7 @@ FILE_EXTENSIONS = {
 }
 
 # Flatten all extensions for use in patterns
-ALL_FILE_EXTENSIONS = []
-for category in FILE_EXTENSIONS.values():
-    ALL_FILE_EXTENSIONS.extend(category)
+ALL_FILE_EXTENSIONS = sum(FILE_EXTENSIONS.values(), [])
 
 
 # ==============================================================================

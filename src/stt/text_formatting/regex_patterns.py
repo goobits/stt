@@ -12,8 +12,24 @@ from __future__ import annotations
 
 import re
 from typing import Pattern
-# Import all patterns and functions from specialized modules for backward compatibility
-from .pattern_modules import *
+# Import specific patterns and functions from specialized modules for backward compatibility
+from .pattern_modules import (
+    get_compiled_code_pattern,
+    get_compiled_numeric_pattern,
+    get_compiled_text_pattern,
+    get_compiled_web_pattern,
+    URL_PROTECTION_PATTERN,
+    EMAIL_PROTECTION_PATTERN,
+    WWW_DOMAIN_RESCUE,
+    # Pattern building functions
+    get_spoken_url_pattern,
+    get_slash_command_pattern,
+    get_underscore_delimiter_pattern,
+    get_simple_underscore_pattern,
+    get_long_flag_pattern,
+    get_short_flag_pattern,
+    get_assignment_pattern,
+)
 
 # ==============================================================================
 # PATTERN COMPILATION HELPERS
@@ -49,6 +65,9 @@ def get_compiled_pattern(pattern_name: str) -> Pattern | None:
 # ==============================================================================
 # BACKWARD COMPATIBILITY
 # ==============================================================================
+
+# Import all the patterns from pattern_modules for backward compatibility
+from .pattern_modules import *
 
 # All utility functions are now available through pattern_modules imports
 # This maintains full backward compatibility for existing code

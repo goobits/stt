@@ -146,7 +146,7 @@ class NumberParser:
             }
 
         # Combine all number words for easy checking
-        self.all_number_words = set(self.ones.keys()) | set(self.tens.keys()) | set(self.scales.keys())
+        self.all_number_words = set(self.ones.keys()).union(set(self.tens.keys()), set(self.scales.keys()))
 
     def parse(self, text: str) -> str | None:
         """Parse number words to digits algorithmically, handling compound numbers."""
@@ -211,8 +211,12 @@ class NumberParser:
         total_val += current_val
         return str(total_val) if total_val > 0 or text == "zero" else None
 
-    def parse_as_sequence(self, words: list) -> str | None:
+    def parse_as_sequence(self, words: list, depth: int = 0, max_depth: int = 100) -> str | None:
         """Tries to parse a list of words as a sequence of numbers."""
+        # Prevent deep recursion
+        if depth >= max_depth:
+            return None
+            
         try:
             # Special case for year patterns like "twenty twenty four" -> "2024"
             if len(words) == 3 and all(w in self.tens for w in words[:2]) and words[2] in self.ones:
