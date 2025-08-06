@@ -71,6 +71,7 @@ class EntityType(Enum):
     PROGRAMMING_KEYWORD = auto()
     CLI_COMMAND = auto()
     PROTOCOL = auto()
+    CONSECUTIVE_DIGITS = auto()
 
 
 @dataclass
