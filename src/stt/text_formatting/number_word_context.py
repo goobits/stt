@@ -82,6 +82,12 @@ class NumberWordContextAnalyzer:
             # Scores and rankings
             r'\b(\w+)\s+to\s+(\w+)\b(?=\s+(lead|win|victory|score))',
             r'\b(top|first|last)\s+(\w+)\b',
+            
+            # Technical contexts (Phase 1 additions)
+            r'\bport\s+(\w+)\b',  # "port 8000"
+            r'\b(\w+)\s+(users?|files?|errors?|requests?|items?|records?|operations?)\b',  # quantities
+            r'\bstatus\s+code\s+(\w+)\b',  # "status code 404"
+            r'\berror\s+(\w+)\b',  # "error 500"
         ]
         
         # Number words to consider
@@ -173,9 +179,57 @@ class NumberWordContextAnalyzer:
         
         return NumberWordDecision.CONTEXT_DEPENDENT
     
+    def _is_technical_context(self, text: str, word_start: int, word_end: int) -> bool:
+        """Check if we're in a technical context that favors digit conversion."""
+        # Get surrounding context (wider window for technical terms)
+        context_start = max(0, word_start - 100)
+        context_end = min(len(text), word_end + 100)
+        context = text[context_start:context_end].lower()
+        
+        # Technical indicators
+        technical_terms = [
+            'port', 'error', 'status', 'code', 'version', 'page', 'line', 
+            'step', 'item', 'api', 'http', 'server', 'client', 'request',
+            'response', 'url', 'endpoint', 'timeout', 'retry', 'config',
+            'setting', 'parameter', 'argument', 'function', 'method',
+            'class', 'variable', 'value', 'property', 'field', 'attribute'
+        ]
+        
+        # Check for technical terms in the context
+        for term in technical_terms:
+            if re.search(r'\b' + term + r'\b', context):
+                return True
+        
+        # Check for patterns that suggest technical content
+        technical_patterns = [
+            r'\b\d+\.\d+\.\d+',  # version numbers
+            r'\bhttps?://',       # URLs
+            r'\b\w+\(\)',        # function calls
+            r'\b\w+\.\w+',       # dot notation
+            r'\b[A-Z_]+\b',      # constants
+            r'\bGET|POST|PUT|DELETE\b',  # HTTP methods
+        ]
+        
+        for pattern in technical_patterns:
+            if re.search(pattern, context):
+                return True
+        
+        return False
+    
     def _apply_heuristics(self, text: str, word_start: int, word_end: int) -> NumberWordDecision:
         """Apply additional heuristics for edge cases."""
         word = text[word_start:word_end].lower()
+        
+        # Check if we're in a technical context first
+        if self._is_technical_context(text, word_start, word_end):
+            # In technical contexts, prefer digit conversion unless very specific patterns
+            prev_word_match = re.search(r'(\w+)\s+$', text[:word_start])
+            if prev_word_match and prev_word_match.group(1).lower() in ['the', 'a', 'an']:
+                # Only keep as word if it's a clear determiner pattern
+                next_word_match = re.search(r'^\s+(\w+)', text[word_end:])
+                if next_word_match and next_word_match.group(1).lower() in ['thing', 'person', 'way', 'of']:
+                    return NumberWordDecision.KEEP_WORD
+            return NumberWordDecision.CONVERT_DIGIT
         
         # Check previous word
         prev_word_match = re.search(r'(\w+)\s+$', text[:word_start])
@@ -186,8 +240,8 @@ class NumberWordContextAnalyzer:
             if prev_word in ['the', 'a', 'an', 'only', 'just', 'another']:
                 return NumberWordDecision.KEEP_WORD
             
-            # Strong indicators to convert
-            if prev_word in ['page', 'chapter', 'section', 'step', 'number']:
+            # Strong indicators to convert (expanded)
+            if prev_word in ['page', 'chapter', 'section', 'step', 'number', 'port', 'error', 'status']:
                 return NumberWordDecision.CONVERT_DIGIT
         
         # Check next word
@@ -195,24 +249,40 @@ class NumberWordContextAnalyzer:
         if next_word_match:
             next_word = next_word_match.group(1).lower()
             
-            # Units suggest conversion
-            if next_word in ['percent', 'dollars', 'feet', 'meters', 'miles']:
+            # Units and quantities suggest conversion (expanded)
+            if next_word in ['percent', 'dollars', 'feet', 'meters', 'miles', 'users', 'files', 'errors', 'requests', 'items', 'records', 'operations']:
                 return NumberWordDecision.CONVERT_DIGIT
             
-            # "one thing/person/way" patterns
+            # Scale words indicate numeric context
+            if next_word in ['hundred', 'thousand', 'million', 'billion']:
+                return NumberWordDecision.CONVERT_DIGIT
+            
+            # "one thing/person/way" patterns (keep conservative)
             if word == 'one' and next_word in ['thing', 'person', 'way', 'time', 'place']:
                 return NumberWordDecision.KEEP_WORD
         
-        # Check capitalization (beginning of sentence)
+        # Check capitalization (beginning of sentence) - but be less conservative
         if word_start == 0 or (word_start > 0 and text[word_start-1] in '.!?'):
-            # More likely to be a word at sentence start
-            return NumberWordDecision.KEEP_WORD
+            # Only keep as word for very specific patterns at sentence start
+            if word == 'one' and next_word_match and next_word_match.group(1).lower() in ['thing', 'person', 'way', 'time', 'place', 'of']:
+                return NumberWordDecision.KEEP_WORD
+            # Otherwise, even at sentence start, numbers can be digits
+            return NumberWordDecision.CONVERT_DIGIT
         
-        # Default: keep words like "one" as words in most contexts
-        if word in ['one', 'zero']:
-            return NumberWordDecision.KEEP_WORD
+        # More aggressive conversion - default to converting numbers unless clearly ambiguous
+        if word == 'one':
+            # Very specific cases where "one" should stay as word
+            if prev_word_match and prev_word_match.group(1).lower() in ['the', 'a', 'an']:
+                # But even then, check next word - if it suggests enumeration, convert
+                if next_word_match:
+                    next_word = next_word_match.group(1).lower()
+                    if next_word in ['of', 'out', 'from', 'in', 'for', 'hundred', 'thousand', 'million']:
+                        return NumberWordDecision.CONVERT_DIGIT
+                return NumberWordDecision.KEEP_WORD
+            # For all other contexts with "one", convert to digit
+            return NumberWordDecision.CONVERT_DIGIT
         
-        # Other numbers more likely to be digits
+        # All other numbers should convert by default
         return NumberWordDecision.CONVERT_DIGIT
 
 

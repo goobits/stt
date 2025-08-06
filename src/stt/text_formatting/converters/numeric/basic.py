@@ -43,7 +43,7 @@ class BasicNumericConverter(BaseNumericConverter):
         if self.is_hyphenated_compound(entity, full_text):
             return entity.text
 
-        # Don't convert simple numbers in natural speech contexts
+        # Don't convert simple numbers in natural speech contexts (refined logic)
         if self.is_natural_speech_context(entity, full_text):
             return entity.text  # Keep as word
         

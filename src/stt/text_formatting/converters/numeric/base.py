@@ -185,7 +185,7 @@ class BaseNumericConverter(ABC):
         # Natural speech patterns where numbers should stay as words
         natural_patterns = [
             r'\b(?:which|what)\s+(?:\w+\s+)*' + re.escape(entity.text.lower()) + r'\b',
-            r'\b' + re.escape(entity.text.lower()) + r'\s+of\b',
+            r'\b(?:the|a)\s+' + re.escape(entity.text.lower()) + r'\s+of\b',  # "the one of", "a one of" but not "page one of"
             r'\b(?:how|which|what).*' + re.escape(entity.text.lower()) + r'.*(?:should|would|could|can)\b',
             r'\b(?:once|then|when).*' + re.escape(entity.text.lower()) + r'\b',
         ]
