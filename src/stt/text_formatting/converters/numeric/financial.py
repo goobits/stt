@@ -62,14 +62,14 @@ class FinancialConverter(BaseNumericConverter):
             text_lower = text.lower()
 
             # Find which currency word is in the text
-            currency_map = self.resources.get("units", {}).get("currency_map", {})
+            currency_map = self.mapping_registry.get_currency_map()
             for currency_word in currency_map:
                 if currency_word in text_lower:
                     unit = currency_word
                     break
 
         # Get the currency symbol
-        currency_map = self.resources.get("units", {}).get("currency_map", {})
+        currency_map = self.mapping_registry.get_currency_map()
         symbol = currency_map.get(unit, "$")  # Default to $ if not found
 
         # Extract and parse the number
@@ -87,7 +87,7 @@ class FinancialConverter(BaseNumericConverter):
                 number_text = re.sub(pattern, "", text_lower).strip()
             else:
                 # Try removing any known currency words
-                currency_map = self.resources.get("units", {}).get("currency_map", {})
+                currency_map = self.mapping_registry.get_currency_map()
                 for currency_word in currency_map:
                     if currency_word in text_lower:
                         # Use regex for proper word boundary matching

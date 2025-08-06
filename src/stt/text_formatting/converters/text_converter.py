@@ -6,6 +6,7 @@ from typing import Dict
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting import regex_patterns
 from .base import BasePatternConverter
+from stt.text_formatting.mapping_registry import get_mapping_registry
 
 
 class TextPatternConverter(BasePatternConverter):
@@ -14,6 +15,7 @@ class TextPatternConverter(BasePatternConverter):
     def __init__(self, number_parser, language: str = "en"):
         """Initialize text pattern converter."""
         super().__init__(number_parser, language)
+        self.mapping_registry = get_mapping_registry(language)
         
         # Define supported entity types and their converter methods
         self.supported_types: Dict[EntityType, str] = {
@@ -46,8 +48,7 @@ class TextPatternConverter(BasePatternConverter):
         note = entity.metadata.get("note", "")
         accidental = entity.metadata.get("accidental", "")
 
-        accidental_map = {"sharp": "♯", "flat": "♭", "natural": "♮"}
-
+        accidental_map = self.mapping_registry.get_accidental_map()
         symbol = accidental_map.get(accidental, "")
         if symbol:
             return f"{note}{symbol}"

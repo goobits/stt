@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, EntityType
+from stt.text_formatting.mapping_registry import get_mapping_registry
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -19,283 +20,30 @@ class BaseNumericConverter(ABC):
         self.language = language
         self.resources = {}  # Will be populated by subclasses
         
-        # Initialize all mapping dictionaries
-        self._init_mappings()
+        # Get the mapping registry instance
+        self.mapping_registry = get_mapping_registry(language)
+        
+        # Initialize mappings from registry for backward compatibility
+        self._init_mappings_from_registry()
     
-    def _init_mappings(self):
-        """Initialize all hardcoded mapping dictionaries."""
-        
-        # Currency mappings - post-position currencies (go after the amount)
-        self.post_position_currencies = {
-            "won",
-            "cent", 
-            "cents"
-        }
-        
-        # Data size unit abbreviations
-        self.data_size_unit_map = {
-            "byte": "B",
-            "bytes": "B",
-            "kilobyte": "KB",
-            "kilobytes": "KB",
-            "kb": "KB",
-            "megabyte": "MB",
-            "megabytes": "MB",
-            "mb": "MB",
-            "gigabyte": "GB",
-            "gigabytes": "GB",
-            "gb": "GB",
-            "terabyte": "TB",
-            "terabytes": "TB",
-            "tb": "TB",
-        }
-        
-        # Frequency unit abbreviations
-        self.frequency_unit_map = {
-            "hertz": "Hz",
-            "hz": "Hz",
-            "kilohertz": "kHz",
-            "khz": "kHz",
-            "megahertz": "MHz",
-            "mhz": "MHz",
-            "gigahertz": "GHz",
-            "ghz": "GHz",
-        }
-        
-        # Time duration unit mappings
-        self.time_duration_unit_map = {
-            "second": "s",
-            "seconds": "s",
-            "minute": "min",
-            "minutes": "min",
-            "hour": "h",
-            "hours": "h",
-            "day": "d",
-            "days": "d",
-            "week": "w",
-            "weeks": "w",
-            "month": "mo",
-            "months": "mo",
-            "year": "y",
-            "years": "y",
-        }
-        
-        # Time word mappings
-        self.time_word_mappings = {
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-            "ten": "10",
-            "eleven": "11",
-            "twelve": "12",
-            "oh": "0",
-            "fifteen": "15",
-            "thirty": "30",
-            "forty five": "45",
-        }
-        
-        # Digit word mappings
-        self.digit_word_mappings = {
-            "zero": "0",
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-        }
-        
-        # Number word mappings (extended)
-        self.number_word_mappings = {
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-            "ten": "10",
-            "eleven": "11",
-            "twelve": "12",
-        }
-        
-        # Denominator mappings for fractions
-        self.denominator_mappings = {
-            "half": "2",
-            "halves": "2",
-            "third": "3",
-            "thirds": "3",
-            "quarter": "4",
-            "quarters": "4",
-            "fourth": "4",
-            "fourths": "4",
-            "fifth": "5",
-            "fifths": "5",
-            "sixth": "6",
-            "sixths": "6",
-            "seventh": "7",
-            "sevenths": "7",
-            "eighth": "8",
-            "eighths": "8",
-            "ninth": "9",
-            "ninths": "9",
-            "tenth": "10",
-            "tenths": "10",
-        }
-        
-        # Ordinal mappings (word to numeric)
-        self.ordinal_word_to_numeric = {
-            "first": "1st",
-            "second": "2nd",
-            "third": "3rd",
-            "fourth": "4th",
-            "fifth": "5th",
-            "sixth": "6th",
-            "seventh": "7th",
-            "eighth": "8th",
-            "ninth": "9th",
-            "tenth": "10th",
-            "eleventh": "11th",
-            "twelfth": "12th",
-            "thirteenth": "13th",
-            "fourteenth": "14th",
-            "fifteenth": "15th",
-            "sixteenth": "16th",
-            "seventeenth": "17th",
-            "eighteenth": "18th",
-            "nineteenth": "19th",
-            "twentieth": "20th",
-            "thirtieth": "30th",
-            "fortieth": "40th",
-            "fiftieth": "50th",
-            "sixtieth": "60th",
-            "seventieth": "70th",
-            "eightieth": "80th",
-            "ninetieth": "90th",
-            "hundredth": "100th",
-        }
-        
-        # Ordinal mappings (numeric to word) - reverse mapping
-        self.ordinal_numeric_to_word = {
-            1: "first",
-            2: "second",
-            3: "third",
-            4: "fourth",
-            5: "fifth",
-            6: "sixth",
-            7: "seventh",
-            8: "eighth",
-            9: "ninth",
-            10: "tenth",
-            11: "eleventh",
-            12: "twelfth",
-            13: "thirteenth",
-            14: "fourteenth",
-            15: "fifteenth",
-            16: "sixteenth",
-            17: "seventeenth",
-            18: "eighteenth",
-            19: "nineteenth",
-            20: "twentieth",
-            30: "thirtieth",
-            40: "fortieth",
-            50: "fiftieth",
-            60: "sixtieth",
-            70: "seventieth",
-            80: "eightieth",
-            90: "ninetieth",
-            100: "hundredth",
-        }
-        
-        # Unicode fraction mappings
-        self.unicode_fraction_mappings = {
-            "1/2": "½",
-            "1/3": "⅓",
-            "2/3": "⅔",
-            "1/4": "¼",
-            "3/4": "¾",
-            "1/5": "⅕",
-            "2/5": "⅖",
-            "3/5": "⅗",
-            "4/5": "⅘",
-            "1/6": "⅙",
-            "5/6": "⅚",
-            "1/7": "⅐",
-            "1/8": "⅛",
-            "3/8": "⅜",
-            "5/8": "⅝",
-            "7/8": "⅞",
-            "1/9": "⅑",
-            "1/10": "⅒",
-        }
-        
-        # Math constant mappings
-        self.math_constant_mappings = {
-            "pi": "π",
-            "infinity": "∞",
-            "inf": "∞",
-            "lambda": "λ",
-            "theta": "θ",
-            "alpha": "α",
-            "beta": "β",
-            "gamma": "γ",
-            "delta": "δ",
-        }
-        
-        # Superscript mappings for scientific notation
-        self.superscript_mappings = {
-            "0": "⁰",
-            "1": "¹",
-            "2": "²",
-            "3": "³",
-            "4": "⁴",
-            "5": "⁵",
-            "6": "⁶",
-            "7": "⁷",
-            "8": "⁸",
-            "9": "⁹",
-            "-": "⁻",
-        }
-        
-        # Operator mappings for math expressions
-        self.operator_mappings = {
-            "plus": "+",
-            "minus": "-", 
-            "times": "×",
-            "divided by": "÷",
-            "over": "/",
-            "equals": "=",
-            "plus plus": "++",
-            "minus minus": "--",
-            "equals equals": "==",
-        }
-        
-        # Hour mappings for time relative expressions
-        self.hour_mappings = {
-            "one": 1,
-            "two": 2,
-            "three": 3,
-            "four": 4,
-            "five": 5,
-            "six": 6,
-            "seven": 7,
-            "eight": 8,
-            "nine": 9,
-            "ten": 10,
-            "eleven": 11,
-            "twelve": 12,
-        }
+    def _init_mappings_from_registry(self):
+        """Initialize mappings from the central registry for backward compatibility."""
+        # Get all mappings from the registry
+        self.post_position_currencies = self.mapping_registry.get_post_position_currencies()
+        self.data_size_unit_map = self.mapping_registry.get_data_size_unit_map()
+        self.frequency_unit_map = self.mapping_registry.get_frequency_unit_map()
+        self.time_duration_unit_map = self.mapping_registry.get_time_duration_unit_map()
+        self.time_word_mappings = self.mapping_registry.get_time_word_mappings()
+        self.digit_word_mappings = self.mapping_registry.get_digit_word_mappings()
+        self.number_word_mappings = self.mapping_registry.get_number_word_mappings()
+        self.denominator_mappings = self.mapping_registry.get_denominator_mappings()
+        self.ordinal_word_to_numeric = self.mapping_registry.get_ordinal_word_to_numeric()
+        self.ordinal_numeric_to_word = self.mapping_registry.get_ordinal_numeric_to_word()
+        self.unicode_fraction_mappings = self.mapping_registry.get_unicode_fraction_mappings()
+        self.math_constant_mappings = self.mapping_registry.get_math_constant_mappings()
+        self.superscript_mappings = self.mapping_registry.get_superscript_mappings()
+        self.operator_mappings = self.mapping_registry.get_operator_mappings()
+        self.hour_mappings = self.mapping_registry.get_hour_mappings()
     
     @abstractmethod
     def convert(self, entity: Entity, full_text: str = "") -> str:

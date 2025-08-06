@@ -5,6 +5,7 @@ from typing import Dict
 
 from stt.text_formatting.common import Entity, EntityType
 from .base import BasePatternConverter
+from stt.text_formatting.mapping_registry import get_mapping_registry
 
 
 class MeasurementPatternConverter(BasePatternConverter):
@@ -13,6 +14,7 @@ class MeasurementPatternConverter(BasePatternConverter):
     def __init__(self, number_parser, language: str = "en"):
         """Initialize measurement pattern converter."""
         super().__init__(number_parser, language)
+        self.mapping_registry = get_mapping_registry(language)
         
         # Define supported entity types and their converter methods
         self.supported_types: Dict[EntityType, str] = {
@@ -117,47 +119,8 @@ class MeasurementPatternConverter(BasePatternConverter):
                 parsed_num = self.number_parser.parse(number_text)
 
             if parsed_num:
-                # Map to standard abbreviations
-                unit_map = {
-                    # Length
-                    "millimeter": "mm",
-                    "millimeters": "mm",
-                    "millimetre": "mm",
-                    "millimetres": "mm",
-                    "centimeter": "cm",
-                    "centimeters": "cm",
-                    "centimetre": "cm",
-                    "centimetres": "cm",
-                    "meter": "m",
-                    "meters": "m",
-                    "metre": "m",
-                    "metres": "m",
-                    "kilometer": "km",
-                    "kilometers": "km",
-                    "kilometre": "km",
-                    "kilometres": "km",
-                    # Weight
-                    "milligram": "mg",
-                    "milligrams": "mg",
-                    "gram": "g",
-                    "grams": "g",
-                    "kilogram": "kg",
-                    "kilograms": "kg",
-                    "metric ton": "t",
-                    "metric tons": "t",
-                    "tonne": "t",
-                    "tonnes": "t",
-                    # Volume
-                    "milliliter": "mL",
-                    "milliliters": "mL",
-                    "millilitre": "mL",
-                    "millilitres": "mL",
-                    "liter": "L",
-                    "liters": "L",
-                    "litre": "L",
-                    "litres": "L",
-                }
-
+                # Map to standard abbreviations using the mapping registry
+                unit_map = self.mapping_registry.get_measurement_unit_map()
                 standard_unit = unit_map.get(unit_text, unit_text.upper())
                 return f"{parsed_num} {standard_unit}"
 
@@ -342,57 +305,7 @@ class MeasurementPatternConverter(BasePatternConverter):
         if not parsed_num:
             return entity.text
 
-        # Unit mappings
-        unit_map = {
-            # Length
-            "millimeter": "mm",
-            "millimeters": "mm",
-            "millimetre": "mm",
-            "millimetres": "mm",
-            "mm": "mm",
-            "centimeter": "cm",
-            "centimeters": "cm",
-            "centimetre": "cm",
-            "centimetres": "cm",
-            "cm": "cm",
-            "meter": "m",
-            "meters": "m",
-            "metre": "m",
-            "metres": "m",
-            "m": "m",
-            "kilometer": "km",
-            "kilometers": "km",
-            "kilometre": "km",
-            "kilometres": "km",
-            "km": "km",
-            # Weight
-            "milligram": "mg",
-            "milligrams": "mg",
-            "mg": "mg",
-            "gram": "g",
-            "grams": "g",
-            "g": "g",
-            "kilogram": "kg",
-            "kilograms": "kg",
-            "kg": "kg",
-            "metric ton": "t",
-            "metric tons": "t",
-            "tonne": "t",
-            "tonnes": "t",
-            "pound": "lbs",  # Imperial weight unit
-            "pounds": "lbs",  # Imperial weight unit
-            # Volume
-            "milliliter": "mL",
-            "milliliters": "mL",
-            "millilitre": "mL",
-            "millilitres": "mL",
-            "ml": "mL",
-            "liter": "L",
-            "liters": "L",
-            "litre": "L",
-            "litres": "L",
-            "l": "L",
-        }
-
+        # Get unit mappings from registry
+        unit_map = self.mapping_registry.get_measurement_unit_map()
         standard_unit = unit_map.get(unit, unit.upper())
         return f"{parsed_num} {standard_unit}"
