@@ -15,7 +15,9 @@ from stt.core.config import get_config, setup_logging
 from . import regex_patterns
 from .common import Entity, EntityType, NumberParser
 from .constants import get_resources
-from .converters import TextPatternConverter, WebPatternConverter, CodePatternConverter, MeasurementPatternConverter, NumericPatternConverter
+from .converters import TextPatternConverter, WebPatternConverter, CodePatternConverter, NumericPatternConverter
+from .processors.measurement_processor import MeasurementProcessor
+from .processors.mathematical_processor import MathematicalProcessor
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -35,7 +37,8 @@ class PatternConverter:
         self.text_converter = TextPatternConverter(number_parser, language)
         self.web_converter = WebPatternConverter(number_parser, language)
         self.code_converter = CodePatternConverter(number_parser, language)
-        self.measurement_converter = MeasurementPatternConverter(number_parser, language)
+        self.measurement_processor = MeasurementProcessor(nlp=None, language=language)
+        self.mathematical_processor = MathematicalProcessor(nlp=None, language=language)
         self.numeric_converter = NumericPatternConverter(number_parser, language)
 
         # Get URL keywords for web conversions
@@ -64,15 +67,15 @@ class PatternConverter:
             EntityType.UNDERSCORE_DELIMITER: self.code_converter.convert_underscore_delimiter,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: self.code_converter.convert_simple_underscore_variable,
             # Numeric converters - using generic convert method that delegates to specialized converters
-            EntityType.MATH_EXPRESSION: self.numeric_converter.convert,
+            EntityType.MATH_EXPRESSION: lambda entity, full_text="": self.mathematical_processor.convert_entity(entity, full_text),
             EntityType.CURRENCY: self.numeric_converter.convert,
             EntityType.MONEY: self.numeric_converter.convert,  # SpaCy detected money entity
             EntityType.DOLLAR_CENTS: self.numeric_converter.convert,
             EntityType.CENTS: self.numeric_converter.convert,
-            EntityType.PERCENT: self.numeric_converter.convert,
-            EntityType.DATA_SIZE: self.numeric_converter.convert,
-            EntityType.FREQUENCY: self.numeric_converter.convert,
-            EntityType.TIME_DURATION: self.numeric_converter.convert,
+            EntityType.PERCENT: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.DATA_SIZE: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.FREQUENCY: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.TIME_DURATION: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
             EntityType.TIME: self.numeric_converter.convert,  # SpaCy detected TIME entity
             EntityType.TIME_CONTEXT: self.numeric_converter.convert,
             EntityType.TIME_AMPM: self.numeric_converter.convert,
@@ -83,14 +86,14 @@ class PatternConverter:
             EntityType.FRACTION: self.numeric_converter.convert,
             EntityType.NUMERIC_RANGE: self.numeric_converter.convert,
             EntityType.VERSION: self.numeric_converter.convert,
-            EntityType.QUANTITY: self.measurement_converter.convert_measurement,
-            EntityType.TEMPERATURE: self.measurement_converter.convert_temperature,
-            EntityType.METRIC_LENGTH: self.measurement_converter.convert_metric_unit,
-            EntityType.METRIC_WEIGHT: self.measurement_converter.convert_metric_unit,
-            EntityType.METRIC_VOLUME: self.measurement_converter.convert_metric_unit,
-            EntityType.ROOT_EXPRESSION: self.numeric_converter.convert,
-            EntityType.MATH_CONSTANT: self.numeric_converter.convert,
-            EntityType.SCIENTIFIC_NOTATION: self.numeric_converter.convert,
+            EntityType.QUANTITY: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.TEMPERATURE: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.METRIC_LENGTH: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.METRIC_WEIGHT: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.METRIC_VOLUME: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
+            EntityType.ROOT_EXPRESSION: lambda entity, full_text="": self.mathematical_processor.convert_entity(entity, full_text),
+            EntityType.MATH_CONSTANT: lambda entity, full_text="": self.mathematical_processor.convert_entity(entity, full_text),
+            EntityType.SCIENTIFIC_NOTATION: lambda entity, full_text="": self.mathematical_processor.convert_entity(entity, full_text),
             EntityType.MUSIC_NOTATION: self.text_converter.convert_music_notation,
             EntityType.SPOKEN_EMOJI: self.text_converter.convert_spoken_emoji,
             # Spoken letter converters

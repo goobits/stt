@@ -6,10 +6,10 @@ from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, NumberParser
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.detectors.numeric.basic_numbers import BasicNumberDetector
-from stt.text_formatting.detectors.numeric.mathematical import MathematicalExpressionDetector
+from stt.text_formatting.processors.mathematical_processor import MathematicalProcessor
 from stt.text_formatting.detectors.numeric.temporal import TemporalDetector
 from stt.text_formatting.detectors.numeric.financial import FinancialDetector
-from stt.text_formatting.detectors.numeric.measurements import MeasurementDetector
+from stt.text_formatting.processors.measurement_processor import MeasurementProcessor
 from stt.text_formatting.detectors.numeric.formats import FormatDetector
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
@@ -33,10 +33,10 @@ class NumericalEntityDetector:
 
         # Initialize all sub-detectors
         self.basic_detector = BasicNumberDetector(nlp=self.nlp, language=self.language)
-        self.math_detector = MathematicalExpressionDetector(nlp=self.nlp, language=self.language)
+        self.math_processor = MathematicalProcessor(nlp=self.nlp, language=self.language)
         self.temporal_detector = TemporalDetector(nlp=self.nlp, language=self.language)
         self.financial_detector = FinancialDetector(nlp=self.nlp, language=self.language)
-        self.measurement_detector = MeasurementDetector(nlp=self.nlp, language=self.language)
+        self.measurement_processor = MeasurementProcessor(nlp=self.nlp, language=self.language)
         self.format_detector = FormatDetector(language=self.language)
 
     def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
@@ -56,11 +56,11 @@ class NumericalEntityDetector:
         self.basic_detector.detect_cardinal_numbers(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
-        self.math_detector.detect_math_expressions(text, numerical_entities, all_entities)
+        self.math_processor.detect_entities(text, numerical_entities, all_entities)
 
         # Detect temperatures before time expressions to prevent conflicts
         all_entities = entities + numerical_entities
-        self.measurement_detector.detect_temperatures(text, numerical_entities, all_entities)
+        self.measurement_processor.detect_entities(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self.temporal_detector.detect_time_expressions(text, numerical_entities, all_entities)
@@ -78,25 +78,19 @@ class NumericalEntityDetector:
         self.basic_detector.detect_fractions(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
-        self.measurement_detector.detect_measurements(text, numerical_entities, all_entities)
-
-        all_entities = entities + numerical_entities
         self.financial_detector.detect_dollar_cents(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self.financial_detector.detect_cents_only(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
-        self.measurement_detector.detect_metric_units(text, numerical_entities, all_entities)
+        # Root expressions now handled by math processor
 
         all_entities = entities + numerical_entities
-        self.math_detector.detect_root_expressions(text, numerical_entities, all_entities)
+        # Mathematical constants now handled by math processor
 
         all_entities = entities + numerical_entities
-        self.math_detector.detect_mathematical_constants(text, numerical_entities, all_entities)
-
-        all_entities = entities + numerical_entities
-        self.math_detector.detect_scientific_notation(text, numerical_entities, all_entities)
+        # Scientific notation now handled by math processor
 
         all_entities = entities + numerical_entities
         self.format_detector.detect_music_notation(text, numerical_entities, all_entities)
@@ -113,7 +107,8 @@ class NumericalEntityDetector:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
         # First, handle patterns that don't need SpaCy
         self.basic_detector.detect_ranges(text, entities, all_entities)
-        self.measurement_detector.detect_general_units_with_regex(text, entities, all_entities)
+        # Regex-based detection is handled by the measurement processor
+        # self.measurement_processor.detect_general_units_with_regex(text, entities, all_entities)
         self.basic_detector.detect_number_words(text, entities, all_entities)
 
         if not self.nlp:
@@ -128,5 +123,5 @@ class NumericalEntityDetector:
         # Delegate currency detection to the financial detector
         self.financial_detector.detect_currency_with_spacy(doc, text, entities, all_entities)
         
-        # Delegate general unit detection to the measurement detector
-        self.measurement_detector.detect_general_units_with_spacy(doc, text, entities, all_entities)
+        # SpaCy-based detection is handled by the measurement processor
+        # self.measurement_processor.detect_general_units_with_spacy(doc, text, entities, all_entities)

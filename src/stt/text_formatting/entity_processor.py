@@ -12,7 +12,9 @@ from dataclasses import dataclass, field
 
 from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, EntityType
-from stt.text_formatting.utils import NumberParser, get_resources, is_inside_entity
+from stt.text_formatting.common import NumberParser
+from stt.text_formatting.constants import get_resources
+from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.mapping_registry import get_mapping_registry
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
@@ -325,7 +327,17 @@ class BaseNumericProcessor(EntityProcessor):
         self.denominator_mappings = self.mapping_registry.get_denominator_mappings()
         self.ordinal_word_to_numeric = self.mapping_registry.get_ordinal_word_to_numeric()
         self.ordinal_numeric_to_word = self.mapping_registry.get_ordinal_numeric_to_word()
+        self.math_constant_mappings = self.mapping_registry.get_math_constant_mappings()
+        self.superscript_mappings = self.mapping_registry.get_superscript_mappings()
+        self.operator_mappings = self.mapping_registry.get_operator_mappings()
         
+    def convert_to_superscript(self, text: str) -> str:
+        """Convert digits and minus sign to superscript characters."""
+        result = ""
+        for char in str(text):
+            result += self.superscript_mappings.get(char, char)
+        return result
+    
     def convert_ordinal_to_position(self, ordinal: str) -> str:
         """
         Convert ordinal to positional format based on context.
