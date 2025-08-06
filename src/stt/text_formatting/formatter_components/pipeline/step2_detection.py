@@ -68,7 +68,7 @@ ENTITY_PRIORITIES = {
     EntityType.FREQUENCY: 54,
     EntityType.VERSION: 53,
     EntityType.PORT_NUMBER: 52,
-    EntityType.TEMPERATURE: 51,
+    EntityType.TEMPERATURE: 80,
     EntityType.METRIC_LENGTH: 50,
     EntityType.METRIC_WEIGHT: 50,
     EntityType.METRIC_VOLUME: 50,

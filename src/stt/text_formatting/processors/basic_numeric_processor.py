@@ -183,6 +183,49 @@ class BasicNumericProcessor(BaseNumericProcessor):
             return self.convert_ordinal_to_position(numeric_ordinal)
             
         return numeric_ordinal
+    
+    def is_idiomatic_context(self, entity: Entity, full_text: str, phrase: str) -> bool:
+        """
+        Override to add technical context awareness for ordinals.
+        
+        Check if entity is part of an idiomatic expression, but consider
+        technical context that should override idiomatic detection.
+        """
+        # Get idiomatic phrases from correct resource location
+        idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+        
+        if phrase not in idiomatic_phrases:
+            return False
+        
+        following_words = idiomatic_phrases[phrase]
+        
+        # Check if any following word appears after the entity
+        text_after = full_text[entity.end:entity.end + 20].lower()
+        
+        is_idiomatic = False
+        for word in following_words:
+            if text_after.startswith(f" {word}") or text_after.startswith(f" {word} "):
+                is_idiomatic = True
+                break
+        
+        if not is_idiomatic:
+            return False
+        
+        # If it is idiomatic, check if we're in a technical context that should override
+        technical_indicators = [
+            'software', 'technology', 'generation', 'quarter', 'earnings', 
+            'report', 'century', 'winner', 'performance', 'meeting',
+            'deadline', 'conference', 'agenda', 'process', 'option',
+            'item', 'step', 'fastest', 'best', 'place'
+        ]
+        
+        full_context = full_text.lower()
+        if any(indicator in full_context for indicator in technical_indicators):
+            # Technical context - don't treat as idiomatic
+            return False
+        
+        # Otherwise, keep the idiomatic behavior
+        return True
         
     def convert_fraction(self, entity: Entity) -> str:
         """Convert spoken fractions to numeric format."""

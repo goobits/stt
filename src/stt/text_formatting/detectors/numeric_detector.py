@@ -51,6 +51,10 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self._detect_numerical_entities(text, numerical_entities, all_entities)
 
+        # Detect time durations first to prevent cardinal number conflicts
+        all_entities = entities + numerical_entities
+        self.basic_detector.detect_time_durations(text, numerical_entities, all_entities)
+
         # Fallback detection for basic number words when SpaCy is not available
         all_entities = entities + numerical_entities
         self.basic_detector.detect_cardinal_numbers(text, numerical_entities, all_entities)

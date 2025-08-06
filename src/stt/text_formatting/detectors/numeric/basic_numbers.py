@@ -71,6 +71,17 @@ class BasicNumberDetector:
 
                 # Only create entity if it parses to a valid number
                 if parsed_number and parsed_number.isdigit():
+                    # Check if this might be a time duration (number + time unit)
+                    # Skip creating CARDINAL entity to let time duration processing handle it
+                    remaining_text = text[match.end():].lstrip()
+                    time_units = ['second', 'seconds', 'minute', 'minutes', 'hour', 'hours', 
+                                 'day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years']
+                    
+                    is_time_duration = any(remaining_text.lower().startswith(unit) for unit in time_units)
+                    if is_time_duration:
+                        # Skip creating CARDINAL entity for time durations
+                        continue
+                    
                     # Compound numbers (with spaces or scale words) are always numeric
                     if ' ' in number_text or any(scale in number_text.lower() 
                                                   for scale in ['hundred', 'thousand', 'million', 'billion']):
@@ -149,8 +160,22 @@ class BasicNumberDetector:
                     # Get the next word after the ordinal
                     words_after = remaining_text.split()
                     if words_after and words_after[0] in idiomatic_phrases[ordinal_word]:
-                        logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic pattern (no SpaCy)")
-                        continue
+                        # Check for technical/formal context that should override idiomatic detection
+                        full_context = text.lower()
+                        technical_indicators = [
+                            'software', 'technology', 'generation', 'quarter', 'earnings', 
+                            'report', 'century', 'winner', 'performance', 'meeting',
+                            'deadline', 'conference', 'agenda', 'process', 'option',
+                            'item', 'step'
+                        ]
+                        
+                        # If we find technical indicators, convert to numeric ordinal
+                        if any(indicator in full_context for indicator in technical_indicators):
+                            # Don't skip - let it convert to numeric ordinal
+                            pass
+                        else:
+                            logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic pattern (no SpaCy)")
+                            continue
                 
                 # Also check for sentence-start patterns with comma
                 if (match.start() == 0 or text[match.start()-1] in '.!?') and remaining_text.startswith(','):
@@ -331,6 +356,49 @@ class BasicNumberDetector:
                     },
                 )
             )
+
+    def detect_time_durations(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+        """Detect time duration patterns when SpaCy is unavailable."""
+        if self.nlp:
+            # If SpaCy is available, let the MeasurementDetector handle this
+            return
+        
+        # Simple regex-based time duration detection for fallback
+        time_units = ['second', 'seconds', 'minute', 'minutes', 'hour', 'hours', 
+                     'day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years']
+        unit_pattern = '|'.join(time_units)
+        
+        # Pattern: number words + time units
+        number_words = sorted(self.number_parser.all_number_words, key=len, reverse=True)
+        number_pattern = "|".join(re.escape(word) for word in number_words)
+        
+        duration_pattern = re.compile(
+            rf"\b(?:{number_pattern})\s+(?:{unit_pattern})\b", re.IGNORECASE
+        )
+        
+        for match in duration_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                # Parse the duration
+                words = match.group(0).split()
+                number_text = words[0]
+                unit_text = ' '.join(words[1:])
+                
+                parsed_number = self.number_parser.parse(number_text)
+                if parsed_number and parsed_number.isdigit():
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.TIME_DURATION,
+                            metadata={
+                                "number": number_text,
+                                "unit": unit_text,
+                                "parsed_value": parsed_number
+                            },
+                        )
+                    )
 
     def detect_number_words(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect consecutive digit sequences like 'six four four' -> '644'."""

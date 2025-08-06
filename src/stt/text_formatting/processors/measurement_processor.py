@@ -44,24 +44,33 @@ class MeasurementProcessor(BaseNumericProcessor):
                 priority=78
             ),
             
+            # Angle degrees patterns (for rotate, turn, etc.)
+            ProcessingRule(
+                pattern=self._build_angle_degrees_pattern(),
+                entity_type=EntityType.QUANTITY,
+                metadata_extractor=self._extract_angle_degrees_metadata,
+                context_filters=[self._filter_angle_degrees_context],
+                priority=76
+            ),
+            
             # Measurement patterns (feet/inches compounds)
             ProcessingRule(
                 pattern=self._build_feet_inches_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_compound_measurement_metadata,
-                priority=76
+                priority=74
             ),
             ProcessingRule(
                 pattern=self._build_fraction_feet_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_fraction_measurement_metadata,
-                priority=74
+                priority=72
             ),
             ProcessingRule(
                 pattern=self._build_height_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_height_metadata,
-                priority=72
+                priority=70
             ),
             
             # Data size patterns
@@ -69,7 +78,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_data_size_pattern(),
                 entity_type=EntityType.DATA_SIZE,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=69
+                priority=68
             ),
             
             # Frequency patterns
@@ -77,7 +86,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_frequency_pattern(),
                 entity_type=EntityType.FREQUENCY,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=67
+                priority=66
             ),
             
             # Time duration patterns
@@ -85,7 +94,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_time_duration_pattern(),
                 entity_type=EntityType.TIME_DURATION,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=65
+                priority=64
             ),
             
             # Percentage patterns
@@ -93,7 +102,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_percentage_pattern(),
                 entity_type=EntityType.PERCENT,
                 metadata_extractor=self._extract_percentage_metadata,
-                priority=63
+                priority=62
             ),
             
             # General measurement patterns (lower priority)
@@ -165,6 +174,17 @@ class MeasurementProcessor(BaseNumericProcessor):
             r"(?:\s+point\s+(?:" + number_pattern + r")(?:\s+(?:" + number_pattern + r"))*)?|\d+(?:\.\d+)?)"  # Numbers with optional decimal
             r"\s+degrees?"  # Required "degree" or "degrees"
             r"(?:\s+(celsius|centigrade|fahrenheit|c|f))?"  # Optional unit
+            r"\b",
+            re.IGNORECASE,
+        )
+    
+    def _build_angle_degrees_pattern(self) -> Pattern[str]:
+        """Build pattern for angle degrees (rotate, turn, etc.)."""
+        number_pattern = self._build_number_pattern()
+        return re.compile(
+            r"((?:" + number_pattern + r")(?:\s+(?:and\s+)?(?:" + number_pattern + r"))*"  # Numbers
+            r"(?:\s+point\s+(?:" + number_pattern + r")(?:\s+(?:" + number_pattern + r"))*)?|\d+(?:\.\d+)?)"  # Numbers with optional decimal
+            r"\s+degrees?"  # Required "degree" or "degrees"
             r"\b",
             re.IGNORECASE,
         )
@@ -268,6 +288,14 @@ class MeasurementProcessor(BaseNumericProcessor):
             "sign": match.group(1) if len(match.groups()) >= 1 else None,
             "number": match.group(2) if len(match.groups()) >= 2 else "",
             "unit": match.group(3) if len(match.groups()) >= 3 else None
+        }
+    
+    def _extract_angle_degrees_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from angle degrees matches."""
+        return {
+            "number": match.group(1) if len(match.groups()) >= 1 else "",
+            "unit": "degrees",
+            "type": "angle"
         }
     
     def _extract_compound_measurement_metadata(self, match: re.Match) -> Dict[str, Any]:
@@ -414,6 +442,20 @@ class MeasurementProcessor(BaseNumericProcessor):
             
         # If no clear context and no explicit unit/sign, filter out
         return unit is not None or sign is not None
+    
+    def _filter_angle_degrees_context(self, text: str, start: int, end: int) -> bool:
+        """Filter to include only angle degrees in proper contexts."""
+        # Get angle keywords from resources
+        angle_keywords = self.resources.get("context_words", {}).get("angle_keywords", [])
+        
+        # Check for angle context in surrounding text
+        full_text_lower = text.lower()
+        context_start = max(0, start - 50)
+        context_end = min(len(text), end + 50)
+        context = full_text_lower[context_start:context_end]
+        
+        # Include if angle keywords are found in context
+        return any(keyword in context for keyword in angle_keywords)
     
     # SpaCy-based detection methods
     
@@ -700,6 +742,11 @@ class MeasurementProcessor(BaseNumericProcessor):
             if number_text and unit:
                 parsed_num = self.parse_number(number_text)
                 if parsed_num:
+                    # Check if this is an angle measurement
+                    measurement_type = entity.metadata.get("type")
+                    if measurement_type == "angle" or unit == "degrees":
+                        return f"{parsed_num}°"
+                    
                     # Use proper symbols for common units
                     if "inch" in unit:
                         return f"{parsed_num}″"
@@ -916,8 +963,12 @@ class MeasurementProcessor(BaseNumericProcessor):
         if not parsed_num:
             return entity.text
         
-        # Keep time units as-is, just convert numbers
-        return f"{parsed_num} {unit}"
+        # Get abbreviated unit from time duration mappings
+        time_map = self.mapping_registry.get_time_duration_unit_map()
+        abbrev = time_map.get(unit.lower(), unit)
+        
+        # Use compact formatting for durations (no space)
+        return f"{parsed_num}{abbrev}"
     
     def convert_percent(self, entity: Entity) -> str:
         """Convert percentage expressions."""

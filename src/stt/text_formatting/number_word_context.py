@@ -43,6 +43,10 @@ class NumberWordContextAnalyzer:
             r'\bone\s+(of\s+the|of\s+these|of\s+those|of\s+them)\b',
             r'\b(no|any|every|each)\s+one\b',
             r'\b(one|two|three)\s+or\s+(two|three|four)\b',  # "one or two"
+            r'\bone\s+or\s+the\s+other\b',  # "one or the other"
+            r'\btwo\s+can\s+play\s+that\s+game\b',  # "two can play that game"
+            r'\bone\s+\w+\s+for\s+each\s+of\s+those\s+(two|three)\b',  # "one test for each of those two issues"
+            r'\b(the\s+)?(two|three)\s+(of\s+us|options|issues|things)\b',  # "the two of us", "two options"
             
             # Pronouns and emphasis
             r'\b(only|just|another|other)\s+one\b',
@@ -78,6 +82,7 @@ class NumberWordContextAnalyzer:
             r'\b(\w+)\s+o\'clock\b',
             r'\b(\w+)\s+(a\.?m\.?|p\.?m\.?)\b',
             r'\b(\w+)\s+(hours?|minutes?|seconds?)\s+(ago|later|before|after)\b',
+            r'\b(\w+)\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b',  # duration units
             
             # Scores and rankings
             r'\b(\w+)\s+to\s+(\w+)\b(?=\s+(lead|win|victory|score))',
