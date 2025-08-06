@@ -403,9 +403,8 @@ class EntityValidator:
                 return False  # This is numeric context, don't skip
 
         # Check for "X test/thing/item for" pattern - common in natural speech
-        if suffix_words and len(suffix_words) >= 2:
+        if suffix_words and len(suffix_words) >= 1:
             first_word = suffix_words[0]
-            second_word = suffix_words[1]
             if first_word in [
                 "test",
                 "tests",
@@ -419,11 +418,22 @@ class EntityValidator:
                 "issues",
                 "problem",
                 "problems",
-            ] and second_word in ["for", "of"]:
-                logger.debug(
-                    f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern"
-                )
-                return True
+            ]:
+                # For most words, require specific context words after them
+                if len(suffix_words) >= 2:
+                    second_word = suffix_words[1]
+                    if second_word in ["for", "of"]:
+                        logger.debug(
+                            f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern"
+                        )
+                        return True
+                
+                # Special case for "thing" - can be followed by any word in natural speech
+                if first_word in ["thing", "things"]:
+                    logger.debug(
+                        f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word}' pattern"
+                    )
+                    return True
 
         # Check for "those NUMBER things/issues" pattern
         if prefix_words and prefix_words[-1] == "those":

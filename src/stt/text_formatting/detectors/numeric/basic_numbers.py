@@ -10,6 +10,7 @@ from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.utils import is_inside_entity
+from stt.text_formatting.number_word_context import NumberWordContextAnalyzer, NumberWordDecision
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -40,6 +41,9 @@ class BasicNumberDetector:
 
         # Initialize NumberParser for robust number word detection
         self.number_parser = NumberParser(language=self.language)
+        
+        # Initialize context analyzer for better number word detection
+        self.context_analyzer = NumberWordContextAnalyzer(nlp=self.nlp)
 
     def detect_cardinal_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Fallback detection for cardinal numbers when SpaCy is not available or for non-English languages."""
@@ -67,15 +71,22 @@ class BasicNumberDetector:
 
                 # Only create entity if it parses to a valid number
                 if parsed_number and parsed_number.isdigit():
-                    entities.append(
-                        Entity(
-                            start=match.start(),
-                            end=match.end(),
-                            text=number_text,
-                            type=EntityType.CARDINAL,
-                            metadata={"parsed_value": parsed_number},
-                        )
+                    # Use context analyzer to determine if we should convert this number word
+                    decision = self.context_analyzer.should_convert_number_word(
+                        text, match.start(), match.end()
                     )
+                    
+                    # Only create entity if context analysis says to convert
+                    if decision == NumberWordDecision.CONVERT_DIGIT:
+                        entities.append(
+                            Entity(
+                                start=match.start(),
+                                end=match.end(),
+                                text=number_text,
+                                type=EntityType.CARDINAL,
+                                metadata={"parsed_value": parsed_number},
+                            )
+                        )
 
     def detect_ordinal_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect ordinal numbers (first, second, third, etc.)."""

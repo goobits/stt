@@ -11,6 +11,7 @@ from ...core.config import setup_logging
 from ..common import Entity, EntityType, NumberParser
 from ..constants import get_resources
 from ..utils import is_inside_entity
+from ..number_word_context import NumberWordContextAnalyzer, NumberWordDecision
 
 # Setup logging
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
@@ -30,9 +31,12 @@ class SpacyEntityProcessor:
         self.nlp = nlp
         self.language = language
         self.resources = get_resources(language)
+        
+        # Initialize context analyzer for better number word detection
+        self.context_analyzer = NumberWordContextAnalyzer(nlp=self.nlp)
 
     def process_spacy_entities(
-        self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None
+        self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None, skip_entities=None
     ) -> None:
         """
         Process SpaCy-detected entities and add them to the entities list.
@@ -42,9 +46,13 @@ class SpacyEntityProcessor:
             entities: List to add detected entities to
             existing_entities: List of already detected entities to check for overlaps
             doc: Pre-computed SpaCy doc object (optional)
+            skip_entities: Set of (start, end, text) tuples to skip
         """
         if not self.nlp:
             return
+
+        if skip_entities is None:
+            skip_entities = set()
 
         if doc is None:
             try:
@@ -67,6 +75,10 @@ class SpacyEntityProcessor:
 
             for ent in doc.ents:
                 if ent.label_ in label_to_type:
+                    # Check if this entity was pre-filtered and should be skipped
+                    if (ent.start_char, ent.end_char, ent.text) in skip_entities:
+                        continue
+                        
                     if not is_inside_entity(ent.start_char, ent.end_char, existing_entities):
                         # Get the entity type, potentially reclassifying it
                         entity_type = self._get_entity_type(ent, text, label_to_type)
@@ -102,6 +114,14 @@ class SpacyEntityProcessor:
         """
         entity_type = label_to_type[ent.label_]
 
+        # Handle CARDINAL entities with context analysis
+        if ent.label_ == "CARDINAL":
+            decision = self.context_analyzer.should_convert_number_word(
+                text, ent.start_char, ent.end_char
+            )
+            if decision == NumberWordDecision.KEEP_WORD:
+                return None  # Skip this entity - keep as words
+        
         # Handle ORDINAL entities with special processing
         if ent.label_ == "ORDINAL":
             if self._should_skip_ordinal(ent, text):

@@ -68,16 +68,17 @@ class EntityDetector:
                 logger.warning(f"SpaCy entity detection failed: {e}")
                 return
 
-        # Process entities and apply filters
+        # Collect entities that should be skipped to avoid double processing
+        skipped_entities = set()
         if doc:
             for ent in doc.ents:
                 if ent.label_ in ["CARDINAL", "DATE", "TIME", "MONEY", "PERCENT", "QUANTITY", "ORDINAL"]:
                     # Apply validation filters
                     if self._should_skip_entity(ent, text):
-                        continue
-        
+                        skipped_entities.add((ent.start_char, ent.end_char, ent.text))
+
         # Use the modular SpaCy processor for the main processing logic
-        self.spacy_processor.process_spacy_entities(text, entities, existing_entities, doc=doc)
+        self.spacy_processor.process_spacy_entities(text, entities, existing_entities, doc=doc, skip_entities=skipped_entities)
 
     def _should_skip_entity(self, ent, text: str) -> bool:
         """Determine if an entity should be skipped based on its type and context."""
