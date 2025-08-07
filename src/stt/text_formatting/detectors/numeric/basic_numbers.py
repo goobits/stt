@@ -155,6 +155,15 @@ class BasicNumberDetector:
                 
                 # Check if the ordinal is followed by any idiomatic words from our resources
                 idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                
+                # Special check for multi-word idioms with repeated words
+                if ordinal_word == "first" and "things first" in text.lower():
+                    logger.debug(f"Skipping ORDINAL '{match.group()}' - part of 'first things first' idiom")
+                    continue
+                if ordinal_word == "first" and "come first served" in text.lower():
+                    logger.debug(f"Skipping ORDINAL '{match.group()}' - part of 'first come first served' idiom")
+                    continue
+                
                 if ordinal_word in idiomatic_phrases:
                     # Get the next word after the ordinal
                     words_after = remaining_text.split()
@@ -168,7 +177,8 @@ class BasicNumberDetector:
                             'item', 'step', 'iphone', 'competition', 'race', 'contest',
                             'ranking', 'leaderboard', 'score', 'match', 'tournament',
                             'came in', 'finished', 'placed', 'ranked', 'position',
-                            'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration'
+                            'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration',
+                            'contractor', 'vendor', 'supplier', 'developer', 'provider'
                         ]
                         
                         # If we find technical indicators, convert to numeric ordinal

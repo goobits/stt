@@ -59,6 +59,11 @@ class NumberWordContextAnalyzer:
             r'\bat\s+one\s+with\b',
             r'\bone\s+by\s+one\b',
             r'\bone\s+on\s+one\b',
+            
+            # Specific idiomatic patterns that should never convert
+            r'\bfirst\s+things\s+first\b',  # "first things first"
+            r'\bsecond\s+thoughts\b',  # "second thoughts"
+            r'\bthird\s+time\'s\s+the\s+charm\b',  # "third time's the charm"
         ]
         
         # Patterns where numbers should be converted to digits
