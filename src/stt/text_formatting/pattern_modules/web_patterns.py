@@ -128,6 +128,8 @@ def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
         (?:                             # Non-capturing group for subdomains
             (?:                         # Domain part alternatives
                 [a-zA-Z0-9-]+           # Alphanumeric domain part
+                (?:\s+(?:{number_words_pattern})   # Optional number words after alphanumeric
+                (?:\s+(?:{number_words_pattern}))*)?  # Multiple number words
             |                           # OR
                 (?:{number_words_pattern})
                 (?:\s+(?:{number_words_pattern}))*  # Multiple number words
@@ -138,6 +140,8 @@ def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
         )*                              # Zero or more subdomains
         (?:                             # Main domain name part alternatives
             [a-zA-Z0-9-]+               # Alphanumeric domain part
+            (?:\s+(?:{number_words_pattern})   # Optional number words after alphanumeric
+            (?:\s+(?:{number_words_pattern}))*)?  # Multiple number words
         |                               # OR
             (?:{number_words_pattern})
             (?:\s+(?:{number_words_pattern}))*      # Multiple number words
@@ -268,30 +272,28 @@ def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     \b                                  # Word boundary
     (https?|ftp)                        # Protocol
     \s+(?:{colon_pattern})\s+(?:{slash_pattern})\s+(?:{slash_pattern})\s+  # Language-specific " colon slash slash "
-    (                                   # Capture group: domain (supports both spoken and normal formats)
-        (?:                             # Non-capturing group for spoken domain
-            [a-zA-Z0-9-]+               # Domain name part
-            (?:                         # Optional spoken dots
-                \s+(?:{dot_pattern})\s+ # Language-specific " dot "
-                [a-zA-Z0-9-]+           # Domain part after dot
-            )+                          # One or more spoken dots
-        )
-        |                               # OR
-        (?:                             # Non-capturing group for normal domain
-            [a-zA-Z0-9.-]+              # Domain characters
-            (?:\.[a-zA-Z]{{2,}})?       # Optional TLD
-        )
+    (                                   # Capture group: entire URL remainder after protocol
+        (?:                             # Non-capturing group for URL components
+            [a-zA-Z0-9-]+               # Word part (domain, path, etc.)
+            |                           # OR
+            \s+(?:{dot_pattern})\s+     # Spoken dot
+            |                           # OR  
+            \s+(?:{slash_pattern})\s+   # Spoken slash
+            |                           # OR
+            \s+(?:{colon_pattern})\s+   # Spoken colon (for ports)
+            |                           # OR
+            \s+(?:{question_pattern})\s+ # Spoken question mark
+            |                           # OR
+            \s+equals\s+                # Equals in query params
+            |                           # OR
+            \s+and\s+                   # And in query params
+            |                           # OR
+            \s+at\s+                    # At for authentication
+            |                           # OR
+            \s                          # Regular spaces within compound words
+        )+                              # One or more URL components
     )
-    (                                   # Capture group: path and query
-        (?:                             # Optional path segments
-            \s+(?:{slash_pattern})\s+   # Language-specific " slash "
-            [^?\s]+                     # Path content (not ? or space)
-        )*                              # Zero or more path segments
-        (?:                             # Optional query string
-            \s+(?:{question_pattern})\s+  # Language-specific " question mark "
-            .+                          # Query content
-        )?                              # Optional query
-    )
+    (?=\s*$|[.!?]\s*$)                  # End boundary: end of string or punctuation at end
     """
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 

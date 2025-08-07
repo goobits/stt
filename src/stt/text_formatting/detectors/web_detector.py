@@ -99,26 +99,28 @@ class WebEntityDetector:
         # Get keywords
         at_keywords = [k for k, v in self.resources.get("spoken_keywords", {}).get("url", {}).items() if v == "@"]
         at_pattern = "|".join(re.escape(k) for k in at_keywords)
+        
+        # Get dot keywords for the language
+        dot_keywords = [k for k, v in self.resources.get("spoken_keywords", {}).get("url", {}).items() if v == "."]
+        dot_pattern = "|".join(re.escape(k) for k in dot_keywords) if dot_keywords else "dot"
 
-        # More restrictive pattern: word(s) + at + domain
-        # This avoids capturing action phrases and false positives
+        # Contextual email pattern that handles action phrases correctly
+        # Pattern matches: [optional_action_phrase] username_words + at + domain
+        # IMPORTANT: Limit username to 1-3 words to avoid matching URL-like text
         simple_email_pattern = rf"""
-        (?:^|(?<=\s))                       # Start or after space
-        (                                   # Capture group for the whole email
-            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get|send|write|forward|reply|contact)\s+)  # Not preceded by these words, but allow "email"
-            [a-zA-Z][a-zA-Z0-9]*            # Username starting with letter
-            (?:                             # Optional username parts
-                (?:\s+(?:underscore|dash)\s+|[._-])
-                [a-zA-Z0-9]+
-            )*
+        (?:                                 # Optional context words (action phrases)
+            (?:email|contact|send\s+to|forward\s+to|reach\s+out\s+to|notify|send\s+the\s+report\s+to|forward\s+this\s+to|visit)\s+
+        )?
+        (                                   # Capture group for the whole email only
+            [a-zA-Z]\w*                     # Username starting with letter, then word chars
+            (?:\s+[a-zA-Z0-9]+){{0,2}}      # Optional 1-2 additional username words (max 3 words total)
             \s+(?:{at_pattern})\s+          # "at" keyword
-            [a-zA-Z0-9-]+                   # Domain must start with alphanumeric or hyphen
-            (?:\s+[a-zA-Z0-9-]+)*           # Optional number words like "two" with hyphens
-            (?:\s+dot\s+[a-zA-Z0-9-]+)+     # Must have at least one "dot" with hyphens
-            (?:\s+[a-zA-Z0-9-]+)*           # More optional parts with hyphens
-            (?:\s+dot\s+[a-zA-Z0-9-]+)*     # More dots optional with hyphens
+            [a-zA-Z0-9-]+                   # First domain part
+            (?:\s+[a-zA-Z0-9]+)*            # Optional additional domain words (handles "help one")
+            (?:\s+(?:{dot_pattern})\s+[a-zA-Z0-9-]+)+     # Must have "dot" + domain part
+            (?:\s+(?:{dot_pattern})\s+[a-zA-Z0-9-]+)*     # Optional additional dots
         )
-        (?=\s|$|[.!?])                      # End boundary
+        (?=\s+(?:about|is|will|sent|and|or|but)|[.!?]|$)  # End at common words, punctuation, or end of string
         """
 
         simple_pattern = re.compile(simple_email_pattern, re.VERBOSE | re.IGNORECASE)
@@ -147,19 +149,55 @@ class WebEntityDetector:
 
             # Common email username patterns that should be treated as emails
             common_email_usernames = {"support", "help", "info", "admin", "contact", "sales", "hello"}
+            
+            # URL action words that suggest this should be a URL, not email
+            url_actions = {"visit", "go to", "check", "navigate to", "browse", "open"}
 
             should_skip = False
+            
+            # Check if the username contains location nouns (e.g., "the docs" contains "docs")
+            username_words = username_lower.split()
+            contains_location_noun = any(word in location_nouns for word in username_words)
+            
+            # Check if username itself contains URL action words (e.g., "visit user")
+            username_contains_url_action = any(action in username_lower for action in url_actions)
+            
+            # Check what comes before this match
+            before_match = text[: match.start()].lower().strip()
+            
+            # Check for URL action words before this match
+            has_url_action = any(before_match.endswith(action) for action in url_actions)
+            
+            # Check for email action words before this match  
+            email_actions = self.resources.get("context_words", {}).get("email_actions", [])
+            has_email_action = any(before_match.endswith(action) for action in email_actions)
+            
             # Skip if it's a clear location noun
             if username_lower in location_nouns:
-                logger.debug(f"Skipping email match '{email_text}' - '{username}' indicates location context")
+                logger.debug(f"Skipping email match '{email_text}' - '{username}' is a location noun")
                 should_skip = True
+            # Skip if the username contains location nouns (even without explicit URL action)
+            elif contains_location_noun:
+                logger.debug(f"Skipping email match '{email_text}' - contains location noun '{username}'")
+                should_skip = True
+            # Skip if there's a URL action and no explicit email action
+            elif has_url_action and not has_email_action:
+                logger.debug(f"Skipping email match '{email_text}' - URL action detected without email action")
+                should_skip = True
+            # Skip if the username itself contains URL action words, but allow "visit [user] at [domain]" pattern  
+            elif username_contains_url_action and not has_email_action:
+                # Special case: "visit user at domain" could be an email contact instruction
+                if (username_contains_url_action and 
+                    'visit' in username_lower and 
+                    len(username_words) == 2 and 
+                    username_words[0] == 'visit'):
+                    # This is "visit [username]" pattern - allow as email
+                    logger.debug(f"Allowing email match '{email_text}' - 'visit [user] at domain' pattern")
+                else:
+                    logger.debug(f"Skipping email match '{email_text}' - username contains URL action without email action")
+                    should_skip = True
             # Skip ambiguous nouns only if it's not a common email username
             elif username_lower in ambiguous_nouns and username_lower not in common_email_usernames:
-                # Check if there's an email action word before this match
-                before_match = text[: match.start()].lower()
-                email_actions = self.resources.get("context_words", {}).get("email_actions", [])
-                has_email_action = any(before_match.endswith(action + " ") for action in email_actions)
-
                 if not has_email_action:
                     logger.debug(
                         f"Skipping email match '{email_text}' - '{username}' without email action indicates location context"

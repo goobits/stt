@@ -66,6 +66,20 @@ class MeasurementProcessor(BaseNumericProcessor):
                 metadata_extractor=self._extract_fraction_measurement_metadata,
                 priority=72
             ),
+            # Metric fractional measurements (kilometers, meters, etc.)
+            ProcessingRule(
+                pattern=self._build_metric_fraction_pattern(),
+                entity_type=EntityType.QUANTITY,
+                metadata_extractor=self._extract_fraction_measurement_metadata,
+                priority=71
+            ),
+            # Metric measurements with Unicode fractions (after BasicNumericProcessor converts fractions)
+            ProcessingRule(
+                pattern=self._build_metric_unicode_fraction_pattern(),
+                entity_type=EntityType.QUANTITY,
+                metadata_extractor=self._extract_unicode_fraction_measurement_metadata,
+                priority=69
+            ),
             ProcessingRule(
                 pattern=self._build_height_pattern(),
                 entity_type=EntityType.QUANTITY,
@@ -205,6 +219,36 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    def _build_metric_fraction_pattern(self) -> Pattern[str]:
+        """Build pattern for 'X and a half kilometers/meters/etc'."""
+        number_pattern = self._build_number_pattern()
+        # Common metric units
+        metric_units = [
+            "kilometers?", "kilometres?", "meters?", "metres?", "centimeters?", "centimetres?",
+            "millimeters?", "millimetres?", "kilograms?", "grams?", "liters?", "litres?",
+            "milliliters?", "millilitres?", "km", "m", "cm", "mm", "kg", "g", "l", "ml"
+        ]
+        unit_pattern = r"(?:" + "|".join(sorted(metric_units, key=len, reverse=True)) + r")"
+        return re.compile(
+            rf"\b({number_pattern})\s+and\s+(?:a\s+(half|quarter)|({number_pattern})\s+(quarters?))\s+({unit_pattern})\b",
+            re.IGNORECASE
+        )
+    
+    def _build_metric_unicode_fraction_pattern(self) -> Pattern[str]:
+        """Build pattern for 'X and ½/¾/¼ unit' (after Unicode conversion)."""
+        number_pattern = self._build_number_pattern()
+        # Common metric units
+        metric_units = [
+            "kilometers?", "kilometres?", "meters?", "metres?", "centimeters?", "centimetres?",
+            "millimeters?", "millimetres?", "kilograms?", "grams?", "liters?", "litres?",
+            "milliliters?", "millilitres?", "km", "m", "cm", "mm", "kg", "g", "l", "ml"
+        ]
+        unit_pattern = r"(?:" + "|".join(sorted(metric_units, key=len, reverse=True)) + r")"
+        return re.compile(
+            rf"\b({number_pattern})\s+and\s+([½¾¼⅞⅝⅜⅛])\s+({unit_pattern})\b",
+            re.IGNORECASE
+        )
+    
     def _build_height_pattern(self) -> Pattern[str]:
         """Build pattern for 'X foot Y' (height format)."""
         number_pattern = self._build_number_pattern()
@@ -310,10 +354,65 @@ class MeasurementProcessor(BaseNumericProcessor):
     
     def _extract_fraction_measurement_metadata(self, match: re.Match) -> Dict[str, Any]:
         """Extract metadata from fractional measurements like 'X and a half feet'."""
+        groups = match.groups()
+        if len(groups) >= 5:
+            # For new metric patterns: (number, a_fraction_type, explicit_numerator, explicit_denominator, unit)
+            main_number = groups[0]
+            a_fraction_type = groups[1]  # "half" or "quarter" or None
+            explicit_numerator = groups[2]  # e.g., "three" or None
+            explicit_denominator = groups[3]  # e.g., "quarters" or None
+            unit = groups[4]
+            
+            if a_fraction_type:
+                # "X and a half/quarter Y"
+                return {
+                    "number": main_number,
+                    "fraction_type": a_fraction_type,
+                    "unit": unit,
+                    "type": "fraction"
+                }
+            elif explicit_numerator and explicit_denominator:
+                # "X and three quarters Y"
+                return {
+                    "number": main_number,
+                    "fraction_numerator": explicit_numerator,
+                    "fraction_denominator": explicit_denominator,
+                    "unit": unit,
+                    "type": "fraction"
+                }
+        elif len(groups) >= 3:
+            # For old metric patterns: (number, fraction_type, unit)
+            return {
+                "number": groups[0],
+                "fraction_type": groups[1],  # "half" or "quarter"
+                "unit": groups[2],
+                "type": "fraction"
+            }
+        else:
+            # For feet patterns: (number, unit)
+            return {
+                "number": groups[0] if len(groups) >= 1 else "",
+                "unit": groups[1] if len(groups) >= 2 else "",
+                "fraction_type": "half",  # Default for feet patterns
+                "type": "fraction"
+            }
+        
+        # Fallback
         return {
-            "number": match.group(1) if len(match.groups()) >= 1 else "",
-            "unit": match.group(2) if len(match.groups()) >= 2 else "",
+            "number": groups[0] if len(groups) >= 1 else "",
+            "unit": groups[-1] if groups else "",
+            "fraction_type": "half",
             "type": "fraction"
+        }
+    
+    def _extract_unicode_fraction_measurement_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from measurements with Unicode fractions like 'X and ¾ liters'."""
+        groups = match.groups()
+        return {
+            "number": groups[0] if len(groups) >= 1 else "",
+            "unicode_fraction": groups[1] if len(groups) >= 2 else "",
+            "unit": groups[2] if len(groups) >= 3 else "",
+            "type": "unicode_fraction"
         }
     
     def _extract_height_metadata(self, match: re.Match) -> Dict[str, Any]:
@@ -706,23 +805,84 @@ class MeasurementProcessor(BaseNumericProcessor):
                     return f"{parsed_feet}′{parsed_inches}″"
                     
             elif measurement_type == "fraction":
-                # Handle "X and a half feet/inches"
+                # Handle "X and a half/quarter feet/inches/metric" or "X and three quarters Y"
                 number_text = entity.metadata.get("number", "")
                 unit = entity.metadata.get("unit", "")
+                fraction_type = entity.metadata.get("fraction_type")
+                fraction_numerator = entity.metadata.get("fraction_numerator")
+                fraction_denominator = entity.metadata.get("fraction_denominator")
                 
                 parsed_num = self.parse_number(number_text)
                 if parsed_num:
                     try:
-                        num_value = float(parsed_num) + 0.5
+                        if fraction_type:
+                            # "a half" or "a quarter"
+                            fraction_value = 0.5 if fraction_type == "half" else 0.25
+                        elif fraction_numerator and fraction_denominator:
+                            # "three quarters", etc.
+                            parsed_numerator = self.parse_number(fraction_numerator)
+                            if "quarter" in fraction_denominator.lower():
+                                fraction_value = float(parsed_numerator) / 4.0
+                            else:
+                                fraction_value = 0.5  # Default fallback
+                        else:
+                            fraction_value = 0.5  # Default fallback
+                            
+                        num_value = float(parsed_num) + fraction_value
                         number_str = str(num_value).rstrip("0").rstrip(".")
                     except (ValueError, TypeError):
-                        number_str = f"{parsed_num}.5"
+                        if fraction_type == "half":
+                            fraction_str = "5"
+                        elif fraction_type == "quarter":
+                            fraction_str = "25"
+                        elif fraction_numerator and "quarter" in (fraction_denominator or "").lower():
+                            parsed_numerator = self.parse_number(fraction_numerator)
+                            if parsed_numerator == "3":
+                                fraction_str = "75"
+                            else:
+                                fraction_str = "25"
+                        else:
+                            fraction_str = "5"
+                        number_str = f"{parsed_num}.{fraction_str}"
                     
                     # Use proper symbols
                     if "inch" in unit:
                         return f"{number_str}″"
                     if "foot" in unit or "feet" in unit:
                         return f"{number_str}′"
+                    
+                    # Handle metric units
+                    unit_map = self.mapping_registry.get_measurement_unit_map()
+                    for original, abbrev in unit_map.items():
+                        if unit.lower().startswith(original.lower()) or unit.lower() == original.lower():
+                            return f"{number_str} {abbrev}"
+            
+            elif measurement_type == "unicode_fraction":
+                # Handle "X and ¾ unit" (Unicode fractions)
+                number_text = entity.metadata.get("number", "")
+                unit = entity.metadata.get("unit", "")
+                unicode_fraction = entity.metadata.get("unicode_fraction", "")
+                
+                parsed_num = self.parse_number(number_text)
+                if parsed_num and unicode_fraction:
+                    try:
+                        # Convert Unicode fraction to decimal
+                        unicode_to_decimal = {
+                            "½": 0.5, "¼": 0.25, "¾": 0.75,
+                            "⅛": 0.125, "⅜": 0.375, "⅝": 0.625, "⅞": 0.875
+                        }
+                        fraction_value = unicode_to_decimal.get(unicode_fraction, 0.5)
+                        num_value = float(parsed_num) + fraction_value
+                        number_str = str(num_value).rstrip("0").rstrip(".")
+                        
+                        # Handle metric units
+                        unit_map = self.mapping_registry.get_measurement_unit_map()
+                        for original, abbrev in unit_map.items():
+                            if unit.lower().startswith(original.lower()) or unit.lower() == original.lower():
+                                return f"{number_str} {abbrev}"
+                                
+                    except (ValueError, TypeError):
+                        pass
                         
             elif measurement_type == "height":
                 # Handle "X foot Y" (height format)

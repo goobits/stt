@@ -90,7 +90,7 @@ def build_compound_fraction_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(
         r"\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
         r"and\s+"
-        r"(one|two|three|four|five|six|seven|eight|nine|ten)\s+"
+        r"(one|a|two|three|four|five|six|seven|eight|nine|ten)\s+"
         r"(half|halves|third|thirds|quarter|quarters|fourth|fourths|fifth|fifths|"
         r"sixth|sixths|seventh|sevenths|eighth|eighths|ninth|ninths|tenth|tenths)\b",
         re.IGNORECASE,

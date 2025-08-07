@@ -94,10 +94,19 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
 
     # Only convert safe keywords that are less likely to appear in natural language
     # Be more conservative about what we convert
+    # Include both English and Spanish safe keywords
     safe_keywords = {
+        # English keywords
         "slash": "/",
         "colon": ":",
         "underscore": "_",
+        # Spanish keywords
+        "barra": "/",
+        "dos puntos": ":",
+        "guión bajo": "_",
+        "guión": "-",
+        "arroba": "@",
+        "punto": ".",
     }
 
     # Filter to only keywords we want to convert when orphaned
@@ -110,7 +119,7 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
 
     # Define keywords that should consume surrounding spaces when converted
-    space_consuming_symbols = {"/", ":", "_"}
+    space_consuming_symbols = {"/", ":", "_", "-"}
 
     # Convert keywords that appear as standalone words
     for keyword, symbol in sorted_keywords:

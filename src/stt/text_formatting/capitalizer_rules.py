@@ -85,6 +85,7 @@ class CapitalizationRules:
         protected_types = {
             EntityType.URL,
             EntityType.SPOKEN_URL,
+            EntityType.SPOKEN_PROTOCOL_URL,
             EntityType.EMAIL,
             EntityType.SPOKEN_EMAIL,
             EntityType.FILENAME,
@@ -109,6 +110,7 @@ class CapitalizationRules:
         protected_types = {
             EntityType.URL,
             EntityType.SPOKEN_URL,
+            EntityType.SPOKEN_PROTOCOL_URL,
             EntityType.EMAIL,
             EntityType.SPOKEN_EMAIL,
             EntityType.FILENAME,

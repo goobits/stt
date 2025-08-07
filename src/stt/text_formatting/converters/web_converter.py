@@ -64,27 +64,136 @@ class WebPatternConverter(BasePatternConverter):
 
         return "&".join(processed_parts)
 
+    def _convert_port_number(self, port_text: str) -> str:
+        """Convert port number text to numeric format."""
+        port_words = port_text.split()
+        
+        # Check if all words are single digits (for sequences like "eight zero eight zero")
+        digit_words = {word: str(num) for word, num in self.number_parser.ones.items() if 0 <= num <= 9}
+        all_single_digits = all(word in digit_words for word in port_words)
+        
+        if all_single_digits and port_words:
+            # Use digit sequence logic
+            port_digits = [digit_words[word] for word in port_words]
+            return "".join(port_digits)
+        
+        # Use the number parser for compound numbers like "three thousand"
+        parsed_port = self.number_parser.parse(port_text)
+        if parsed_port and parsed_port.isdigit():
+            return parsed_port
+        
+        # Fallback: return as is
+        return port_text
+
     def convert_spoken_protocol_url(self, entity: Entity) -> str:
-        """Convert spoken protocol URLs like 'http colon slash slash www.google.com/path?query=value'"""
+        """Convert spoken protocol URLs like 'http colon slash slash my app dot com slash login'"""
         text = entity.text.lower()
 
         # Get language-specific keywords
         colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
         slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
+        dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
+        at_keywords = [k for k, v in self.url_keywords.items() if v == "@"]
+        question_keywords = [k for k, v in self.url_keywords.items() if v == "?"]
+
+        # Build keyword patterns
+        colon_pattern = "|".join(re.escape(k) for k in colon_keywords)
+        slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
+        dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
+        at_pattern = "|".join(re.escape(k) for k in at_keywords)
+        question_pattern = "|".join(re.escape(k) for k in question_keywords) if question_keywords else "question\\s+mark"
 
         # Try to find and replace "colon slash slash" pattern
+        protocol_replaced = False
         for colon_kw in colon_keywords:
             for slash_kw in slash_keywords:
                 pattern = f" {colon_kw} {slash_kw} {slash_kw}"
                 if pattern in text:
                     text = text.replace(pattern, "://")
+                    protocol_replaced = True
                     break
-            else:
-                continue
-            break
+            if protocol_replaced:
+                break
 
-        # The rest can be handled by the robust spoken URL converter
-        return self.convert_spoken_url(Entity(start=0, end=len(text), text=text, type=EntityType.SPOKEN_URL), text)
+        if not protocol_replaced:
+            # Fallback: try with regex
+            pattern = rf"\s+(?:{colon_pattern})\s+(?:{slash_pattern})\s+(?:{slash_pattern})\s+"
+            text = re.sub(pattern, "://", text)
+
+        # Now we have something like "https://my app dot com slash login colon eight zero eight zero"
+        # Parse the URL components manually
+
+        # Split at :// to separate protocol from the rest
+        if "://" in text:
+            protocol_part, url_remainder = text.split("://", 1)
+        else:
+            # Fallback if protocol replacement failed
+            return self.convert_spoken_url(Entity(start=0, end=len(text), text=text, type=EntityType.SPOKEN_URL), text)
+
+        # Parse the URL remainder into components: domain, port, path, query
+        domain_part = ""
+        port_part = ""
+        path_part = ""
+        query_part = ""
+
+        # Handle authentication (user at domain -> user@domain)
+        auth_match = re.search(rf"^(.+?)\s+(?:{at_pattern})\s+(.+)", url_remainder, re.IGNORECASE)
+        if auth_match:
+            user_part = auth_match.group(1).strip()
+            url_remainder = auth_match.group(2).strip()
+            # Convert user part (remove spaces, handle numbers)
+            user_part = self._convert_url_keywords(user_part)
+            protocol_part = protocol_part + "://" + user_part + "@"
+        else:
+            protocol_part = protocol_part + "://"
+
+        # Look for port numbers (domain colon port)
+        # Port pattern: look for " colon " followed by number words
+        port_match = re.search(rf"^(.+?)\s+(?:{colon_pattern})\s+(.+?)(?:\s+(?:{slash_pattern})\s+(.+?))?(?:\s+(?:{question_pattern})\s+(.+))?$", url_remainder, re.IGNORECASE)
+        if port_match:
+            domain_part = port_match.group(1).strip()
+            port_part = port_match.group(2).strip()
+            path_part = port_match.group(3) or ""
+            query_part = port_match.group(4) or ""
+        else:
+            # No port, look for paths and queries
+            path_match = re.search(rf"^(.+?)(?:\s+(?:{slash_pattern})\s+(.+?))?(?:\s+(?:{question_pattern})\s+(.+))?$", url_remainder, re.IGNORECASE)
+            if path_match:
+                domain_part = path_match.group(1).strip()
+                path_part = path_match.group(2) or ""
+                query_part = path_match.group(3) or ""
+            else:
+                # Just domain
+                domain_part = url_remainder.strip()
+
+        # Convert domain part: handle dots and remove spaces
+        if domain_part:
+            domain_part = self._convert_url_keywords(domain_part)
+
+        # Convert port part: handle number words
+        if port_part:
+            port_part = self._convert_port_number(port_part)
+
+        # Convert path part: handle slashes and remove spaces
+        if path_part:
+            path_part = self._convert_url_keywords(path_part.replace(f" {slash_keywords[0]} ", "/"))
+
+        # Convert query part: handle parameters
+        if query_part:
+            query_part = self._process_url_params(query_part)
+
+        # Assemble the final URL
+        result = protocol_part + domain_part
+        if port_part:
+            result += ":" + port_part
+        if path_part:
+            if not path_part.startswith("/"):
+                result += "/"
+            result += path_part
+        if query_part:
+            result += "?" + query_part
+
+        return result
 
     def convert_spoken_url(self, entity: Entity, full_text: str = "") -> str:
         """Convert spoken URL patterns by replacing keywords and removing spaces."""
@@ -119,22 +228,22 @@ class WebPatternConverter(BasePatternConverter):
 
     def _convert_url_keywords(self, url_text: str) -> str:
         """Convert URL keywords in base URL text, properly handling numbers."""
-        # IMPORTANT: Parse numbers FIRST, before replacing keywords
-        # This ensures "servidor uno punto ejemplo" -> "servidor 1 punto ejemplo" -> "servidor1.ejemplo"
-        # instead of "servidor uno punto ejemplo" -> "servidor uno . ejemplo" -> "servidor 1 . ejemplo"
-
-        # First, parse multi-word numbers
+        # Strategy: Convert number words first, then apply URL keyword conversions
+        # This ensures number words are properly merged with adjacent text before URL conversion
+        
         words = url_text.split()
-        result_parts = []
+        converted_words = []
         i = 0
+        
         while i < len(words):
-            # Attempt to parse a number (could be multi-word)
-            # Find the longest sequence of words that is a valid number
+            # Try to parse a number sequence starting at position i
             best_parse = None
             end_j = i
+            
+            # Look for the longest sequence that forms a valid number
             for j in range(len(words), i, -1):
                 sub_phrase = " ".join(words[i:j])
-                # Try parse_as_digits first for URL contexts
+                # Try parse_as_digits first for URL contexts (handles "one two three" -> "123")
                 parsed = self.number_parser.parse_as_digits(sub_phrase)
                 if parsed:
                     best_parse = parsed
@@ -146,23 +255,31 @@ class WebPatternConverter(BasePatternConverter):
                     best_parse = parsed
                     end_j = j
                     break
-
+            
             if best_parse:
-                result_parts.append(best_parse)
+                # We found a number - merge it with the previous word if it's not a URL keyword
+                if (converted_words and 
+                    converted_words[-1].lower() not in self.url_keywords):
+                    # Merge with previous word: "server" + "1" = "server1"
+                    converted_words[-1] = converted_words[-1] + best_parse
+                else:
+                    # Add as separate word
+                    converted_words.append(best_parse)
                 i = end_j
             else:
-                result_parts.append(words[i])
+                # Not a number word, add as-is
+                converted_words.append(words[i])
                 i += 1
-
-        # Rejoin with spaces temporarily to apply keyword replacements
-        temp_text = " ".join(result_parts)
-
-        # Then apply keyword replacements
+        
+        # Now convert URL keywords in the text with converted numbers
+        text = " ".join(converted_words)
+        
+        # Apply URL keyword replacements
         for keyword, replacement in self.url_keywords.items():
-            temp_text = re.sub(rf"\b{re.escape(keyword)}\b", replacement, temp_text, flags=re.IGNORECASE)
-
-        # Finally, remove all spaces to form the URL
-        return temp_text.replace(" ", "")
+            text = re.sub(rf"\b{re.escape(keyword)}\b", replacement, text, flags=re.IGNORECASE)
+        
+        # Remove all spaces to create the final URL
+        return text.replace(" ", "")
 
     def convert_url(self, entity: Entity) -> str:
         """Convert URL with proper formatting"""
