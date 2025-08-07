@@ -260,6 +260,12 @@ class CodePatternConverter(BasePatternConverter):
 
     def convert_abbreviation(self, entity: Entity) -> str:
         """Convert abbreviations to proper format with comma when appropriate"""
+        # Special case: protected idioms should preserve their original text
+        if entity.metadata and entity.metadata.get("idiom"):
+            if entity.metadata.get("preserve_case"):
+                return entity.text  # Keep original case
+            return entity.text.capitalize()  # Just capitalize first letter
+            
         text = entity.text.lower().strip()
 
         # Use abbreviations from resources to get the proper format

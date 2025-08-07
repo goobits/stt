@@ -140,6 +140,11 @@ class TextFormatter:
             logger.info("Transcription filtered: content matched filtering rules")
             return ""
 
+        # STEP 1.5: Pre-detect multi-word idioms to protect them from being split
+        logger.debug(f"Step 1.5 - Detecting multi-word idioms: '{text}'")
+        protected_idiom_entities = self._detect_multi_word_idioms(text)
+        logger.debug(f"Step 1.5 - Protected idioms: {len(protected_idiom_entities)} entities")
+
         # STEP 2: Detect all entities with deduplication
         logger.debug(f"Step 2 - Starting entity detection on: '{text}'")
         detectors = {
@@ -150,7 +155,7 @@ class TextFormatter:
             "entity_detector": self.entity_detector,
         }
         
-        filtered_entities = detect_all_entities(text, detectors, self.nlp, doc=doc)
+        filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc)
         logger.debug(f"Step 2 - Final entities: {len(filtered_entities)} entities detected")
 
         # STEP 3: Convert entities to their final representations
@@ -226,6 +231,36 @@ class TextFormatter:
 
         logger.info(f"Final formatted: '{final_text[:50]}{'...' if len(final_text) > 50 else ''}'")
         return final_text
+
+    def _detect_multi_word_idioms(self, text: str) -> list[Entity]:
+        """
+        Detect multi-word idiomatic phrases and protect them from being split by other detectors.
+        
+        This runs before other entity detectors to ensure phrases like "catch twenty two"
+        stay intact as words rather than being split into "catch" (keyword) + "twenty two" (cardinal).
+        """
+        idiom_entities = []
+        
+        # Get multi-word idioms from resources
+        multi_word_idioms = self.resources.get("technical", {}).get("multi_word_idioms", [])
+        
+        text_lower = text.lower()
+        
+        for idiom in multi_word_idioms:
+            # Find all occurrences of this idiom (case-insensitive)
+            import re
+            pattern = re.escape(idiom.lower())
+            for match in re.finditer(pattern, text_lower):
+                # Create a protected entity that other detectors will skip over
+                idiom_entities.append(Entity(
+                    start=match.start(),
+                    end=match.end(),
+                    text=text[match.start():match.end()],  # Use original case
+                    type=EntityType.ABBREVIATION,  # High priority type to protect from other detectors
+                    metadata={"idiom": True, "preserve_case": True}
+                ))
+        
+        return idiom_entities
 
 
 # ==============================================================================

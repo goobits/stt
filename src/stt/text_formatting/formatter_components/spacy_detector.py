@@ -192,10 +192,25 @@ class SpacyEntityProcessor:
 
         idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
         if ordinal_text in idiomatic_phrases and following_text in idiomatic_phrases[ordinal_text]:
-            logger.debug(
-                f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources"
-            )
-            return True
+            # Check for technical/formal context that should override idiomatic detection
+            full_context = text.lower()
+            technical_indicators = [
+                'software', 'technology', 'generation', 'quarter', 'earnings', 
+                'report', 'century', 'winner', 'performance', 'meeting',
+                'deadline', 'conference', 'agenda', 'process', 'option',
+                'item', 'step', 'iphone', 'competition', 'race', 'contest',
+                'ranking', 'leaderboard', 'score', 'match', 'tournament'
+            ]
+            
+            # If we find technical indicators, don't skip - let it convert to numeric ordinal
+            if any(indicator in full_context for indicator in technical_indicators):
+                logger.debug(f"Found technical context for ORDINAL '{ordinal_text} {following_text}' - allowing numeric conversion")
+                return False
+            else:
+                logger.debug(
+                    f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources"
+                )
+                return True
         
         # RULE 4: Additional fallback - check for sentence-start patterns with comma (even without proper POS analysis)
         ordinal_text = ent.text.lower()

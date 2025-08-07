@@ -47,6 +47,7 @@ class NumberWordContextAnalyzer:
             r'\btwo\s+can\s+play\s+that\s+game\b',  # "two can play that game"
             r'\bone\s+\w+\s+for\s+each\s+of\s+those\s+(two|three)\b',  # "one test for each of those two issues"
             r'\b(the\s+)?(two|three)\s+(of\s+us|options|issues|things)\b',  # "the two of us", "two options"
+            r'\bcatch\s+twenty\s+two\b',  # "catch twenty two" - common idiom
             
             # Pronouns and emphasis
             r'\b(only|just|another|other)\s+one\b',
@@ -95,12 +96,17 @@ class NumberWordContextAnalyzer:
             r'\berror\s+(\w+)\b',  # "error 500"
         ]
         
-        # Number words to consider
+        # Number words to consider - expanded to include all number words that NumberParser handles
         self.number_words = {
+            # Basic ones (0-19)
             'zero', 'one', 'two', 'three', 'four', 'five',
             'six', 'seven', 'eight', 'nine', 'ten',
             'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
-            'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'
+            'sixteen', 'seventeen', 'eighteen', 'nineteen',
+            # Tens (20-90)
+            'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety',
+            # Scale words
+            'hundred', 'thousand', 'million', 'billion', 'trillion'
         }
     
     def should_convert_number_word(self, text: str, word_start: int, word_end: int) -> NumberWordDecision:

@@ -46,11 +46,9 @@ class BasicNumberDetector:
         self.context_analyzer = NumberWordContextAnalyzer(nlp=self.nlp)
 
     def detect_cardinal_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
-        """Fallback detection for cardinal numbers when SpaCy is not available or for non-English languages."""
-        # Run this if SpaCy failed to load OR if we're not using English
-        # (SpaCy's multilingual support for number recognition is limited)
-        if self.nlp and self.language == "en":
-            return  # SpaCy is available and we're using English, let it handle CARDINAL detection
+        """Detect cardinal numbers including compound numbers that SpaCy might miss."""
+        # Note: Always run this detection to catch compound numbers like "twenty one" that SpaCy might not detect
+        # We'll check for overlaps with existing entities to avoid duplicates
 
         # Build a comprehensive pattern for number words
         number_words = sorted(self.number_parser.all_number_words, key=len, reverse=True)
@@ -64,6 +62,7 @@ class BasicNumberDetector:
 
         for match in cardinal_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
+            # Check for overlaps with existing entities (including SpaCy-detected ones)
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Try to parse this number sequence
                 number_text = match.group(0)
@@ -166,7 +165,10 @@ class BasicNumberDetector:
                             'software', 'technology', 'generation', 'quarter', 'earnings', 
                             'report', 'century', 'winner', 'performance', 'meeting',
                             'deadline', 'conference', 'agenda', 'process', 'option',
-                            'item', 'step'
+                            'item', 'step', 'iphone', 'competition', 'race', 'contest',
+                            'ranking', 'leaderboard', 'score', 'match', 'tournament',
+                            'came in', 'finished', 'placed', 'ranked', 'position',
+                            'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration'
                         ]
                         
                         # If we find technical indicators, convert to numeric ordinal

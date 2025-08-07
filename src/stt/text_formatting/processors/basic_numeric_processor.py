@@ -161,6 +161,13 @@ class BasicNumericProcessor(BaseNumericProcessor):
         """Convert ordinal numbers with position detection."""
         ordinal_word = entity.metadata.get("ordinal_word", entity.text).lower()
         
+        # Check if this ordinal is in a time context (should be left as-is)
+        if self._is_time_context_for_ordinal(entity, full_text, ordinal_word):
+            # Capitalize if at sentence start
+            if entity.start == 0 or (entity.start > 0 and full_text[entity.start - 1] in ".!?"):
+                return ordinal_word.capitalize()
+            return ordinal_word
+        
         # Check if it's idiomatic
         if self.is_idiomatic_context(entity, full_text, ordinal_word):
             # Capitalize if at sentence start
@@ -227,9 +234,12 @@ class BasicNumericProcessor(BaseNumericProcessor):
         # Otherwise, keep the idiomatic behavior
         return True
         
-    def convert_fraction(self, entity: Entity) -> str:
+    def convert_fraction(self, entity: Entity, full_text: str = "") -> str:
         """Convert spoken fractions to numeric format."""
         metadata = entity.metadata
+        
+        # Check if this fraction is in a time context (should use numeric format)
+        is_time_context = self._is_time_context(entity, full_text)
         
         if metadata.get("is_compound"):
             # Handle compound fractions
@@ -243,11 +253,11 @@ class BasicNumericProcessor(BaseNumericProcessor):
             denom_num = self.denominator_mappings.get(denominator, self.parse_number(denominator))
             
             if whole_num and num_num and denom_num:
-                # Check for Unicode fraction
+                # Check for Unicode fraction (but prefer numeric in time context)
                 fraction_key = f"{num_num}/{denom_num}"
                 unicode_frac = self.mapping_registry.get_unicode_fraction_mappings().get(fraction_key)
                 
-                if unicode_frac:
+                if unicode_frac and not is_time_context:
                     return f"{whole_num}{unicode_frac}"
                 else:
                     return f"{whole_num} {num_num}/{denom_num}"
@@ -261,16 +271,59 @@ class BasicNumericProcessor(BaseNumericProcessor):
             denom_num = self.denominator_mappings.get(denominator, self.parse_number(denominator))
             
             if num_num and denom_num:
-                # Check for Unicode fraction
+                # Check for Unicode fraction (but prefer numeric in time context)
                 fraction_key = f"{num_num}/{denom_num}"
                 unicode_frac = self.mapping_registry.get_unicode_fraction_mappings().get(fraction_key)
                 
-                if unicode_frac:
+                if unicode_frac and not is_time_context:
                     return unicode_frac
                 else:
                     return f"{num_num}/{denom_num}"
                     
         return entity.text
+        
+    def _is_time_context(self, entity: Entity, full_text: str) -> bool:
+        """Check if a fraction is in a time-related context."""
+        if not full_text:
+            return False
+            
+        # Look for time-related words after the fraction
+        text_after = full_text[entity.end:entity.end + 50].lower()
+        time_indicators = [
+            "of a second", "of an hour", "of a minute", "of a day", 
+            "of a year", "of a month", "of a week",
+            "second", "hour", "minute", "day", "year", "month", "week"
+        ]
+        
+        return any(indicator in text_after for indicator in time_indicators)
+        
+    def _is_time_context_for_ordinal(self, entity: Entity, full_text: str, ordinal_word: str) -> bool:
+        """Check if an ordinal is in a time-related context and should not be converted."""
+        if not full_text or ordinal_word not in ["second", "minute", "hour"]:
+            return False
+            
+        # Look for time-related indicators around the ordinal
+        # Check text before for fractions like "one tenth of a"
+        text_before = full_text[max(0, entity.start - 50):entity.start].lower()
+        text_after = full_text[entity.end:entity.end + 20].lower()
+        
+        # Common time fraction patterns
+        time_fraction_patterns = [
+            "of a", "of an", "of the", "per", "every"
+        ]
+        
+        # Check if preceded by fraction context
+        has_fraction_before = any(pattern in text_before[-20:] for pattern in time_fraction_patterns)
+        
+        # If it's "second" and there's a fraction before it, likely time context
+        if ordinal_word == "second" and has_fraction_before:
+            return True
+            
+        # Also check for explicit time indicators after
+        time_indicators_after = ["ago", "later", "remaining", "left", "elapsed"]
+        has_time_after = any(indicator in text_after for indicator in time_indicators_after)
+        
+        return has_time_after
         
     def convert_numeric_range(self, entity: Entity) -> str:
         """Convert spoken numeric ranges."""

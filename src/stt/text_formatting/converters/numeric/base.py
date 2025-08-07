@@ -142,6 +142,21 @@ class BaseNumericConverter(ABC):
         if remaining_text:
             words_after = remaining_text.split()
             if words_after and words_after[0] in idiomatic_phrases[ordinal_word]:
+                # Check for technical/formal context that should override idiomatic detection
+                technical_indicators = [
+                    'software', 'technology', 'generation', 'quarter', 'earnings', 
+                    'report', 'century', 'winner', 'performance', 'meeting',
+                    'deadline', 'conference', 'agenda', 'process', 'option',
+                    'item', 'step', 'iphone', 'competition', 'race', 'contest',
+                    'ranking', 'leaderboard', 'score', 'match', 'tournament',
+                    'came in', 'finished', 'placed', 'ranked', 'position',
+                    'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration'
+                ]
+                
+                # If we find technical indicators, don't treat as idiomatic
+                if any(indicator in context for indicator in technical_indicators):
+                    return False
+                    
                 return True
         
         # Also check for sentence-start patterns with comma

@@ -51,9 +51,10 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self._detect_numerical_entities(text, numerical_entities, all_entities)
 
-        # Detect time durations first to prevent cardinal number conflicts
+        # Detect ordinal numbers early to prevent conflicts with time durations
+        # (e.g., "thirty second" should be ordinal "32nd", not time duration "30s")
         all_entities = entities + numerical_entities
-        self.basic_detector.detect_time_durations(text, numerical_entities, all_entities)
+        self.basic_detector.detect_ordinal_numbers(text, numerical_entities, all_entities)
 
         # Fallback detection for basic number words when SpaCy is not available
         all_entities = entities + numerical_entities
@@ -72,8 +73,9 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self.format_detector.detect_phone_numbers(text, numerical_entities, all_entities)
 
+        # Detect time durations after ordinals to prevent conflicts
         all_entities = entities + numerical_entities
-        self.basic_detector.detect_ordinal_numbers(text, numerical_entities, all_entities)
+        self.basic_detector.detect_time_durations(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self.temporal_detector.detect_time_relative(text, numerical_entities, all_entities)

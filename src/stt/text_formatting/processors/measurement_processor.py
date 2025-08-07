@@ -119,6 +119,14 @@ class MeasurementProcessor(BaseNumericProcessor):
                 priority=62
             ),
             
+            # Basic metric unit patterns (higher priority than general measurements)
+            ProcessingRule(
+                pattern=self._build_basic_metric_pattern(),
+                entity_type=EntityType.QUANTITY,  # Will route to convert_metric_unit via metadata
+                metadata_extractor=self._extract_basic_metric_metadata,
+                priority=5  # Very low priority - cleanup step after other processors
+            ),
+            
             # General measurement patterns (lower priority)
             ProcessingRule(
                 pattern=self._build_general_measurement_pattern(),
@@ -296,8 +304,14 @@ class MeasurementProcessor(BaseNumericProcessor):
         percent_units = self.resources.get("units", {}).get("percent_units", [])
         unit_pattern = r"(?:" + "|".join(sorted(percent_units, key=len, reverse=True)) + r")"
         
+        # Enhanced pattern that handles decimals with "point"
         return re.compile(
-            number_pattern + r"(?:\s+" + number_pattern + r")*\s+" + unit_pattern + r"\b",
+            r"(?:"
+            r"(?:" + number_pattern + r")"  # Main number
+            r"(?:\s+(?:and\s+)?(?:" + number_pattern + r"))*"  # Optional additional numbers
+            r"(?:\s+point\s+(?:" + number_pattern + r")(?:\s+(?:" + number_pattern + r"))*)?|"  # Optional decimal part
+            r"\d+(?:\.\d+)?"  # Also handle digit decimals
+            r")\s+" + unit_pattern + r"\b",
             re.IGNORECASE
         )
     
@@ -313,6 +327,22 @@ class MeasurementProcessor(BaseNumericProcessor):
         
         return re.compile(
             number_pattern + r"(?:\s+" + number_pattern + r")*\s+" + unit_pattern + r"\b",
+            re.IGNORECASE
+        )
+    
+    def _build_basic_metric_pattern(self) -> Pattern[str]:
+        """Build pattern for basic metric units (kilometers, kilograms, etc.)."""
+        number_pattern = self._build_number_pattern()
+        # Basic metric units that should be abbreviated
+        metric_units = [
+            "kilometers", "kilometres", "meters", "metres", "centimeters", "centimetres",
+            "millimeters", "millimetres", "kilograms", "grams", "liters", "litres", 
+            "milliliters", "millilitres"
+        ]
+        unit_pattern = r"(?:" + "|".join(sorted(metric_units, key=len, reverse=True)) + r")"
+        
+        return re.compile(
+            r"\b(" + number_pattern + r")\s+(" + unit_pattern + r")\b",
             re.IGNORECASE
         )
     
@@ -447,6 +477,21 @@ class MeasurementProcessor(BaseNumericProcessor):
             return {
                 "number": number_text.strip(),
                 "unit": unit
+            }
+        
+        return {}
+    
+    def _extract_basic_metric_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from basic metric unit matches."""
+        # Now using capture groups: group(1) is the number, group(2) is the unit
+        if len(match.groups()) >= 2:
+            number_text = match.group(1).strip()
+            unit = match.group(2).strip()
+            
+            return {
+                "number": number_text,
+                "unit": unit,
+                "is_metric": True  # Flag to route to metric conversion
             }
         
         return {}
@@ -791,6 +836,10 @@ class MeasurementProcessor(BaseNumericProcessor):
         - "three and a half feet" → "3.5′"
         """
         if entity.metadata:
+            # Check if this is a metric unit that should use metric conversion
+            if entity.metadata.get("is_metric"):
+                return self.convert_metric_unit(entity)
+            
             measurement_type = entity.metadata.get("type")
             
             if measurement_type == "feet_inches":
@@ -1086,7 +1135,7 @@ class MeasurementProcessor(BaseNumericProcessor):
         }
         
         standard_unit = unit_map.get(unit.lower(), unit)
-        return f"{parsed_num} {standard_unit}"
+        return f"{parsed_num}{standard_unit}"
     
     def convert_frequency(self, entity: Entity) -> str:
         """Convert frequency expressions."""

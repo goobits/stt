@@ -69,8 +69,23 @@ def build_ordinal_pattern(language: str = "en") -> re.Pattern[str]:
         r"eighteenth|nineteenth|twentieth|twenty[-\s]?first|twenty[-\s]?second|"
         r"twenty[-\s]?third|twenty[-\s]?fourth|twenty[-\s]?fifth|twenty[-\s]?sixth|"
         r"twenty[-\s]?seventh|twenty[-\s]?eighth|twenty[-\s]?ninth|thirtieth|"
-        r"thirty[-\s]?first|fortieth|fiftieth|sixtieth|seventieth|eightieth|"
-        r"ninetieth|hundredth|thousandth)\b",
+        r"thirty[-\s]?first|thirty[-\s]?second|thirty[-\s]?third|thirty[-\s]?fourth|"
+        r"thirty[-\s]?fifth|thirty[-\s]?sixth|thirty[-\s]?seventh|thirty[-\s]?eighth|"
+        r"thirty[-\s]?ninth|fortieth|forty[-\s]?first|forty[-\s]?second|forty[-\s]?third|"
+        r"forty[-\s]?fourth|forty[-\s]?fifth|forty[-\s]?sixth|forty[-\s]?seventh|"
+        r"forty[-\s]?eighth|forty[-\s]?ninth|fiftieth|fifty[-\s]?first|fifty[-\s]?second|"
+        r"fifty[-\s]?third|fifty[-\s]?fourth|fifty[-\s]?fifth|fifty[-\s]?sixth|"
+        r"fifty[-\s]?seventh|fifty[-\s]?eighth|fifty[-\s]?ninth|sixtieth|sixty[-\s]?first|"
+        r"sixty[-\s]?second|sixty[-\s]?third|sixty[-\s]?fourth|sixty[-\s]?fifth|"
+        r"sixty[-\s]?sixth|sixty[-\s]?seventh|sixty[-\s]?eighth|sixty[-\s]?ninth|"
+        r"seventieth|seventy[-\s]?first|seventy[-\s]?second|seventy[-\s]?third|"
+        r"seventy[-\s]?fourth|seventy[-\s]?fifth|seventy[-\s]?sixth|seventy[-\s]?seventh|"
+        r"seventy[-\s]?eighth|seventy[-\s]?ninth|eightieth|eighty[-\s]?first|"
+        r"eighty[-\s]?second|eighty[-\s]?third|eighty[-\s]?fourth|eighty[-\s]?fifth|"
+        r"eighty[-\s]?sixth|eighty[-\s]?seventh|eighty[-\s]?eighth|eighty[-\s]?ninth|"
+        r"ninetieth|ninety[-\s]?first|ninety[-\s]?second|ninety[-\s]?third|"
+        r"ninety[-\s]?fourth|ninety[-\s]?fifth|ninety[-\s]?sixth|ninety[-\s]?seventh|"
+        r"ninety[-\s]?eighth|ninety[-\s]?ninth|hundredth|thousandth)\b",
         re.IGNORECASE,
     )
 
