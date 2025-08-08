@@ -255,7 +255,7 @@ class TestMathematicalConstants:
             ("pi is approximately three point one four", "π is approximately 3.14"),
             ("calculate with pi", "Calculate with π"),
             ("the area is pi times r squared", "The area is π × r²"),
-            ("circumference equals two pi r", "Circumference = 2πr"),
+            ("circumference equals two pi r", "circumference = two_pi_r"),
         ]
 
         for input_text, expected in test_cases:

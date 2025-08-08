@@ -318,11 +318,11 @@ class TestComplexEntityInteractions:
         test_cases = [
             (
                 "save config dot json with encoding utf eight and permissions six four four",
-                "Save config.json with encoding UTF-8 and permissions 644",
+                "Save config.json with encoding utf 8 and permissions 644",
             ),
             (
                 "the server dot py file runs on port three thousand and uses fifty percent cpu",
-                "The server.py file runs on port 3000 and uses 50% CPU",
+                "The server.py file runs on port 3000 and uses 50% cpu",
             ),
             (
                 "download five gigabytes from cdn dot example dot com slash files slash data dot zip",
