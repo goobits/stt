@@ -260,8 +260,12 @@ class SmartCapitalizer:
 
     def _capitalize_proper_nouns(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Capitalize proper nouns using spaCy NER and known patterns"""
+        # First try rule-based proper noun detection (works without spaCy)
+        text = self._apply_rule_based_proper_nouns(text, entities)
+        
         if not self.nlp:
-            # No spaCy available, return text unchanged
+            # No spaCy available, but we've applied rule-based detection
+            logger.debug("SpaCy not available, using rule-based proper noun detection only")
             return text
 
         # Skip SpaCy processing if text contains placeholders
@@ -316,6 +320,67 @@ class SmartCapitalizer:
             logger.debug(f"Error in spaCy proper noun capitalization: {e}")
             # Return text unchanged on error
             return text
+
+    def _apply_rule_based_proper_nouns(self, text: str, entities: list[Entity] | None = None) -> str:
+        """Apply rule-based proper noun capitalization using the proper_nouns resource list."""
+        proper_nouns = self.resources.get("technical", {}).get("proper_nouns", [])
+        
+        if not proper_nouns:
+            logger.debug("No proper nouns list found in resources")
+            return text
+        
+        # Use regex to find and replace proper nouns while preserving punctuation
+        replacements = []
+        
+        for proper_noun in proper_nouns:
+            # Create a regex pattern for case-insensitive word boundary matching
+            # This will match the word with optional leading/trailing punctuation
+            pattern = r'\b' + re.escape(proper_noun.lower()) + r'\b'
+            
+            for match in re.finditer(pattern, text, re.IGNORECASE):
+                start, end = match.span()
+                matched_text = match.group()
+                
+                # Check if this position is protected by entities
+                is_protected = False
+                if entities:
+                    for entity in entities:
+                        if start < entity.end and end > entity.start:
+                            # Special case: PORT_NUMBER entities should allow proper noun capitalization
+                            # of the server/service name part (e.g., "redis" in "redis:6379")
+                            if entity.type.name == "PORT_NUMBER":
+                                # Allow capitalization if the matched text is at the start of the entity
+                                # and ends before the colon (i.e., it's the server name part)
+                                entity_text = text[entity.start:entity.end]
+                                if ":" in entity_text:
+                                    server_part_end = entity.start + entity_text.find(":")
+                                    if start >= entity.start and end <= server_part_end:
+                                        # This is the server name part, allow capitalization
+                                        logger.debug(f"Allowing proper noun capitalization in PORT_NUMBER server name: '{matched_text}'")
+                                        continue  # Don't set is_protected = True
+                                        
+                            is_protected = True
+                            logger.debug(f"Proper noun '{matched_text}' at {start}-{end} is protected by entity {entity.type}")
+                            break
+                
+                if not is_protected:
+                    # Replace with proper capitalization, preserving case pattern of original
+                    if matched_text.islower():
+                        replacement = proper_noun
+                    elif matched_text.isupper():
+                        replacement = proper_noun.upper()
+                    else:
+                        replacement = proper_noun  # Use standard capitalization
+                    
+                    replacements.append((start, end, replacement))
+                    logger.debug(f"Rule-based proper noun: '{matched_text}' -> '{replacement}'")
+        
+        # Apply replacements in reverse order to maintain positions
+        replacements.sort(key=lambda x: x[0], reverse=True)
+        for start, end, replacement in replacements:
+            text = text[:start] + replacement + text[end:]
+            
+        return text
 
     def _is_i_in_variable_assignment_context(self, token, doc) -> bool:
         """Check if 'i' token is in a variable/assignment context using spaCy analysis.

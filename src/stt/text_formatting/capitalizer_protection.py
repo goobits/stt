@@ -99,6 +99,16 @@ class EntityProtection:
                     # Check if this is a programming statement keyword that should stay lowercase
                     code_statement_keywords = {"if", "when", "while", "unless", "until", "let", "const", "var", "for", "def", "function"}
                     if entity.text.lower() in code_statement_keywords:
+                        # Special handling for "for" - check if it's in natural language context
+                        if entity.text.lower() == "for":
+                            is_natural_language = self._is_for_in_natural_language_context(text, entity.start)
+                            if is_natural_language:
+                                logger.debug(
+                                    f"'for' detected in natural language context - allowing capitalization"
+                                )
+                                # Allow capitalization for natural language "for"
+                                break
+                        
                         logger.debug(
                             f"Programming statement keyword '{entity.text}' at sentence start - preventing capitalization to preserve code context"
                         )
@@ -296,4 +306,69 @@ class EntityProtection:
             return False
             
         # Default: treat as pronoun (safer to over-capitalize than under-capitalize)
+        return True
+    
+    def _is_for_in_natural_language_context(self, text: str, position: int) -> bool:
+        """Check if 'for' at given position is used in natural language context vs programming.
+        
+        Args:
+            text: Full text
+            position: Position of 'for' in text
+            
+        Returns:
+            True if 'for' is used in natural language context (should be capitalized)
+        """
+        # Look at the words following 'for'
+        words_after_for = text[position + 3:].strip().split()[:3]  # Get next 3 words
+        
+        # Natural language patterns with 'for'
+        natural_language_patterns = [
+            "example", "instance", "more", "information", "info", "help", "support",
+            "details", "questions", "assistance", "clarification", "reference",
+            "the", "a", "an", "some", "any", "each", "every", "all"
+        ]
+        
+        # Programming context patterns (what would follow programming 'for')
+        programming_patterns = [
+            "loop", "i", "j", "k", "x", "y", "z", "item", "element", "each"
+        ]
+        
+        if words_after_for:
+            first_word = words_after_for[0].lower()
+            
+            # Check for explicit natural language indicators
+            if first_word in natural_language_patterns:
+                return True
+                
+            # Check for programming loop patterns
+            if first_word in programming_patterns:
+                # Additional check: look for programming syntax
+                remaining_text = " ".join(words_after_for)
+                if any(keyword in remaining_text.lower() for keyword in ["in", "range", "len", "iterate", "loop"]):
+                    return False  # Programming context
+                    
+            # Check for natural language phrases
+            if len(words_after_for) >= 2:
+                two_word_phrase = f"{words_after_for[0].lower()} {words_after_for[1].lower()}"
+                natural_phrases = [
+                    "more info", "more information", "more details", "more help",
+                    "the record", "the purpose", "the sake", "the time",
+                    "your information", "your reference", "your help"
+                ]
+                if two_word_phrase in natural_phrases:
+                    return True
+        
+        # Look at the broader context - if the sentence contains natural language words,
+        # it's likely natural language context
+        text_lower = text.lower()
+        natural_context_indicators = [
+            "visit", "website", "info", "information", "help", "support", "docs",
+            "documentation", "example", "instance", "more", "please", "check",
+            "see", "find", "get", "contact", "email"
+        ]
+        
+        if any(indicator in text_lower for indicator in natural_context_indicators):
+            return True
+            
+        # Default: assume natural language context (safer to capitalize)
         return True

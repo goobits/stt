@@ -267,6 +267,7 @@
       "css": "CSS",
       "sql": "SQL",
       "pdf": "PDF"
-    }
+    },
+    "proper_nouns": ["Redis", "MySQL", "PostgreSQL", "MongoDB", "Docker", "Kubernetes", "GitHub", "GitLab", "JavaScript", "TypeScript", "Python", "Java", "React", "Angular", "Vue", "Node", "Express", "Django", "Flask", "Spring", "Laravel", "Ubuntu", "CentOS", "Debian", "Windows", "MacOS", "Linux", "Android", "iOS", "Chrome", "Firefox", "Safari", "Edge", "Apache", "Nginx", "Tomcat", "Jenkins", "Terraform", "Ansible", "AWS", "Azure", "Google", "Microsoft", "Apple", "Facebook", "Meta", "Twitter", "LinkedIn", "Instagram", "YouTube", "Netflix", "Spotify", "Slack", "Discord", "Zoom", "Teams", "Skype", "WhatsApp", "Telegram"]
   }
 }
