@@ -14,6 +14,7 @@ from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
+from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -37,6 +38,20 @@ class MathematicalExpressionDetector:
         self.language = language
         self.math_parser = MathExpressionParser()
         self.number_parser = NumberParser(language=self.language)
+
+    def _get_ordinal_pattern_string(self) -> str:
+        """Get ordinal pattern string for regex building (fallback pattern)."""
+        # For regex building purposes, we need to fall back to a pattern string
+        # The actual spaCy-based detection happens elsewhere in the pipeline
+        return (
+            r"twenty\s+first|twenty\s+second|twenty\s+third|twenty\s+fourth|twenty\s+fifth|"
+            r"twenty\s+sixth|twenty\s+seventh|twenty\s+eighth|twenty\s+ninth|"
+            r"thirty\s+first|thirty\s+second|thirty\s+third|thirty\s+fourth|thirty\s+fifth|"
+            r"thirty\s+sixth|thirty\s+seventh|thirty\s+eighth|thirty\s+ninth|"
+            r"first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|"
+            r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|"
+            r"thirtieth|fortieth|fiftieth|sixtieth|seventieth|eightieth|ninetieth|hundredth"
+        )
 
     def detect_math_expressions(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
@@ -285,15 +300,8 @@ class MathematicalExpressionDetector:
 
         # Pattern matches: [number with optional decimal] times ten to the [ordinal/number]
         # More flexible pattern that accepts both ordinals and regular numbers for exponents
-        ordinal_pattern = (
-            r"twenty\s+first|twenty\s+second|twenty\s+third|twenty\s+fourth|twenty\s+fifth|"
-            r"twenty\s+sixth|twenty\s+seventh|twenty\s+eighth|twenty\s+ninth|"
-            r"thirty\s+first|thirty\s+second|thirty\s+third|thirty\s+fourth|thirty\s+fifth|"
-            r"thirty\s+sixth|thirty\s+seventh|thirty\s+eighth|thirty\s+ninth|"
-            r"first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|"
-            r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|"
-            r"thirtieth|fortieth|fiftieth|sixtieth|seventieth|eightieth|ninetieth|hundredth"
-        )
+        # Uses fallback pattern string for regex building (actual spaCy detection happens in pipeline)
+        ordinal_pattern = self._get_ordinal_pattern_string()
 
         sci_pattern = re.compile(
             r"\b("

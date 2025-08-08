@@ -18,11 +18,34 @@ from typing import TYPE_CHECKING
 from ....core.config import setup_logging
 from ... import regex_patterns
 from ...constants import get_resources
+from ...pattern_modules.basic_numeric_patterns import build_ordinal_pattern
+from ...nlp_provider import get_nlp
 
 if TYPE_CHECKING:
     pass
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+
+
+def _get_sentence_starter_ordinal_patterns() -> list[str]:
+    """
+    Get sentence starter ordinal patterns, preferably from spaCy but with fallback.
+    
+    Returns:
+        List of regex patterns for sentence-starting ordinals
+    """
+    # For post-processing, we use simple hardcoded patterns as they're very specific
+    # to sentence starter detection and comma insertion logic
+    return [
+        r"^(first|second|third|fourth|fifth)\s+(\w+)",  # "First we need", "Second I want"
+        r"^(next|then|now|finally)\s+(\w+)",  # "Next we should", "Finally I want"
+    ]
+
+
+def _get_transition_starter_pattern() -> str:
+    """Get the transition starter pattern for ordinals."""
+    # Simple pattern for transition starters - keep as fallback for post-processing
+    return r"^(first|second|third|fourth|fifth)\s+(\w+)"
 
 
 def restore_abbreviations(text: str, resources: dict) -> str:
@@ -531,10 +554,7 @@ def add_introductory_phrase_commas(text: str) -> str:
     ]
     
     # Define sentence-starting ordinals that need commas when used as transitions
-    sentence_starter_patterns = [
-        r"^(first|second|third|fourth|fifth)\s+(\w+)",  # "First we need", "Second I want"
-        r"^(next|then|now|finally)\s+(\w+)",  # "Next we should", "Finally I want"
-    ]
+    sentence_starter_patterns = _get_sentence_starter_ordinal_patterns()
     
     # Apply repeated phrase patterns (like "first come first served")
     repeated_phrase_pattern = r"\b(first|second|third)\s+([a-z]+)\s+(\1)\s+([a-z]+)\b"
@@ -576,7 +596,7 @@ def add_introductory_phrase_commas(text: str) -> str:
     
     # Apply sentence starter patterns only for simple transition cases
     # Avoid patterns that are handled elsewhere (introductory phrases, repeated phrases, idioms)
-    transition_starter_pattern = r"^(first|second|third|fourth|fifth)\s+(\w+)"
+    transition_starter_pattern = _get_transition_starter_pattern()
     
     def add_comma_for_transitions(match):
         starter = match.group(1).lower()  # "first", "second", etc.

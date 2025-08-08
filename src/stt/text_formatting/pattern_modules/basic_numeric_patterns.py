@@ -8,9 +8,14 @@ and numeric range patterns used throughout the text formatting system.
 from __future__ import annotations
 
 import re
-from typing import Pattern
+from typing import Pattern, Union, Tuple, List
 
 from ..common import NumberParser
+from ..nlp_provider import get_nlp
+from ...core.config import setup_logging
+
+# Setup logger for this module
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
 
 # ==============================================================================
@@ -56,38 +61,211 @@ NUMBER_WORDS = [
 
 
 # ==============================================================================
+# SPACY-BASED ORDINAL MATCHER
+# ==============================================================================
+
+
+class SpacyOrdinalMatcher:
+    """
+    SpaCy-based ordinal matcher that replaces hardcoded regex patterns.
+    
+    This class provides a regex-like interface but uses spaCy NER for ORDINAL
+    entity detection, significantly reducing hardcoded patterns.
+    """
+    
+    def __init__(self, nlp, language: str = "en"):
+        """
+        Initialize the SpaCy-based ordinal matcher.
+        
+        Args:
+            nlp: SpaCy NLP model instance
+            language: Language code (currently only 'en' supported)
+        """
+        self.nlp = nlp
+        self.language = language
+    
+    def search(self, text: str, pos: int = 0) -> Union['SpacyOrdinalMatch', None]:
+        """
+        Search for ordinal patterns using spaCy NER.
+        
+        Args:
+            text: Text to search in
+            pos: Starting position (for regex compatibility)
+        
+        Returns:
+            SpacyOrdinalMatch object if ordinal found, None otherwise
+        """
+        try:
+            # Process the text with spaCy
+            doc = self.nlp(text)
+            
+            # Find ORDINAL entities starting from the given position
+            for ent in doc.ents:
+                if ent.label_ == "ORDINAL" and ent.start_char >= pos:
+                    # Skip idiomatic uses (basic check)
+                    if self._should_skip_ordinal_basic(ent, text):
+                        continue
+                    
+                    return SpacyOrdinalMatch(
+                        match_text=ent.text,
+                        start=ent.start_char,
+                        end=ent.end_char,
+                        groups=(ent.text,)  # For regex compatibility
+                    )
+            
+            return None
+            
+        except Exception as e:
+            # Log the error and fallback to regex search
+            logger.debug(f"SpaCy ordinal detection failed: {e}. Falling back to regex pattern.")
+            
+            # Fallback: basic regex search on common ordinals
+            import re
+            fallback_pattern = re.compile(
+                r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b",
+                re.IGNORECASE
+            )
+            match = fallback_pattern.search(text, pos)
+            if match:
+                logger.debug(f"Regex fallback found ordinal: '{match.group(0)}' at {match.start()}-{match.end()}")
+                return SpacyOrdinalMatch(
+                    match_text=match.group(0),
+                    start=match.start(),
+                    end=match.end(),
+                    groups=match.groups()
+                )
+            return None
+    
+    def findall(self, text: str) -> List[str]:
+        """
+        Find all ordinal matches in text.
+        
+        Args:
+            text: Text to search in
+        
+        Returns:
+            List of matched ordinal strings
+        """
+        matches = []
+        try:
+            doc = self.nlp(text)
+            for ent in doc.ents:
+                if ent.label_ == "ORDINAL":
+                    if not self._should_skip_ordinal_basic(ent, text):
+                        matches.append(ent.text)
+        except Exception as e:
+            # Log the error and fallback to basic regex
+            logger.debug(f"SpaCy ordinal findall failed: {e}. Falling back to regex pattern.")
+            import re
+            fallback_pattern = re.compile(
+                r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b",
+                re.IGNORECASE
+            )
+            matches = fallback_pattern.findall(text)
+            logger.debug(f"Regex fallback found {len(matches)} ordinals: {matches}")
+        
+        return matches
+    
+    def _should_skip_ordinal_basic(self, ent, text: str) -> bool:
+        """
+        Basic check for whether to skip ordinal (simplified version of spacy_detector logic).
+        
+        Args:
+            ent: SpaCy entity
+            text: Full text
+        
+        Returns:
+            True if ordinal should be skipped
+        """
+        # Basic check: skip if it starts a sentence and is followed by comma
+        if ent.start_char == 0 or (ent.start_char > 0 and text[ent.start_char-1] in '.!?'):
+            remaining_text = text[ent.end_char:].strip()
+            if remaining_text.startswith(','):
+                return True
+        
+        # Skip common idiomatic uses (basic check)
+        ordinal_lower = ent.text.lower()
+        following_text = text[ent.end_char:].strip().lower()
+        
+        # Common idiomatic patterns to skip
+        idiomatic_starts = ['place', 'time', 'person', 'thing', 'impression', 'thought']
+        for idiom in idiomatic_starts:
+            if following_text.startswith(idiom):
+                return True
+                
+        return False
+
+
+class SpacyOrdinalMatch:
+    """Match object that mimics regex Match behavior for spaCy ordinal matches."""
+    
+    def __init__(self, match_text: str, start: int, end: int, groups: Tuple[str, ...]):
+        self.match_text = match_text
+        self._start = start
+        self._end = end
+        self._groups = groups
+    
+    def group(self, n: int = 0) -> str:
+        """Return the nth group from the match."""
+        if n == 0:
+            return self.match_text
+        return self._groups[n-1] if n-1 < len(self._groups) else ""
+    
+    def start(self, group: int = 0) -> int:
+        """Return start position of match."""
+        return self._start
+    
+    def end(self, group: int = 0) -> int:
+        """Return end position of match.""" 
+        return self._end
+    
+    def span(self, group: int = 0) -> Tuple[int, int]:
+        """Return (start, end) span of match."""
+        return (self._start, self._end)
+
+
+# ==============================================================================
 # ORDINAL AND FRACTION PATTERN BUILDERS
 # ==============================================================================
 
 
-def build_ordinal_pattern(language: str = "en") -> re.Pattern[str]:
-    """Build the spoken ordinal pattern for the specified language."""
-    # For now, use English patterns. Could be extended for other languages.
-    return re.compile(
-        r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|"
-        r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|"
-        r"eighteenth|nineteenth|twentieth|twenty[-\s]?first|twenty[-\s]?second|"
-        r"twenty[-\s]?third|twenty[-\s]?fourth|twenty[-\s]?fifth|twenty[-\s]?sixth|"
-        r"twenty[-\s]?seventh|twenty[-\s]?eighth|twenty[-\s]?ninth|thirtieth|"
-        r"thirty[-\s]?first|thirty[-\s]?second|thirty[-\s]?third|thirty[-\s]?fourth|"
-        r"thirty[-\s]?fifth|thirty[-\s]?sixth|thirty[-\s]?seventh|thirty[-\s]?eighth|"
-        r"thirty[-\s]?ninth|fortieth|forty[-\s]?first|forty[-\s]?second|forty[-\s]?third|"
-        r"forty[-\s]?fourth|forty[-\s]?fifth|forty[-\s]?sixth|forty[-\s]?seventh|"
-        r"forty[-\s]?eighth|forty[-\s]?ninth|fiftieth|fifty[-\s]?first|fifty[-\s]?second|"
-        r"fifty[-\s]?third|fifty[-\s]?fourth|fifty[-\s]?fifth|fifty[-\s]?sixth|"
-        r"fifty[-\s]?seventh|fifty[-\s]?eighth|fifty[-\s]?ninth|sixtieth|sixty[-\s]?first|"
-        r"sixty[-\s]?second|sixty[-\s]?third|sixty[-\s]?fourth|sixty[-\s]?fifth|"
-        r"sixty[-\s]?sixth|sixty[-\s]?seventh|sixty[-\s]?eighth|sixty[-\s]?ninth|"
-        r"seventieth|seventy[-\s]?first|seventy[-\s]?second|seventy[-\s]?third|"
-        r"seventy[-\s]?fourth|seventy[-\s]?fifth|seventy[-\s]?sixth|seventy[-\s]?seventh|"
-        r"seventy[-\s]?eighth|seventy[-\s]?ninth|eightieth|eighty[-\s]?first|"
-        r"eighty[-\s]?second|eighty[-\s]?third|eighty[-\s]?fourth|eighty[-\s]?fifth|"
-        r"eighty[-\s]?sixth|eighty[-\s]?seventh|eighty[-\s]?eighth|eighty[-\s]?ninth|"
-        r"ninetieth|ninety[-\s]?first|ninety[-\s]?second|ninety[-\s]?third|"
-        r"ninety[-\s]?fourth|ninety[-\s]?fifth|ninety[-\s]?sixth|ninety[-\s]?seventh|"
-        r"ninety[-\s]?eighth|ninety[-\s]?ninth|hundredth|thousandth)\b",
-        re.IGNORECASE,
-    )
+def build_ordinal_pattern(language: str = "en") -> Union[re.Pattern[str], 'SpacyOrdinalMatcher']:
+    """Build the spoken ordinal pattern for the specified language.
+    
+    Uses spaCy NER for ORDINAL detection when available, falls back to regex patterns.
+    """
+    nlp = get_nlp()
+    if nlp is not None:
+        logger.debug("Using spaCy-based ordinal detection")
+        return SpacyOrdinalMatcher(nlp, language)
+    else:
+        logger.info("spaCy not available, falling back to hardcoded ordinal regex patterns")
+        # Fallback to original hardcoded regex pattern
+        return re.compile(
+            r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|"
+            r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|"
+            r"eighteenth|nineteenth|twentieth|twenty[-\s]?first|twenty[-\s]?second|"
+            r"twenty[-\s]?third|twenty[-\s]?fourth|twenty[-\s]?fifth|twenty[-\s]?sixth|"
+            r"twenty[-\s]?seventh|twenty[-\s]?eighth|twenty[-\s]?ninth|thirtieth|"
+            r"thirty[-\s]?first|thirty[-\s]?second|thirty[-\s]?third|thirty[-\s]?fourth|"
+            r"thirty[-\s]?fifth|thirty[-\s]?sixth|thirty[-\s]?seventh|thirty[-\s]?eighth|"
+            r"thirty[-\s]?ninth|fortieth|forty[-\s]?first|forty[-\s]?second|forty[-\s]?third|"
+            r"forty[-\s]?fourth|forty[-\s]?fifth|forty[-\s]?sixth|forty[-\s]?seventh|"
+            r"forty[-\s]?eighth|forty[-\s]?ninth|fiftieth|fifty[-\s]?first|fifty[-\s]?second|"
+            r"fifty[-\s]?third|fifty[-\s]?fourth|fifty[-\s]?fifth|fifty[-\s]?sixth|"
+            r"fifty[-\s]?seventh|fifty[-\s]?eighth|fifty[-\s]?ninth|sixtieth|sixty[-\s]?first|"
+            r"sixty[-\s]?second|sixty[-\s]?third|sixty[-\s]?fourth|sixty[-\s]?fifth|"
+            r"sixty[-\s]?sixth|sixty[-\s]?seventh|sixty[-\s]?eighth|sixty[-\s]?ninth|"
+            r"seventieth|seventy[-\s]?first|seventy[-\s]?second|seventy[-\s]?third|"
+            r"seventy[-\s]?fourth|seventy[-\s]?fifth|seventy[-\s]?sixth|seventy[-\s]?seventh|"
+            r"seventy[-\s]?eighth|seventy[-\s]?ninth|eightieth|eighty[-\s]?first|"
+            r"eighty[-\s]?second|eighty[-\s]?third|eighty[-\s]?fourth|eighty[-\s]?fifth|"
+            r"eighty[-\s]?sixth|eighty[-\s]?seventh|eighty[-\s]?eighth|eighty[-\s]?ninth|"
+            r"ninetieth|ninety[-\s]?first|ninety[-\s]?second|ninety[-\s]?third|"
+            r"ninety[-\s]?fourth|ninety[-\s]?fifth|ninety[-\s]?sixth|ninety[-\s]?seventh|"
+            r"ninety[-\s]?eighth|ninety[-\s]?ninth|hundredth|thousandth)\b",
+            re.IGNORECASE,
+        )
 
 
 def build_fraction_pattern(language: str = "en") -> re.Pattern[str]:

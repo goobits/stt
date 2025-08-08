@@ -15,6 +15,7 @@ from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting import pattern_modules
+from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 from stt.text_formatting.priority_config import ProcessorType, get_current_config
 
 
@@ -148,12 +149,11 @@ class MathematicalProcessor(BaseNumericProcessor):
         """Build pattern for number words."""
         return r"(?:" + "|".join(sorted(self.number_parser.all_number_words, key=len, reverse=True)) + r")"
     
-    def _build_scientific_notation_pattern(self) -> Pattern[str]:
-        """Build pattern for scientific notation expressions."""
-        number_pattern = self._build_number_pattern()
-        
-        # Pattern for ordinals in exponents
-        ordinal_pattern = (
+    def _get_ordinal_pattern_string(self) -> str:
+        """Get ordinal pattern string, with fallback to hardcoded pattern for regex building."""
+        # For regex building purposes, we need to fall back to a pattern string
+        # The actual spaCy-based detection happens elsewhere in the pipeline
+        return (
             r"twenty\s+first|twenty\s+second|twenty\s+third|twenty\s+fourth|twenty\s+fifth|"
             r"twenty\s+sixth|twenty\s+seventh|twenty\s+eighth|twenty\s+ninth|"
             r"thirty\s+first|thirty\s+second|thirty\s+third|thirty\s+fourth|thirty\s+fifth|"
@@ -162,6 +162,13 @@ class MathematicalProcessor(BaseNumericProcessor):
             r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|"
             r"thirtieth|fortieth|fiftieth|sixtieth|seventieth|eightieth|ninetieth|hundredth"
         )
+    
+    def _build_scientific_notation_pattern(self) -> Pattern[str]:
+        """Build pattern for scientific notation expressions."""
+        number_pattern = self._build_number_pattern()
+        
+        # Pattern for ordinals in exponents (uses fallback pattern for regex building)
+        ordinal_pattern = self._get_ordinal_pattern_string()
         
         return re.compile(
             r"\b("
