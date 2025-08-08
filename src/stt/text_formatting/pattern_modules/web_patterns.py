@@ -325,6 +325,11 @@ def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
 
+    # Get slash keywords for URL path detection (so we capture more context)
+    slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
+    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
+    slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
+
     # Build the complete pattern using the dynamic keyword patterns
     pattern_str = rf"""
     \b                                  # Word boundary
@@ -364,7 +369,11 @@ def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
             )
         )*                              # Zero or more additional number words
     )
-    (?=\s|$|/)                          # Lookahead: followed by space, end, or slash (not word boundary)
+    (?:                                 # Optional: capture limited path part to avoid interference with math
+        \s+(?:{slash_pattern})\s+       # Spoken "slash"
+        (?:[a-zA-Z0-9-]+(?:\s+[a-zA-Z0-9-]+){{0,2}}) # Limited path components (max 3 words)
+    ){{0,2}}                            # Zero to 2 path segments to prevent over-matching
+    (?=\s+(?:accepts|returns|provides|gives|and|or|but|is|are|will|would|should|can|may)|$|[.!?]) # Better lookahead to stop at common sentence continuations
     """
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 

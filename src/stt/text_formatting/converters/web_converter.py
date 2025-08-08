@@ -198,6 +198,14 @@ class WebPatternConverter(BasePatternConverter):
     def convert_spoken_url(self, entity: Entity, full_text: str = "") -> str:
         """Convert spoken URL patterns by replacing keywords and removing spaces."""
         url_text = entity.text
+        
+        # Remove command prefixes that shouldn't be part of the URL
+        # Sort by length (longest first) to avoid partial matches
+        command_prefixes = ["navigate to ", "go to ", "visit ", "check ", "browse ", "open ", "to "]
+        for prefix in command_prefixes:
+            if url_text.lower().startswith(prefix):
+                url_text = url_text[len(prefix):]
+                break
         trailing_punct = ""
         if url_text and url_text[-1] in ".!?":
             trailing_punct = url_text[-1]
@@ -257,10 +265,31 @@ class WebPatternConverter(BasePatternConverter):
                     break
             
             if best_parse:
-                # We found a number - merge it with the previous word if it's not a URL keyword
+                # We found a number - merge it with the previous word only in specific contexts
+                should_merge = False
                 if (converted_words and 
                     converted_words[-1].lower() not in self.url_keywords):
-                    # Merge with previous word: "server" + "1" = "server1"
+                    prev_word = converted_words[-1].lower()
+                    # Only merge for domain-like contexts, not for command words
+                    domain_prefixes = {"server", "api", "db", "host", "www", "cdn", "mail", "ftp", "app", "site", "web"}
+                    version_contexts = {"v", "version"}
+                    # Explicitly list command/navigation words that should NOT merge
+                    command_words = {"to", "go", "visit", "check", "at", "from", "with", "on", "in", "for", "by"}
+                    
+                    if prev_word in domain_prefixes:
+                        # Merge for domain names: "server" + "1" = "server1"
+                        should_merge = True
+                    elif prev_word in version_contexts:
+                        # Merge for versions: "v" + "2" = "v2"  
+                        should_merge = True
+                    elif prev_word in command_words:
+                        # Never merge with command words: "to" + "1111" = "to 1111" (separate)
+                        should_merge = False
+                    else:
+                        # For other words, be conservative and don't merge to avoid issues
+                        should_merge = False
+                
+                if should_merge:
                     converted_words[-1] = converted_words[-1] + best_parse
                 else:
                     # Add as separate word
@@ -472,16 +501,23 @@ class WebPatternConverter(BasePatternConverter):
 
     def convert_port_number(self, entity: Entity) -> str:
         """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'
-        Also handles spoken domains like 'api dot service dot com colon three thousand' to 'api.service.com:3000'"""
+        Also handles spoken domains like 'api dot service dot com colon three thousand' to 'api.service.com:3000'
+        Now also handles URL paths like 'api.com colon 8000 slash v two' to 'api.com:8000/v2'"""
         text = entity.text.lower()
 
-        # Extract host and port parts using language-specific colon keyword
+        # Get language-specific keywords
         colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
+        slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
+        
+        # Extract host, port, and optional path parts using language-specific colon keyword
         colon_pattern = None
+        host_part = ""
+        port_and_path_part = ""
+        
         for colon_keyword in colon_keywords:
             colon_sep = f" {colon_keyword} "
             if colon_sep in text:
-                host_part, port_part = text.split(colon_sep, 1)
+                host_part, port_and_path_part = text.split(colon_sep, 1)
                 colon_pattern = colon_keyword
                 break
 
@@ -489,29 +525,54 @@ class WebPatternConverter(BasePatternConverter):
             # Convert spoken domain in host part (e.g., "api dot service dot com" -> "api.service.com")
             host_part = self._convert_spoken_domain(host_part)
 
-            # Use digit words from constants
+            # Separate port and path parts
+            port_part = port_and_path_part
+            path_part = ""
+            
+            # Look for slash keywords to separate port from path
+            for slash_keyword in slash_keywords:
+                slash_sep = f" {slash_keyword} "
+                if slash_sep in port_and_path_part:
+                    port_part, path_part = port_and_path_part.split(slash_sep, 1)
+                    break
+
+            # Convert port part
             port_words = port_part.split()
 
-            # Check if all words are single digits (for sequences like "eight zero eight zero" or "ocho cero ocho cero")
+            # Check if all words are single digits (for sequences like "eight zero eight zero")
             # Use language-specific number words from the NumberParser
             digit_words = {word: str(num) for word, num in self.number_parser.ones.items() if 0 <= num <= 9}
             all_single_digits = all(word in digit_words for word in port_words)
 
+            port_number = ""
             if all_single_digits and port_words:
                 # Use digit sequence logic with language-specific digit words
                 port_digits = [digit_words[word] for word in port_words]
                 port_number = "".join(port_digits)
-                return f"{host_part}:{port_number}"
+            else:
+                # Use the number parser for compound numbers like "three thousand"
+                parsed_port = self.number_parser.parse(port_part)
+                if parsed_port and parsed_port.isdigit():
+                    port_number = parsed_port
 
-            # Use the number parser for compound numbers like "three thousand"
-            parsed_port = self.number_parser.parse(port_part)
-            if parsed_port and parsed_port.isdigit():
-                return f"{host_part}:{parsed_port}"
+            # Convert path part if present
+            converted_path = ""
+            if path_part:
+                # Use URL keyword conversion for the path
+                converted_path = "/" + self._convert_url_keywords(path_part)
+
+            # Assemble final result
+            if port_number:
+                result = f"{host_part}:{port_number}{converted_path}"
+                return result
 
         # Fallback: replace colon word even if parsing fails
         result = entity.text
         for colon_keyword in colon_keywords:
             result = result.replace(f" {colon_keyword} ", ":")
+        # Also try to convert slash keywords in fallback
+        for slash_keyword in slash_keywords:
+            result = result.replace(f" {slash_keyword} ", "/")
         return result
 
     def _convert_spoken_domain(self, domain_text: str) -> str:
