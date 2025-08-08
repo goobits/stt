@@ -85,10 +85,15 @@ def get_nlp():
 def get_punctuator():
     """
     Lazy-load punctuation model with thread-safe singleton pattern.
+    
+    In testing mode (STT_DISABLE_PUNCTUATION=1), returns NoopPunctuator.
+    In production mode, fails fast if punctuation model cannot be loaded.
 
     Returns:
-        Optional: Punctuation model instance or None if loading failed
+        PunctuationModel or NoopPunctuator: Punctuation model instance
 
+    Raises:
+        SystemExit: If punctuation model cannot be loaded in production mode
     """
     global _punctuator
 
@@ -112,12 +117,12 @@ def get_punctuator():
                     _punctuator = PunctuationModel()
                     logger.info("✅ FORMATTER SUCCESS: Text formatter loaded (deepmultilingualpunctuation)")
                 except ImportError:
-                    logger.warning("❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context")
-                    _punctuator = False
-                except (ImportError, OSError, ValueError, RuntimeError) as e:
-                    logger.error(f"❌ FORMATTER MODEL LOAD FAILED: {e}", exc_info=True)
-                    _punctuator = False
-    return _punctuator if _punctuator else None
+                    logger.error("Punctuation model is required but not installed. Install with: pip install deepmultilingualpunctuation")
+                    sys.exit(1)
+                except (OSError, ValueError, RuntimeError) as e:
+                    logger.error(f"Failed to load punctuation model: {e}")
+                    sys.exit(1)
+    return _punctuator
 
 
 def reset_models():
