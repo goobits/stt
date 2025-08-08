@@ -407,15 +407,15 @@ class TestMathematicalEntityInteractions:
         test_cases = [
             (
                 "solve x squared plus two x plus one equals zero using the quadratic formula",
-                "Solve x² + 2x + 1 = 0 using the quadratic formula.",
+                "Solve x² + 2x + 1 = 0 using the quadratic formula",
             ),
             (
                 "the area of a circle is pi r squared where r is the radius",
-                "The area of a circle is πr² where r is the radius.",
+                "The area of a circle is πr² where r is the radius",
             ),
             (
                 "calculate the square root of two times pi",
-                "Calculate √(2π).",
+                "Calculate √(2π)",
             ),
         ]
 

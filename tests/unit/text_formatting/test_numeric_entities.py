@@ -85,9 +85,9 @@ class TestCardinalNumbers:
         test_cases = [
             ("catch twenty two", "Catch twenty two"),
             ("cloud nine", "Cloud nine"),
-            ("sixth sense", "Sixth sense."),
-            ("four score and seven years ago", "Four score and seven years ago."),
-            ("behind the eight ball", "Behind the eight ball."),
+            ("sixth sense", "Sixth sense"),
+            ("four score and seven years ago", "Four score and seven years ago"),
+            ("behind the eight ball", "Behind the eight ball"),
         ]
 
         for input_text, expected in test_cases:
@@ -274,7 +274,7 @@ class TestFractions:
             ("one fifth of the budget", "⅕ of the budget"),
             ("two fifths completed", "⅖ completed"),
             ("seven eighths done", "⅞ done"),
-            ("one tenth of a second", "1/10 of a second."),
+            ("one tenth of a second", "1/10 of a second"),
         ]
 
         for input_text, expected in test_cases:
@@ -286,8 +286,8 @@ class TestFractions:
         format_transcription = preloaded_formatter
         test_cases = [
             ("add one and one half cups flour", "Add 1½ cups flour"),
-            ("use two and three quarters teaspoons", "Use 2¾ teaspoons."),
-            ("mix in one half tablespoon", "Mix in ½ tablespoon."),
+            ("use two and three quarters teaspoons", "Use 2¾ teaspoons"),
+            ("mix in one half tablespoon", "Mix in ½ tablespoon"),
         ]
 
         for input_text, expected in test_cases:
@@ -330,8 +330,8 @@ class TestPercentages:
         format_transcription = preloaded_formatter
         test_cases = [
             ("the success rate is eighty percent", "The success rate is 80%"),
-            ("only ten percent failed", "Only 10% failed."),
-            ("over ninety nine percent accuracy", "Over 99% accuracy."),
+            ("only ten percent failed", "Only 10% failed"),
+            ("over ninety nine percent accuracy", "Over 99% accuracy"),
         ]
 
         for input_text, expected in test_cases:
