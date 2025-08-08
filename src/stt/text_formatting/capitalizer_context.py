@@ -80,12 +80,20 @@ class ContextAnalyzer:
         Returns:
             True if 'i' appears to be a variable rather than pronoun
         """
-        # Check preceding text for variable indicators
-        preceding_text = text[max(0, position - 25):position].lower()
+        # Check preceding text for variable indicators (expanded to catch more contexts)
+        preceding_text = text[max(0, position - 30):position].lower()
         variable_indicators = [
             "variable is", "counter is", "iterator is", "for i in", 
-            "variable i", "letter i"
+            "variable i", "letter i", "the variable is", "variable called",
+            "the counter is", "the iterator is", "set i to", "set i equals",
+            "i equals", "i is equal", "when i write i"
         ]
+        
+        # Also check if 'i' comes after mathematical/assignment operators
+        following_text = text[position + 1:position + 10].lower()
+        if any(op in following_text for op in [" equals", " =", " +", " -", " *", " /"]):
+            return True
+            
         return any(keyword in preceding_text for keyword in variable_indicators)
 
     def is_part_of_identifier(self, text: str, start: int, end: int) -> bool:

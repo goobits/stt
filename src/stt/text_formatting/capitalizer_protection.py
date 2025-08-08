@@ -79,17 +79,22 @@ class EntityProtection:
                     logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                     return False
                     
-                # FIXED: Programming keywords at sentence start should ALWAYS be capitalized
-                # This was the main issue - the logic was preventing capitalization of sentence-starting
-                # programming keywords when there were nearby code entities, but sentence-start capitalization
-                # should take precedence over entity protection
+                # CONDITIONAL STATEMENT LOGIC: Programming keywords like "if", "when" at sentence start  
+                # should NOT be capitalized because they start conditional statements, not declarative sentences
                 elif entity.type.name == "PROGRAMMING_KEYWORD" and entity.start == 0:
-                    logger.debug(
-                        f"Programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
-                    )
-                    # Always allow capitalization for sentence-starting programming keywords
-                    # The entity converter will handle the proper formatting of the keyword itself
-                    break
+                    # Check if this is a conditional keyword that should stay lowercase
+                    conditional_keywords = {"if", "when", "while", "unless", "until"}
+                    if entity.text.lower() in conditional_keywords:
+                        logger.debug(
+                            f"Conditional keyword '{entity.text}' at sentence start - preventing capitalization to preserve conditional context"
+                        )
+                        return False
+                    else:
+                        logger.debug(
+                            f"Non-conditional programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
+                        )
+                        # Allow capitalization for non-conditional programming keywords
+                        break
 
         return True
 

@@ -149,3 +149,48 @@ class VariableDetector:
                         },
                     )
                 )
+                
+    def detect_single_letter_variables(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """Detects single-letter variables like 'i', 'x', 'y' in code contexts."""
+        if all_entities is None:
+            all_entities = entities
+            
+        # Pattern to find single letters that could be variables
+        pattern = r'\b([ijklmnxyz])\b'
+        
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            if not is_inside_entity(match.start(), match.end(), all_entities):
+                letter = match.group(1)
+                
+                # Check if this single letter is in a variable context
+                context_before = text[max(0, match.start() - 30):match.start()].lower()
+                context_after = text[match.end():match.end() + 15].lower()
+                
+                # Variable context indicators
+                variable_contexts = [
+                    "variable", "counter", "iterator", "the variable is", "variable called",
+                    "set " + letter.lower(), "when i write", "for " + letter.lower() + " in",
+                    "let " + letter.lower(), "const " + letter.lower(), "var " + letter.lower()
+                ]
+                
+                # Check for assignment/mathematical operators after
+                assignment_contexts = [" equals", " =", " +", " -", " *", " /"]
+                
+                is_variable_context = (
+                    any(ctx in context_before for ctx in variable_contexts) or
+                    any(ctx in context_after for ctx in assignment_contexts)
+                )
+                
+                if is_variable_context:
+                    logger.debug(f"Found single-letter variable: '{letter}' in context")
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=letter,
+                            type=EntityType.VARIABLE,
+                            metadata={"letter": letter.lower()},
+                        )
+                    )

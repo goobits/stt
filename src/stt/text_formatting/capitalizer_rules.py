@@ -32,6 +32,7 @@ class CapitalizationRules:
             EntityType.COMMAND_FLAG,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE,
             EntityType.UNDERSCORE_DELIMITER,
+            EntityType.VARIABLE,  # Single-letter variables must preserve their case (e.g., 'i' in code contexts)
             # Note: PORT_NUMBER removed - host names before port should be capitalized normally
             # Note: VERSION removed - version numbers at sentence start should be capitalized
             EntityType.ASSIGNMENT,
@@ -95,6 +96,7 @@ class CapitalizationRules:
             EntityType.COMMAND_FLAG,
             EntityType.PORT_NUMBER,
             EntityType.ABBREVIATION,  # Protect abbreviations from SpaCy proper noun capitalization
+            EntityType.VARIABLE,  # Protect single-letter variables from SpaCy capitalization
         }
         return entity_type in protected_types
 
@@ -120,6 +122,7 @@ class CapitalizationRules:
             EntityType.COMMAND_FLAG,
             EntityType.PORT_NUMBER,
             EntityType.ABBREVIATION,  # Protect abbreviations from uppercase conversion
+            EntityType.VARIABLE,  # Protect single-letter variables from uppercase conversion
         }
         return entity_type in protected_types
 

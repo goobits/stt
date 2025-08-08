@@ -67,6 +67,7 @@ class EntityType(Enum):
     SLASH_COMMAND = auto()
     UNDERSCORE_DELIMITER = auto()
     SIMPLE_UNDERSCORE_VARIABLE = auto()
+    VARIABLE = auto()  # Single-letter variables like 'i', 'x', 'y' in code contexts
     # Additional entity types for complete technical term coverage
     PROGRAMMING_KEYWORD = auto()
     CLI_COMMAND = auto()

@@ -91,6 +91,7 @@ class CodeEntityDetector:
         self._run_detector(self.variable_detector.detect_abbreviations, text, entities, code_entities, all_entities)
         self._run_detector(self.variable_detector.detect_underscore_delimiters, text, entities, code_entities, all_entities)
         self._run_detector(self.variable_detector.detect_simple_underscore_variables, text, entities, code_entities, all_entities)
+        self._run_detector(self.variable_detector.detect_single_letter_variables, text, entities, code_entities, all_entities)
         
         # Command flags detection
         self._run_detector(self.command_detector.detect_command_flags, text, entities, code_entities, all_entities)
