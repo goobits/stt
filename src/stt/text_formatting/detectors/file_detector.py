@@ -94,9 +94,17 @@ class FileDetector:
             current_token = end_char_to_token[start_of_dot]
             filename_tokens: list = []
 
-            # Walk backwards from the token before "dot"
-            for i in range(current_token.i, -1, -1):
+            # Walk backwards from the token before "dot" with 4-token distance limit
+            for i in range(current_token.i, max(-1, current_token.i - 4), -1):
                 token = doc[i]
+
+                # Conservative stopping - be more restrictive
+                # Stop at determiners (articles) when we already have filename content
+                if token.pos_ == 'DET' and len(filename_tokens) > 0:  # Articles: the/der/le/el
+                    break
+                # Stop at prepositions, but allow special handling of "file" below
+                if token.pos_ == 'ADP' and token.text.lower() != "file":  # Prepositions: in/en/dans/в
+                    break
 
                 # ** THE CRITICAL STOPPING LOGIC **
                 # Get language-specific filename stop words from i18n resources
@@ -203,12 +211,11 @@ class FileDetector:
                 if word_lower in filename_stop_words:
                     # Skip generic stop words (articles, prepositions) always
                     if word_lower in ["the", "a", "an", "this", "that", "in", "on", "for", "is", "was", "called"]:
-                        if not filtered_words:  # Only skip at the beginning
-                            continue
+                        continue  # Always skip these words, they're never part of filenames
                     # Allow descriptive words like "script", "file", "document" if we have context
                     elif word_lower in ["script", "file", "document"]:
-                        # Always include these if they're not the very first word or if we already have content
-                        if i > 0 or filtered_words:
+                        # Only include these if we already have other filename content (more conservative)
+                        if filtered_words:
                             filtered_words.append(word)
                             continue  # Important: continue here to avoid double-adding
                         else:
@@ -228,9 +235,21 @@ class FileDetector:
             logger.debug(f"REGEX FALLBACK: Filtered words: {filtered_words}")
             
             if filtered_words:
+                # Try full filtered string first
                 actual_filename = " ".join(filtered_words)
-                # Find where the actual filename starts in the original text
                 actual_start = text.find(actual_filename, match.start())
+                
+                # If full string not found, try the longest contiguous suffix that could be a filename
+                if actual_start == -1 and len(filtered_words) > 1:
+                    # Try progressively smaller suffixes (e.g., "error main" -> "main")
+                    for i in range(1, len(filtered_words)):
+                        suffix = " ".join(filtered_words[i:])
+                        suffix_start = text.find(suffix, match.start())
+                        if suffix_start != -1:
+                            actual_filename = suffix
+                            actual_start = suffix_start
+                            break
+                
                 logger.debug(f"REGEX FALLBACK: Actual filename: '{actual_filename}', start: {actual_start}")
                 if actual_start != -1:
                     actual_match_text = f"{actual_filename} dot {extension}"
