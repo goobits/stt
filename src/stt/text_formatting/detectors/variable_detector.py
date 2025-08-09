@@ -166,25 +166,39 @@ class VariableDetector:
                 
                 # Check if this single letter is in a variable context
                 context_before = text[max(0, match.start() - 30):match.start()].lower()
-                context_after = text[match.end():match.end() + 15].lower()
+                # Limit context_after to immediate next few words to avoid false positives from later assignments
+                context_after = text[match.end():match.end() + 8].lower()  # Reduced from 15 to 8
                 
-                # Variable context indicators
+                # Variable context indicators  
                 variable_contexts = [
                     "variable", "counter", "iterator", "the variable is", "variable called",
-                    "set " + letter.lower(), "when i write", "for " + letter.lower() + " in",
+                    "set " + letter.lower(), "for " + letter.lower() + " in",
                     "let " + letter.lower(), "const " + letter.lower(), "var " + letter.lower()
                 ]
+                
+                # Special handling for "write" context - only consider it a variable context
+                # if this letter comes AFTER "write", not before it
+                write_context_found = False
+                if "write " + letter.lower() in context_before:
+                    # The letter comes after "write", likely a variable: "write i equals"
+                    write_context_found = True
                 
                 # Check for assignment/mathematical operators after
                 assignment_contexts = [" equals", " =", " +", " -", " *", " /"]
                 
                 is_variable_context = (
                     any(ctx in context_before for ctx in variable_contexts) or
-                    any(ctx in context_after for ctx in assignment_contexts)
+                    any(ctx in context_after for ctx in assignment_contexts) or
+                    write_context_found
                 )
                 
                 if is_variable_context:
-                    logger.debug(f"Found single-letter variable: '{letter}' in context")
+                    logger.debug(f"Found single-letter variable: '{letter}' at position {match.start()}-{match.end()}")
+                    logger.debug(f"  Context before: '{context_before}'")
+                    logger.debug(f"  Context after: '{context_after}'")
+                    logger.debug(f"  Variable contexts match: {any(ctx in context_before for ctx in variable_contexts)}")
+                    logger.debug(f"  Assignment contexts match: {any(ctx in context_after for ctx in assignment_contexts)}")
+                    logger.debug(f"  Write context match: {write_context_found}")
                     entities.append(
                         Entity(
                             start=match.start(),
