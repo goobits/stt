@@ -10,11 +10,14 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # PLACEHOLDER PATTERNS
 # ==============================================================================
 
+@cached_pattern
 def build_placeholder_pattern() -> re.Pattern[str]:
     """Build pattern for internal placeholder tokens used during processing."""
     return re.compile(
@@ -40,11 +43,13 @@ PLACEHOLDER_PATTERN = build_placeholder_pattern()
 # WHITESPACE AND CLEANING PATTERNS
 # ==============================================================================
 
+@cached_pattern
 def build_whitespace_normalization_pattern() -> re.Pattern[str]:
     """Build pattern for normalizing whitespace."""
     return re.compile(r"\s+")
 
 
+@cached_pattern
 def build_entity_boundary_pattern() -> re.Pattern[str]:
     """Build pattern for entity boundaries."""
     return re.compile(r"\b(?=\w)")

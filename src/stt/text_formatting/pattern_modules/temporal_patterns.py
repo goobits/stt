@@ -10,12 +10,15 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # TIME PATTERN BUILDERS
 # ==============================================================================
 
 
+@cached_pattern
 def build_time_relative_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the relative time pattern (quarter past, half past, etc.)."""
     return re.compile(
@@ -26,16 +29,19 @@ def build_time_relative_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_time_am_pm_colon_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the AM/PM colon time pattern."""
     return re.compile(r"\b(\d+):([ap])\s+m\b", re.IGNORECASE)
 
 
+@cached_pattern
 def build_time_am_pm_space_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the AM/PM space time pattern."""
     return re.compile(r"\b(\d+)\s+([ap])\s+m\b", re.IGNORECASE)
 
 
+@cached_pattern
 def build_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]]:
     """Build the time expression patterns for various time formats."""
     return [

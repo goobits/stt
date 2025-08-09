@@ -9,38 +9,51 @@ from __future__ import annotations
 
 import re
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # PUNCTUATION NORMALIZATION
 # ==============================================================================
 
-# Normalize repeated punctuation
-REPEATED_PUNCTUATION_PATTERNS = [
-    (re.compile(r"([,;:])\1+"), r"\1"),  # Repeated commas, semicolons, colons
-    (re.compile(r"\.\.+"), "."),  # Multiple dots to single dot
-    (re.compile(r"\?\?+"), "?"),  # Multiple question marks
-    (re.compile(r"!!+"), "!"),  # Multiple exclamation marks
-]
+# Pattern builder functions
+@cached_pattern  
+def build_repeated_commas_pattern() -> re.Pattern[str]:
+    """Build repeated commas, semicolons, colons pattern."""
+    return re.compile(r"([,;:])\1+")
 
 
-def get_repeated_punctuation_patterns() -> list[tuple[re.Pattern[str], str]]:
-    """Get the repeated punctuation patterns."""
-    return REPEATED_PUNCTUATION_PATTERNS
-
-
+@cached_pattern
 def build_repeated_dots_pattern() -> re.Pattern[str]:
     """Build pattern for repeated dots."""
     return re.compile(r"\.\.+")
 
 
+@cached_pattern
 def build_repeated_question_marks_pattern() -> re.Pattern[str]:
     """Build pattern for repeated question marks."""
     return re.compile(r"\?\?+")
 
 
+@cached_pattern
 def build_repeated_exclamation_marks_pattern() -> re.Pattern[str]:
     """Build pattern for repeated exclamation marks."""
     return re.compile(r"!!+")
+
+
+# Normalize repeated punctuation
+def get_repeated_punctuation_patterns() -> list[tuple[re.Pattern[str], str]]:
+    """Get the repeated punctuation patterns with their replacements."""
+    return [
+        (build_repeated_commas_pattern(), r"\1"),  # Repeated commas, semicolons, colons
+        (build_repeated_dots_pattern(), "."),  # Multiple dots to single dot
+        (build_repeated_question_marks_pattern(), "?"),  # Multiple question marks
+        (build_repeated_exclamation_marks_pattern(), "!"),  # Multiple exclamation marks
+    ]
+
+
+# For backward compatibility
+REPEATED_PUNCTUATION_PATTERNS = get_repeated_punctuation_patterns()
 
 
 def get_repeated_dots_pattern() -> re.Pattern[str]:
@@ -68,6 +81,7 @@ REPEATED_EXCLAMATION_MARKS_PATTERN = build_repeated_exclamation_marks_pattern()
 # PROFANITY FILTERING
 # ==============================================================================
 
+@cached_pattern
 def create_profanity_pattern(profanity_words: list[str]) -> re.Pattern[str]:
     """
     Create a pattern to filter profanity words.

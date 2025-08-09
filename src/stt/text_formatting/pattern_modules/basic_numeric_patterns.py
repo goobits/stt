@@ -12,6 +12,7 @@ from typing import Pattern, Union, Tuple, List
 
 from ..common import NumberParser
 from ..nlp_provider import get_nlp
+from ..pattern_cache import cached_pattern
 from ..spacy_doc_cache import get_global_doc_processor
 from ...core.config import setup_logging
 
@@ -336,6 +337,7 @@ def build_ordinal_pattern(language: str = "en") -> Union[re.Pattern[str], 'Spacy
         )
 
 
+@cached_pattern
 def build_fraction_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the spoken fraction pattern for the specified language."""
     return re.compile(
@@ -346,6 +348,7 @@ def build_fraction_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_compound_fraction_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the compound fraction pattern for mixed numbers like 'one and one half'."""
     return re.compile(
@@ -358,6 +361,7 @@ def build_compound_fraction_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_numeric_range_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the numeric range pattern for ranges like 'one to ten'."""
     # Get the number words from a single source of truth

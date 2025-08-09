@@ -15,6 +15,7 @@ import re
 from typing import Pattern
 
 from ..constants import get_resources
+from ..pattern_cache import cached_pattern
 
 
 # ==============================================================================
@@ -87,6 +88,7 @@ DOMAIN_EXCLUDE_WORDS = {
 # ==============================================================================
 
 
+@cached_pattern
 def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -167,6 +169,7 @@ def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
+@cached_pattern
 def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken email pattern dynamically for the specified language."""
     resources = get_resources(language)
@@ -244,6 +247,7 @@ def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
+@cached_pattern
 def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken protocol pattern dynamically for the specified language."""
     resources = get_resources(language)
@@ -298,6 +302,7 @@ def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
+@cached_pattern
 def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the port number pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -420,21 +425,27 @@ PORT_NUMBER_PATTERN = build_port_number_pattern("en")
 
 
 # WWW domain rescue pattern: "wwwgooglecom" -> "www.google.com"
-WWW_DOMAIN_RESCUE_PATTERN = re.compile(
-    r"""
-    \b                                  # Word boundary
-    (www)                               # "www" prefix
-    ([a-zA-Z]+)                         # Domain name
-    ("""
-    + "|".join(COMMON_TLDS)
-    + r""")  # TLD
-    \b                                  # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+@cached_pattern
+def build_www_domain_rescue_pattern() -> re.Pattern[str]:
+    """Build WWW domain rescue pattern."""
+    return re.compile(
+        r"""
+        \b                                  # Word boundary
+        (www)                               # "www" prefix
+        ([a-zA-Z]+)                         # Domain name
+        ("""
+        + "|".join(COMMON_TLDS)
+        + r""")  # TLD
+        \b                                  # Word boundary
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+WWW_DOMAIN_RESCUE_PATTERN = build_www_domain_rescue_pattern()
 
 
 # Generic domain rescue for concatenated domains
+@cached_pattern
 def create_domain_rescue_pattern(tld: str) -> re.Pattern[str]:
     """Create a pattern to rescue concatenated domains for a specific TLD."""
     return re.compile(
@@ -454,17 +465,27 @@ def create_domain_rescue_pattern(tld: str) -> re.Pattern[str]:
 
 
 # URL parameter splitting: "a equals b and c equals d"
-URL_PARAMETER_SPLIT_PATTERN = re.compile(r"\s+and\s+", re.IGNORECASE)
+@cached_pattern
+def build_url_parameter_split_pattern() -> re.Pattern[str]:
+    """Build URL parameter split pattern."""
+    return re.compile(r"\s+and\s+", re.IGNORECASE)
+
+URL_PARAMETER_SPLIT_PATTERN = build_url_parameter_split_pattern()
 
 # URL parameter parsing: "key equals value"
-URL_PARAMETER_PARSE_PATTERN = re.compile(
-    r"""
-    (\w+)                               # Parameter key
-    \s+equals\s+                        # " equals "
-    (.+)                                # Parameter value
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+@cached_pattern
+def build_url_parameter_parse_pattern() -> re.Pattern[str]:
+    """Build URL parameter parse pattern."""
+    return re.compile(
+        r"""
+        (\w+)                               # Parameter key
+        \s+equals\s+                        # " equals "
+        (.+)                                # Parameter value
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+URL_PARAMETER_PARSE_PATTERN = build_url_parameter_parse_pattern()
 
 
 # ==============================================================================
@@ -472,13 +493,28 @@ URL_PARAMETER_PARSE_PATTERN = re.compile(
 # ==============================================================================
 
 # URL and email patterns for punctuation protection (pre-compiled)
-URL_PROTECTION_PATTERN = re.compile(
-    r"\b(?:https?://)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:/[^?\s]*)?(?:\?[^\s]*)?", re.IGNORECASE
-)
-EMAIL_PROTECTION_PATTERN = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b", re.IGNORECASE)
+@cached_pattern
+def build_url_protection_pattern() -> re.Pattern[str]:
+    """Build URL protection pattern."""
+    return re.compile(
+        r"\b(?:https?://)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:/[^?\s]*)?(?:\?[^\s]*)?", re.IGNORECASE
+    )
+
+@cached_pattern
+def build_email_protection_pattern() -> re.Pattern[str]:
+    """Build email protection pattern."""
+    return re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b", re.IGNORECASE)
+
+URL_PROTECTION_PATTERN = build_url_protection_pattern()
+EMAIL_PROTECTION_PATTERN = build_email_protection_pattern()
 
 # Domain rescue patterns (pre-compiled)
-WWW_DOMAIN_RESCUE = re.compile(r"\b(www)([a-zA-Z]+)(com|org|net|edu|gov|io|co|uk)\b", re.IGNORECASE)
+@cached_pattern
+def build_www_domain_rescue() -> re.Pattern[str]:
+    """Build WWW domain rescue pattern (legacy)."""
+    return re.compile(r"\b(www)([a-zA-Z]+)(com|org|net|edu|gov|io|co|uk)\b", re.IGNORECASE)
+
+WWW_DOMAIN_RESCUE = build_www_domain_rescue()
 
 
 # ==============================================================================
@@ -510,6 +546,37 @@ def get_compiled_web_pattern(pattern_name: str) -> Pattern | None:
         "url_parameter_parse": URL_PARAMETER_PARSE_PATTERN,
     }
     return pattern_map.get(pattern_name)
+
+
+# Getter functions for the new cached patterns
+def get_www_domain_rescue_pattern() -> re.Pattern[str]:
+    """Get the WWW domain rescue pattern."""
+    return build_www_domain_rescue_pattern()
+
+
+def get_url_parameter_split_pattern() -> re.Pattern[str]:
+    """Get the URL parameter split pattern."""
+    return build_url_parameter_split_pattern()
+
+
+def get_url_parameter_parse_pattern() -> re.Pattern[str]:
+    """Get the URL parameter parse pattern."""
+    return build_url_parameter_parse_pattern()
+
+
+def get_url_protection_pattern() -> re.Pattern[str]:
+    """Get the URL protection pattern."""
+    return build_url_protection_pattern()
+
+
+def get_email_protection_pattern() -> re.Pattern[str]:
+    """Get the email protection pattern."""
+    return build_email_protection_pattern()
+
+
+def get_www_domain_rescue() -> re.Pattern[str]:
+    """Get the WWW domain rescue pattern (legacy)."""
+    return build_www_domain_rescue()
 
 
 def get_common_tlds() -> list[str]:

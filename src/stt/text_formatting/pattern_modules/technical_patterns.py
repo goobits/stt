@@ -10,12 +10,15 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # TECHNICAL PATTERN BUILDERS
 # ==============================================================================
 
 
+@cached_pattern
 def build_spoken_phone_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the spoken phone pattern for phone numbers as digits."""
     return re.compile(

@@ -15,6 +15,7 @@ import re
 from typing import Pattern
 
 from ..constants import get_resources
+from ..pattern_cache import cached_pattern
 
 
 # ==============================================================================
@@ -105,6 +106,7 @@ ALL_FILE_EXTENSIONS = sum(FILE_EXTENSIONS.values(), [])
 # ==============================================================================
 
 
+@cached_pattern
 def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -128,6 +130,7 @@ def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the underscore delimiter pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -152,6 +155,7 @@ def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -176,6 +180,7 @@ def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -194,6 +199,7 @@ def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -217,6 +223,7 @@ def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
         return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
+@cached_pattern
 def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -334,19 +341,29 @@ SPOKEN_DOT_FILENAME_PATTERN = re.compile(r"\s+dot\s+(" + "|".join(ALL_FILE_EXTEN
 # Comprehensive spoken filename pattern that captures the full filename
 # Matches patterns like "my script dot py", "config loader dot json", etc.
 # Uses capture groups to separate filename and extension
-FULL_SPOKEN_FILENAME_PATTERN = re.compile(
-    rf"""
-    \b                                          # Word boundary
-    ([a-z]\w*(?:\s+[a-z]\w*)*)                 # Capture filename part (one or more words)
-    \s+dot\s+                                   # " dot "
-    ({"|".join(ALL_FILE_EXTENSIONS)})           # Capture file extension
-    \b                                          # Word boundary
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+@cached_pattern
+def build_full_spoken_filename_pattern() -> re.Pattern[str]:
+    """Build full spoken filename pattern."""
+    return re.compile(
+        rf"""
+        \b                                          # Word boundary
+        ([a-z]\w*(?:\s+[a-z]\w*)*)                 # Capture filename part (one or more words)
+        \s+dot\s+                                   # " dot "
+        ({"|".join(ALL_FILE_EXTENSIONS)})           # Capture file extension
+        \b                                          # Word boundary
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+FULL_SPOKEN_FILENAME_PATTERN = build_full_spoken_filename_pattern()
 
 # Java package pattern: "com dot example dot package"
-JAVA_PACKAGE_PATTERN = re.compile(r"\b([a-zA-Z]\w*(?:\s+dot\s+[a-zA-Z]\w*){2,})\b", re.IGNORECASE)
+@cached_pattern
+def build_java_package_pattern() -> re.Pattern[str]:
+    """Build Java package pattern."""
+    return re.compile(r"\b([a-zA-Z]\w*(?:\s+dot\s+[a-zA-Z]\w*){2,})\b", re.IGNORECASE)
+
+JAVA_PACKAGE_PATTERN = build_java_package_pattern()
 
 # Main spoken filename pattern (simple anchor)
 SPOKEN_FILENAME_PATTERN = SPOKEN_DOT_FILENAME_PATTERN
@@ -357,28 +374,48 @@ SPOKEN_FILENAME_PATTERN = SPOKEN_DOT_FILENAME_PATTERN
 # ==============================================================================
 
 # Mixed case technical terms (pre-compiled)
-MIXED_CASE_TECH_PATTERN = re.compile(
-    r"\b(?:JavaScript|TypeScript|GitHub|GitLab|BitBucket|DevOps|GraphQL|MongoDB|"
-    r"PostgreSQL|MySQL|NoSQL|WebSocket|OAuth|iOS|macOS|iPadOS|tvOS|watchOS|"
-    r"iPhone|iPad|macBook|iMac|AirPods|WiFi|Bluetooth|HTTP|HTTPS|API|JSON|XML|"
-    r"HTML|CSS|SQL|PDF|URL|UUID|CSV|TSV|ZIP|RAM|CPU|GPU|SSD|USB|HDMI|"
-    r"YouTube|LinkedIn|Facebook|Twitter|Instagram|TikTok|WhatsApp|Zoom|Slack|"
-    r"Visual\s+Studio|IntelliJ|PyCharm|WebStorm|Eclipse|NetBeans|Xcode)\b"
-)
+@cached_pattern
+def build_mixed_case_tech_pattern() -> re.Pattern[str]:
+    """Build mixed case technical terms pattern."""
+    return re.compile(
+        r"\b(?:JavaScript|TypeScript|GitHub|GitLab|BitBucket|DevOps|GraphQL|MongoDB|"
+        r"PostgreSQL|MySQL|NoSQL|WebSocket|OAuth|iOS|macOS|iPadOS|tvOS|watchOS|"
+        r"iPhone|iPad|macBook|iMac|AirPods|WiFi|Bluetooth|HTTP|HTTPS|API|JSON|XML|"
+        r"HTML|CSS|SQL|PDF|URL|UUID|CSV|TSV|ZIP|RAM|CPU|GPU|SSD|USB|HDMI|"
+        r"YouTube|LinkedIn|Facebook|Twitter|Instagram|TikTok|WhatsApp|Zoom|Slack|"
+        r"Visual\s+Studio|IntelliJ|PyCharm|WebStorm|Eclipse|NetBeans|Xcode)\b"
+    )
+
+MIXED_CASE_TECH_PATTERN = build_mixed_case_tech_pattern()
 
 # Technical sequence pattern
-TECH_SEQUENCE_PATTERN = re.compile(r"\b(?:[A-Z]{2,}(?:\s+[A-Z]{2,})+)\b")
+@cached_pattern
+def build_tech_sequence_pattern() -> re.Pattern[str]:
+    """Build technical sequence pattern."""
+    return re.compile(r"\b(?:[A-Z]{2,}(?:\s+[A-Z]{2,})+)\b")
+
+TECH_SEQUENCE_PATTERN = build_tech_sequence_pattern()
 
 # Math expression pattern for variable assignments
-MATH_EXPRESSION_PATTERN = re.compile(r"\b[a-zA-Z_]\w*\s*=\s*[\w\d]+(?:\s*[+\-*/×÷]\s*[\w\d]+)*\b")
+@cached_pattern
+def build_math_expression_pattern() -> re.Pattern[str]:
+    """Build math expression pattern."""
+    return re.compile(r"\b[a-zA-Z_]\w*\s*=\s*[\w\d]+(?:\s*[+\-*/×÷]\s*[\w\d]+)*\b")
+
+MATH_EXPRESSION_PATTERN = build_math_expression_pattern()
 
 # Version number patterns
-VERSION_PATTERN = re.compile(
-    r"\bversion\s+(?:(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
-    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)\s*)+",
-    re.IGNORECASE,
-)
+@cached_pattern
+def build_version_pattern() -> re.Pattern[str]:
+    """Build version number pattern."""
+    return re.compile(
+        r"\bversion\s+(?:(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+        r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
+        r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)\s*)+",
+        re.IGNORECASE,
+    )
+
+VERSION_PATTERN = build_version_pattern()
 
 
 # ==============================================================================
@@ -426,3 +463,49 @@ def get_compiled_code_pattern(pattern_name: str) -> Pattern | None:
         "version": VERSION_PATTERN,
     }
     return pattern_map.get(pattern_name)
+
+
+# Getter functions for the new cached patterns
+def get_file_extension_detection_pattern() -> re.Pattern[str]:
+    """Get the file extension detection pattern."""
+    return build_file_extension_detection_pattern()
+
+
+def get_filename_with_extension_pattern() -> re.Pattern[str]:
+    """Get the filename with extension pattern."""
+    return build_filename_with_extension_pattern()
+
+
+def get_spoken_dot_filename_pattern() -> re.Pattern[str]:
+    """Get the spoken dot filename pattern."""
+    return build_spoken_dot_filename_pattern()
+
+
+def get_full_spoken_filename_pattern() -> re.Pattern[str]:
+    """Get the full spoken filename pattern."""
+    return build_full_spoken_filename_pattern()
+
+
+def get_java_package_pattern() -> re.Pattern[str]:
+    """Get the Java package pattern."""
+    return build_java_package_pattern()
+
+
+def get_mixed_case_tech_pattern() -> re.Pattern[str]:
+    """Get the mixed case tech pattern."""
+    return build_mixed_case_tech_pattern()
+
+
+def get_tech_sequence_pattern() -> re.Pattern[str]:
+    """Get the technical sequence pattern."""
+    return build_tech_sequence_pattern()
+
+
+def get_math_expression_pattern() -> re.Pattern[str]:
+    """Get the math expression pattern."""
+    return build_math_expression_pattern()
+
+
+def get_version_pattern() -> re.Pattern[str]:
+    """Get the version pattern."""
+    return build_version_pattern()

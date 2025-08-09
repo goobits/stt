@@ -10,12 +10,15 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # CURRENCY PATTERN BUILDERS
 # ==============================================================================
 
 
+@cached_pattern
 def build_dollar_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the dollar pattern for currency detection."""
     return re.compile(
@@ -27,6 +30,7 @@ def build_dollar_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_cents_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the cents pattern for currency detection."""
     return re.compile(

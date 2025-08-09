@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import re
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # CAPITALIZATION PATTERNS
 # ==============================================================================
 
+@cached_pattern
 def build_all_caps_preservation_pattern() -> re.Pattern[str]:
     """Build pattern to preserve all-caps words (acronyms) and technical units."""
     return re.compile(
@@ -32,6 +35,7 @@ def build_all_caps_preservation_pattern() -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_sentence_capitalization_pattern() -> re.Pattern[str]:
     """Build pattern to capitalize letters after sentence-ending punctuation."""
     return re.compile(
@@ -43,6 +47,7 @@ def build_sentence_capitalization_pattern() -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_pronoun_i_pattern() -> re.Pattern[str]:
     """Build pattern to capitalize pronoun 'i' while avoiding code variables."""
     return re.compile(
@@ -55,11 +60,13 @@ def build_pronoun_i_pattern() -> re.Pattern[str]:
     )
 
 
+@cached_pattern
 def build_pronoun_i_standalone_pattern() -> re.Pattern[str]:
     """Build pattern for standalone pronoun 'i'."""
     return re.compile(r"\bi\b")
 
 
+@cached_pattern
 def build_temperature_protection_pattern() -> re.Pattern[str]:
     """Build pattern for temperature values protection."""
     return re.compile(r"-?\d+(?:\.\d+)?°[CF]?")
@@ -102,6 +109,7 @@ TEMPERATURE_PROTECTION_PATTERN = build_temperature_protection_pattern()
 # TECHNICAL CONTENT DETECTION
 # ==============================================================================
 
+@cached_pattern
 def build_technical_content_patterns() -> list[re.Pattern[str]]:
     """Build patterns for technical content that don't need punctuation."""
     return [

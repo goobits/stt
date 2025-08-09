@@ -11,6 +11,8 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
+from ..pattern_cache import cached_pattern
+
 
 # ==============================================================================
 # MATHEMATICAL CONSTANTS
@@ -25,6 +27,7 @@ MATH_OPERATORS = ["plus", "minus", "times", "divided by", "over", "equals"]
 # ==============================================================================
 
 
+@cached_pattern
 def build_complex_math_expression_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the complex mathematical expression pattern."""
     return re.compile(
@@ -68,6 +71,7 @@ def build_complex_math_expression_pattern(language: str = "en") -> re.Pattern[st
     )
 
 
+@cached_pattern
 def build_simple_math_expression_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the simple mathematical expression pattern."""
     return re.compile(
@@ -102,6 +106,7 @@ def build_simple_math_expression_pattern(language: str = "en") -> re.Pattern[str
     )
 
 
+@cached_pattern
 def build_number_constant_pattern(language: str = "en") -> re.Pattern[str]:
     """Build the number + mathematical constant pattern (e.g., 'two pi', 'three e')."""
     return re.compile(

@@ -8,9 +8,40 @@ from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
+from stt.text_formatting.pattern_cache import cached_pattern
 from stt.text_formatting.utils import is_inside_entity, overlaps_with_entity
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+
+
+# Cached pattern helper functions
+@cached_pattern
+def build_simple_email_pattern(email_pattern: str) -> re.Pattern[str]:
+    """Build simple email pattern from dynamic pattern string."""
+    return re.compile(email_pattern, re.VERBOSE | re.IGNORECASE)
+
+
+@cached_pattern
+def build_url_with_protocol_pattern() -> re.Pattern[str]:
+    """Build URL with protocol pattern."""
+    return re.compile(r'\b(?:https?://|www\.)[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]+\b')
+
+
+@cached_pattern
+def build_domain_pattern() -> re.Pattern[str]:
+    """Build domain pattern."""
+    return re.compile(
+        r'\b[a-zA-Z0-9][a-zA-Z0-9\-]*(?:\.[a-zA-Z0-9\-]+)*\.'
+        r'(?:com|org|net|edu|gov|mil|co|io|dev|app|ai|me|info|biz|'
+        r'tv|cc|ws|name|mobi|asia|uk|eu|ca|au|jp|de|fr|it|es|ru|cn|'
+        r'in|br|mx|nl|se|no|dk|fi|pl|gr|tr|za|kr|th|vn|tw|hk|sg|'
+        r'my|ph|id|be|ch|at|cz|sk|hu|bg|ro|hr|si|ee|lv|lt|lu|mt|'
+        r'cy|is|ie|pt|ar|cl|pe|co|ve|uy|py|bo|ec|gt|hn|sv|ni|cr|'
+        r'pa|do|cu|jm|tt|bb|gd|vc|lc|dm|ag|kn|bs|bz|gy|sr|gf|'
+        r'fk|gs|sh|ac|tc|vg|ms|ai|ky|bm|pr|vi|as|gu|mp|pw|fm|mh|'
+        r'ki|nr|to|tv|vu|ws|sb|fj|nc|nf|cx|cc|ck|nu|tk|pf|wf|'
+        r'local|localhost)\b'
+    )
 
 
 class WebEntityDetector:
@@ -184,7 +215,7 @@ class WebEntityDetector:
         (?=\s+(?:about|is|will|sent|and|or|but)|[.!?]|$)  # End at common words, punctuation, or end of string
         """
 
-        simple_pattern = re.compile(simple_email_pattern, re.VERBOSE | re.IGNORECASE)
+        simple_pattern = build_simple_email_pattern(simple_email_pattern)
 
         for match in simple_pattern.finditer(text):
             email_text = match.group(1)
@@ -370,9 +401,7 @@ class WebEntityDetector:
         
         # Detect URLs using multiple patterns
         # Pattern 1: URLs with protocol or www
-        url_with_protocol_pattern = re.compile(
-            r'\b(?:https?://|www\.)[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]+\b'
-        )
+        url_with_protocol_pattern = build_url_with_protocol_pattern()
         
         for match in url_with_protocol_pattern.finditer(text):
             start_pos = match.start()
@@ -387,13 +416,7 @@ class WebEntityDetector:
         
         # Pattern 2: Simple domain patterns (e.g., github.com, example.org)
         # This pattern is more permissive to catch domains without protocol
-        domain_pattern = re.compile(
-            r'\b[a-zA-Z0-9][a-zA-Z0-9\-]*(?:\.[a-zA-Z0-9\-]+)*\.'
-            r'(?:com|org|net|edu|gov|mil|co|io|dev|app|ai|me|info|biz|'
-            r'tv|cc|ws|name|mobi|asia|uk|eu|ca|au|jp|de|fr|it|es|ru|cn|'
-            r'br|in|mx|nl|se|ch|be|at|dk|no|fi|pl|cz|gr|tr|kr|sg|hk|tw)\b'
-            r'(?:[:/][a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]*)?'
-        )
+        domain_pattern = build_domain_pattern()
         
         for match in domain_pattern.finditer(text):
             start_pos = match.start()

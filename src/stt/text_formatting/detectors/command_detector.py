@@ -8,9 +8,17 @@ from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
+from stt.text_formatting.pattern_cache import cached_pattern
 from stt.text_formatting.utils import is_inside_entity
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+
+
+# Cached pattern helper functions
+@cached_pattern
+def build_preformatted_flag_pattern() -> re.Pattern[str]:
+    """Build preformatted flag pattern."""
+    return re.compile(r"--[A-Z][A-Z0-9_-]*", re.IGNORECASE)
 
 
 class CommandDetector:
@@ -134,7 +142,7 @@ class CommandDetector:
             all_entities = entities
 
         # Pattern to match already-formatted flags with uppercase letters
-        preformatted_flag_pattern = re.compile(r"--[A-Z][A-Z0-9_-]*", re.IGNORECASE)
+        preformatted_flag_pattern = build_preformatted_flag_pattern()
 
         for match in preformatted_flag_pattern.finditer(text):
             # Only detect if it has uppercase letters and isn't already detected
