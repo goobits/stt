@@ -13,7 +13,7 @@ import re
 from stt.core.config import get_config, setup_logging
 
 from . import regex_patterns
-from .common import Entity, EntityType, NumberParser
+from stt.text_formatting.common import Entity, EntityType, NumberParser
 from .constants import get_resources
 from .converters import TextPatternConverter, WebPatternConverter, CodePatternConverter, NumericPatternConverter
 from .processors.measurement_processor import MeasurementProcessor

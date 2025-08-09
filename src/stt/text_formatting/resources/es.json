@@ -22,6 +22,7 @@
       "barra": "/"
     },
     "operators": {
+      "mas mas": "++",
       "más más": "++",
       "menos menos": "--",
       "igual igual": "==",
@@ -71,7 +72,7 @@
   "context_words": {
     "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar", "cargar", "importar", "exportar", "crear", "borrar"],
     "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado", "titulado"],
-    "filename_stop_words": ["el", "la", "un", "una", "este", "esta", "archivo", "guión", "documento"],
+    "filename_stop_words": ["el", "la", "un", "una", "este", "esta", "archivo", "guión", "documento", "es", "son", "fue", "fueron"],
     "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a"],
     "location_nouns": ["docs", "documentación", "api", "sitio", "website", "página", "servidor"],
     "ambiguous_nouns": ["ayuda", "soporte"],
@@ -79,7 +80,7 @@
     "currency_contexts": ["costo", "costos", "costando", "precio", "con precio", "precios", "comprar", "comprando", "comprado", "vender", "vendiendo", "vendido", "pagar", "pagando", "pagado", "gastar", "gastando", "gastado", "valor", "valorado", "cobrar", "cobrado", "cobrando", "factura", "facturado", "tarifa", "tarifas", "dinero", "efectivo"],
     "weight_contexts": ["pesar", "pesa", "pesando", "masa", "pesado", "ligero", "peso", "kg", "kilogramo", "kilogramos", "gramo", "gramos", "onza", "onzas", "tonelada", "toneladas"],
     "programming_keywords": ["let", "const", "var", "if", "for", "while", "switch", "case", "return", "import", "export", "from", "class", "def", "function", "función", "public", "private", "protected", "static", "new", "try", "catch", "finally", "throw"],
-    "technical_context": ["set", "get", "usar", "ejecutar", "execute", "llamar", "invocar", "activar", "función", "method", "variable", "parámetro", "argumento", "valor", "comando", "script", "programa", "aplicación", "servicio", "proceso", "guión", "bandera", "opción", "guión bajo", "punto", "barra", "dos puntos"],
+    "technical_context": ["set", "get", "usar", "ejecutar", "execute", "llamar", "invocar", "activar", "función", "method", "variable", "parámetro", "argumento", "valor", "comando", "script", "programa", "aplicación", "servicio", "proceso", "guión", "bandera", "opción", "guión bajo", "punto", "barra", "dos puntos", "mi", "la", "el", "una", "un"],
     "multi_word_commands": ["git commit", "git push", "git pull", "git merge", "git branch", "git checkout", "git clone", "git fetch", "git rebase", "git stash", "git reset", "git log", "git diff", "git status", "git init", "git add", "npm install", "npm start", "npm run", "npm test", "docker build", "docker run", "docker push", "docker pull"],
     "angle_keywords": ["rotar", "girar", "ángulo", "inclinar", "voltear", "pivotar"],
     "idiomatic_plus": ["años", "días", "semanas", "meses", "personas", "invitados", "miembros", "artículos"],

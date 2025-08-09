@@ -2,7 +2,7 @@
 """Capitalization rules and patterns for the SmartCapitalizer."""
 from __future__ import annotations
 
-from .common import EntityType
+from stt.text_formatting.common import EntityType
 
 
 class CapitalizationRules:

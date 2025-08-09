@@ -8,7 +8,7 @@ for better modularity and maintainability.
 from __future__ import annotations
 
 from ...core.config import setup_logging
-from ..common import Entity, EntityType, NumberParser
+from stt.text_formatting.common import Entity, EntityType, NumberParser
 from ..constants import get_resources
 from ..utils import is_inside_entity
 from ..number_word_context import NumberWordContextAnalyzer, NumberWordDecision

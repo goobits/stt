@@ -10,7 +10,7 @@ from stt.core.config import setup_logging
 from . import regex_patterns
 
 # Import common data structures
-from .common import Entity, EntityType
+from stt.text_formatting.common import Entity, EntityType
 
 # Import resource loader for i18n constants
 from .constants import get_resources

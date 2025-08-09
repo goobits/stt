@@ -14,7 +14,7 @@ import re
 from typing import TYPE_CHECKING
 
 from ....core.config import setup_logging
-from ...common import Entity, EntityType
+from stt.text_formatting.common import Entity, EntityType
 
 if TYPE_CHECKING:
     from ...capitalizer import SmartCapitalizer

@@ -207,9 +207,14 @@ def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     # Create the pattern without any language-specific if-statements
     dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
 
-    # This pattern now correctly handles all languages without special casing,
-    # as long as the JSON files are correctly configured
-    return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+    # For Spanish, prevent matching "guión bajo" as a short flag since "guión bajo" is underscore, not dash
+    if language == "es":
+        # Use negative lookahead to prevent matching "guión" when followed by "bajo"
+        return re.compile(rf"\b(?:(?:guión)(?!\s+bajo)|menos)\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+    else:
+        # This pattern now correctly handles all languages without special casing,
+        # as long as the JSON files are correctly configured
+        return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
 def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:

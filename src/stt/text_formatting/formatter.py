@@ -21,7 +21,7 @@ from . import regex_patterns
 from .capitalizer import SmartCapitalizer
 
 # Import common data structures
-from .common import Entity, EntityType, NumberParser
+from stt.text_formatting.common import Entity, EntityType, NumberParser
 
 # Import resource loader for i18n constants
 from .constants import get_resources

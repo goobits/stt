@@ -9,7 +9,7 @@ from __future__ import annotations
 from ...core.config import setup_logging
 
 # Import common data structures
-from ..common import Entity, EntityType, NumberParser
+from stt.text_formatting.common import Entity, EntityType, NumberParser
 from ..pattern_converter import PatternConverter as UnifiedPatternConverter
 
 # Setup logging

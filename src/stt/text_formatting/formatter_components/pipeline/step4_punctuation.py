@@ -18,7 +18,7 @@ import os
 import re
 
 from ... import regex_patterns
-from ...common import Entity, EntityType
+from stt.text_formatting.common import Entity, EntityType
 from ...constants import get_resources
 from ...nlp_provider import get_punctuator
 

@@ -16,7 +16,7 @@ Extracted from the main TextFormatter to create a modular pipeline architecture.
 import logging
 from typing import Dict, List, Any, Optional
 
-from ...common import Entity, EntityType
+from stt.text_formatting.common import Entity, EntityType
 
 # Setup logging for this module
 logger = logging.getLogger(__name__)
@@ -175,6 +175,7 @@ def detect_all_entities(
     
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
     priority_filtered_entities = _apply_priority_filtering(deduplicated_entities)
+    
     
     # Return final sorted list
     return sorted(priority_filtered_entities, key=lambda e: e.start)

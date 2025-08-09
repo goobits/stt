@@ -167,16 +167,25 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
             # Use context-aware conversion for sensitive keywords
             text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language)
         else:
-            # Use simple conversion for other keywords
-            if symbol in space_consuming_symbols:
-                # For these symbols, consume surrounding spaces
-                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
-                # Simple replacement that consumes spaces
+            # Special handling for Spanish "guión" to avoid conflict with "guión bajo"
+            if keyword == "guión" and language == "es":
+                # Only convert "guión" if it's not followed by "bajo"
+                pattern = rf"\b{re.escape(keyword)}\b(?!\s+bajo)"
+                if symbol in space_consuming_symbols:
+                    # For these symbols, consume surrounding spaces but preserve the negative lookahead
+                    pattern = rf"\s*\b{re.escape(keyword)}\b(?!\s+bajo)\s*"
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
             else:
-                # For other keywords, preserve word boundaries
-                pattern = rf"\b{re.escape(keyword)}\b"
-                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+                # Use simple conversion for other keywords
+                if symbol in space_consuming_symbols:
+                    # For these symbols, consume surrounding spaces
+                    pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
+                    # Simple replacement that consumes spaces
+                    text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+                else:
+                    # For other keywords, preserve word boundaries
+                    pattern = rf"\b{re.escape(keyword)}\b"
+                    text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
     return text
 
