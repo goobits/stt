@@ -60,6 +60,9 @@ from .formatter_components.pipeline.step6_postprocess import (
     add_introductory_phrase_commas
 )
 
+# Import batch regex processing for string optimization
+from .batch_regex import batch_cleanup_substitutions
+
 
 class TextFormatter:
     """Main formatter orchestrating the pipeline"""
@@ -213,10 +216,8 @@ class TextFormatter:
         # STEP 6: Post-processing operations
         logger.debug(f"Step 6 - Starting post-processing: '{final_text}'")
         
-        # Clean up formatting artifacts
-        final_text = re.sub(r"\.\.+", ".", final_text)
-        final_text = re.sub(r"\?\?+", "?", final_text)
-        final_text = re.sub(r"!!+", "!", final_text)
+        # Clean up formatting artifacts using batch processing for efficiency
+        final_text = batch_cleanup_substitutions(final_text)
         logger.debug(f"Step 6 - After artifact cleanup: '{final_text}'")
 
         # Restore abbreviations

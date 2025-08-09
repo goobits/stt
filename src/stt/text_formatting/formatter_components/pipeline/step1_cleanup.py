@@ -19,6 +19,9 @@ from ... import regex_patterns
 from ...constants import get_resources
 from ....core.config import get_config
 
+# Import batch regex processing for string optimization
+from ...batch_regex import batch_substitutions
+
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 

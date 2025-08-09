@@ -21,6 +21,9 @@ from ...constants import get_resources
 from ...pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 from ...nlp_provider import get_nlp
 
+# Import batch regex processing for string optimization
+from ...batch_regex import batch_abbreviation_processing
+
 if TYPE_CHECKING:
     pass
 
@@ -86,20 +89,10 @@ def restore_abbreviations(text: str, resources: dict) -> str:
 
         text = re.sub(pattern, replace_with_case, text, flags=re.IGNORECASE)
 
-    # Add comma after i.e. and e.g. when followed by a word,
-    # but NOT if a comma is already there.
-    text = re.sub(r"(i\.e\.)(\s+[a-zA-Z])", r"\1,\2", text, flags=re.IGNORECASE)
-    text = re.sub(r"(e\.g\.)(\s+[a-zA-Z])", r"\1,\2", text, flags=re.IGNORECASE)
+    # Apply abbreviation-specific patterns using batch processing for efficiency
+    text = batch_abbreviation_processing(text)
     
-    # Remove double commas that might result from the above
-    text = re.sub(r",,", ",", text)
-    
-    # Fix specific case where introductory phrases + abbreviations create double commas
-    # e.g., "for example, e.g.," -> "for example e.g.,"
-    # Handle both direct and spaced patterns
-    text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)", r"\1 \2", text, flags=re.IGNORECASE)
-    
-    # Also catch cases where the comma might be attached to the following word
+    # Handle additional edge cases that aren't in the batch processor
     text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.),(\s)", r"\1 \2,\3", text, flags=re.IGNORECASE)
     
     return text
@@ -663,13 +656,6 @@ def apply_smart_quotes(text: str) -> str:
     """
     # The tests expect straight quotes, so this implementation will preserve them
     # while fixing the bug that was injecting code into the output.
-    new_chars = []
-    for _i, char in enumerate(text):
-        if char == '"':
-            new_chars.append('"')
-        elif char == "'":
-            new_chars.append("'")
-        else:
-            new_chars.append(char)
-
-    return "".join(new_chars)
+    # Since we're preserving quotes as-is, simply return the original text
+    # This eliminates unnecessary character-by-character processing
+    return text

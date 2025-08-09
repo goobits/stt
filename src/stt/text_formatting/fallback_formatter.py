@@ -14,6 +14,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+# Import batch regex processing for string optimization
+from .batch_regex import batch_artifact_removal
+
 logger = logging.getLogger(__name__)
 
 
@@ -238,18 +241,9 @@ class FallbackTextFormatter:
     
     def _basic_cleaning(self, text: str) -> str:
         """Basic text cleaning only."""
-        # Remove extra whitespace
-        cleaned = re.sub(r'\s+', ' ', text)
-        cleaned = cleaned.strip()
-        
-        # Remove common transcription artifacts
+        # Remove common transcription artifacts using batch processing for efficiency
         artifacts = ['um', 'uh', 'er', 'ah']
-        for artifact in artifacts:
-            pattern = r'\b' + re.escape(artifact) + r'\b'
-            cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
-        
-        # Clean up extra spaces
-        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        cleaned = batch_artifact_removal(text, artifacts)
         
         return cleaned
     
