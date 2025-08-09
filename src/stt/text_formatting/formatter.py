@@ -174,7 +174,8 @@ class TextFormatter:
             is_standalone_tech, 
             filtered_entities,
             nlp=self.nlp,
-            language=current_language
+            language=current_language,
+            doc=doc
         )
         logger.debug(f"Step 4 - After punctuation: '{punctuated_text}'")
 
@@ -219,7 +220,7 @@ class TextFormatter:
         logger.debug(f"Step 6 - After abbreviation restoration: '{final_text}'")
 
         # Convert orphaned keywords
-        final_text = convert_orphaned_keywords(final_text, current_language)
+        final_text = convert_orphaned_keywords(final_text, current_language, doc=doc)
         logger.debug(f"Step 6 - After keyword conversion: '{final_text}'")
 
         # Rescue mangled domains

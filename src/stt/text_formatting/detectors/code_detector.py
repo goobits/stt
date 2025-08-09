@@ -66,7 +66,7 @@ class CodeEntityDetector:
         detector_method(text, code_entities, all_entities)
         self._update_entities_state(entities, code_entities, all_entities)
 
-    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
+    def detect(self, text: str, entities: list[Entity], doc=None) -> list[Entity]:
         """Detects all code-related entities using specialized detectors."""
         code_entities: list[Entity] = []
 

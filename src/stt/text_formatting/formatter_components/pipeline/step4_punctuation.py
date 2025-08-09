@@ -29,7 +29,8 @@ def add_punctuation(
     is_standalone_technical: bool = False,
     filtered_entities: list[Entity] | None = None,
     nlp=None,
-    language: str = "en"
+    language: str = "en",
+    doc=None
 ) -> str:
     """Add punctuation - treat all text as sentences unless single standalone technical entity"""
     if filtered_entities is None:
@@ -127,29 +128,39 @@ def add_punctuation(
                     # Get language-specific resources
                     resources = get_resources(language)
                     
-                    # Re-run spaCy on the punctuated text to analyze grammar
-                    punc_doc = nlp(result)
+                    # Use shared doc if available and text hasn't changed significantly, otherwise re-run spaCy
+                    if doc is not None and result == text:
+                        # Can reuse the shared doc since text hasn't changed
+                        punc_doc = doc
+                    elif ":" not in result:
+                        # Skip SpaCy analysis if there are no colons to analyze
+                        punc_doc = None
+                    else:
+                        # Need to re-analyze the punctuated text for grammar context
+                        punc_doc = nlp(result)
                     new_result_parts = list(result)
 
-                    for token in punc_doc:
-                        # Find colons that precede a noun/entity
-                        if token.text == ":" and token.i > 0:
-                            prev_token = punc_doc[token.i - 1]
+                    # Only do colon analysis if we have a doc and there are colons
+                    if punc_doc is not None:
+                        for token in punc_doc:
+                            # Find colons that precede a noun/entity
+                            if token.text == ":" and token.i > 0:
+                                prev_token = punc_doc[token.i - 1]
 
-                            # Check if this is a command/action context where colon should be removed
-                            should_remove = False
+                                # Check if this is a command/action context where colon should be removed
+                                should_remove = False
 
-                            if token.i + 1 < len(punc_doc):
-                                next_token = punc_doc[token.i + 1]
+                                if token.i + 1 < len(punc_doc):
+                                    next_token = punc_doc[token.i + 1]
 
-                                # Case 1: Command verb followed by colon and object (Edit: file.py)
-                                if (prev_token.pos_ == "VERB" and prev_token.dep_ == "ROOT") or (
-                                    prev_token.pos_ in ["VERB", "NOUN", "PROPN"]
-                                    and token.i == 1
-                                    and next_token.pos_ in ["NOUN", "PROPN", "X"]
-                                    and ("@" in next_token.text or "." in next_token.text)
-                                ):
-                                    should_remove = True
+                                    # Case 1: Command verb followed by colon and object (Edit: file.py)
+                                    if (prev_token.pos_ == "VERB" and prev_token.dep_ == "ROOT") or (
+                                        prev_token.pos_ in ["VERB", "NOUN", "PROPN"]
+                                        and token.i == 1
+                                        and next_token.pos_ in ["NOUN", "PROPN", "X"]
+                                        and ("@" in next_token.text or "." in next_token.text)
+                                    ):
+                                        should_remove = True
 
                                 # Case 3: Known command/action words
                                 base_command_words = resources.get("context_words", {}).get(
@@ -177,8 +188,8 @@ def add_punctuation(
                                 if prev_token.text.lower() in command_words:
                                     should_remove = True
 
-                            if should_remove:
-                                new_result_parts[token.idx] = ""
+                                if should_remove:
+                                    new_result_parts[token.idx] = ""
 
                     result = "".join(new_result_parts).replace("  ", " ")
                 except Exception:

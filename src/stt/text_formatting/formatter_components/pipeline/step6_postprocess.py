@@ -105,7 +105,7 @@ def restore_abbreviations(text: str, resources: dict) -> str:
     return text
 
 
-def convert_orphaned_keywords(text: str, language: str = "en") -> str:
+def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
     """
     Convert orphaned keywords that weren't captured by entities.
 
@@ -165,7 +165,7 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     for keyword, symbol in sorted_keywords:
         if keyword in context_sensitive_keywords:
             # Use context-aware conversion for sensitive keywords
-            text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language)
+            text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language, doc)
         else:
             # Special handling for Spanish "guión" to avoid conflict with "guión bajo"
             if keyword == "guión" and language == "es":
@@ -190,7 +190,7 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     return text
 
 
-def _convert_context_aware_keyword(text: str, keyword: str, symbol: str, space_consuming_symbols: set, language: str = "en") -> str:
+def _convert_context_aware_keyword(text: str, keyword: str, symbol: str, space_consuming_symbols: set, language: str = "en", doc=None) -> str:
     """
     Convert a keyword to its symbol only in appropriate contexts.
     
@@ -210,16 +210,22 @@ def _convert_context_aware_keyword(text: str, keyword: str, symbol: str, space_c
     """
     from ...nlp_provider import get_nlp
     
-    nlp = get_nlp()
-    if not nlp:
-        # Fallback to regex-based context validation if spaCy is not available
-        logger.debug(f"SpaCy not available, using regex-based context validation for '{keyword}'")
-        return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
+    # Use shared doc if available, otherwise create new one
+    if doc is None:
+        nlp = get_nlp()
+        if not nlp:
+            # Fallback to regex-based context validation if spaCy is not available
+            logger.debug(f"SpaCy not available, using regex-based context validation for '{keyword}'")
+            return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
+        
+        try:
+            # Parse the text with spaCy
+            doc = nlp(text)
+        except Exception as e:
+            logger.warning(f"SpaCy processing failed for keyword conversion: {e}")
+            return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
     
     try:
-        # Parse the text with spaCy
-        doc = nlp(text)
-        
         # Find all instances of the keyword in the text
         pattern = rf"\b{re.escape(keyword)}\b"
         matches = list(re.finditer(pattern, text, flags=re.IGNORECASE))

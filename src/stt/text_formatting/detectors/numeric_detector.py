@@ -39,7 +39,7 @@ class NumericalEntityDetector:
         self.measurement_processor = MeasurementProcessor(nlp=self.nlp, language=self.language)
         self.format_detector = FormatDetector(language=self.language)
 
-    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
+    def detect(self, text: str, entities: list[Entity], doc=None) -> list[Entity]:
         """Detects all numerical-related entities."""
         numerical_entities: list[Entity] = []
 
@@ -47,9 +47,18 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self.format_detector.detect_version_numbers(text, numerical_entities, all_entities)
 
+        # Use shared doc if available, otherwise create new one
+        if doc is None:
+            if self.nlp:
+                try:
+                    doc = self.nlp(text)
+                except (AttributeError, ValueError, IndexError) as e:
+                    logger.warning(f"SpaCy numerical entity detection failed: {e}")
+                    doc = None
+
         # Pass all existing entities for overlap checking
         all_entities = entities + numerical_entities
-        self._detect_numerical_entities(text, numerical_entities, all_entities)
+        self._detect_numerical_entities(text, numerical_entities, all_entities, doc)
 
         # Detect ordinal numbers early to prevent conflicts with time durations
         # (e.g., "thirty second" should be ordinal "32nd", not time duration "30s")
@@ -108,7 +117,7 @@ class NumericalEntityDetector:
 
 
     def _detect_numerical_entities(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None, doc=None
     ) -> None:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
         # First, handle patterns that don't need SpaCy
@@ -124,13 +133,8 @@ class NumericalEntityDetector:
         # Now run basic number detection - this should skip areas already covered by currency
         self.basic_detector.detect_number_words(text, entities, all_entities)
 
-        if not self.nlp:
-            return
-
-        try:
-            doc = self.nlp(text)
-        except (AttributeError, ValueError, IndexError) as e:
-            logger.warning(f"SpaCy numerical entity detection failed: {e}")
+        # Only proceed with SpaCy-based detection if we have a doc
+        if doc is None or not self.nlp:
             return
         
         # Delegate SpaCy-based currency detection to the financial detector

@@ -28,7 +28,7 @@ class SpokenLetterDetector:
         self.spoken_letter_pattern = regex_patterns.build_spoken_letter_pattern(language)
         self.letter_sequence_pattern = regex_patterns.build_letter_sequence_pattern(language)
 
-    def detect(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
+    def detect(self, text: str, existing_entities: List[Entity], doc=None) -> List[Entity]:
         """
         Detects spoken letter entities in the text.
 

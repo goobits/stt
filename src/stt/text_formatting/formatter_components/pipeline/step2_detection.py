@@ -141,23 +141,23 @@ def detect_all_entities(
     # create new entities that overlap with existing ones.
     
     # Code and Web entities are highly specific and should run first.
-    web_entities = detectors["web_detector"].detect(text, final_entities)
+    web_entities = detectors["web_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(web_entities)
     logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
     
     # Spoken letters are very specific patterns and should run early to avoid conflicts
-    letter_entities = detectors["spoken_letter_detector"].detect(text, final_entities)
+    letter_entities = detectors["spoken_letter_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(letter_entities)
     logger.info(
         f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}"
     )
     
-    code_entities = detectors["code_detector"].detect(text, final_entities)
+    code_entities = detectors["code_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(code_entities)
     logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
     
     # Numeric entities are next, as they are more specific than base SpaCy entities.
-    numeric_entities = detectors["numeric_detector"].detect(text, final_entities)
+    numeric_entities = detectors["numeric_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(numeric_entities)
     logger.info(
         f"Numeric entities detected: {len(numeric_entities)} - {[f'{e.type}:{e.text}' for e in numeric_entities]}"

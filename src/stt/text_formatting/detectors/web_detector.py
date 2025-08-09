@@ -57,7 +57,7 @@ class WebEntityDetector:
         # Note: _detect_spoken_emails builds its own pattern internally
         # Note: port_pattern is the same as port_number_pattern
 
-    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
+    def detect(self, text: str, entities: list[Entity], doc=None) -> list[Entity]:
         """Detects all web-related entities."""
         web_entities: list[Entity] = []
         # Create a combined list for overlap checking that includes both existing and newly detected entities
@@ -82,7 +82,7 @@ class WebEntityDetector:
         # Finally, use SpaCy for any remaining well-formatted links.
         # This will catch things like "example.com" that the spoken detectors miss.
         # Pass the combined list of all entities found so far to prevent overlap.
-        self._detect_links(text, web_entities, all_entities)
+        self._detect_links(text, web_entities, all_entities, doc)
         return web_entities
 
     def _detect_spoken_protocol_urls(
@@ -294,24 +294,26 @@ class WebEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.PORT_NUMBER)
                 )
 
-    def _detect_links(self, text: str, entities: list[Entity], existing_entities: list[Entity]) -> None:
+    def _detect_links(self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None) -> None:
         """
         Detect URLs and emails using SpaCy's built-in token attributes.
 
         This method replaces the regex-based URL and email detection with
         SpaCy's more accurate token-level detection.
         """
-        if not self.nlp:
-            # Fallback to regex-based detection when SpaCy is not available
-            self._detect_links_regex_fallback(text, entities, existing_entities)
-            return
-        try:
-            doc = self.nlp(text)
-        except (AttributeError, ValueError, IndexError) as e:
-            logger.warning(f"SpaCy link detection failed: {e}")
-            # Use regex fallback on SpaCy failure
-            self._detect_links_regex_fallback(text, entities, existing_entities)
-            return
+        # Use shared doc if available, otherwise create new one
+        if doc is None:
+            if not self.nlp:
+                # Fallback to regex-based detection when SpaCy is not available
+                self._detect_links_regex_fallback(text, entities, existing_entities)
+                return
+            try:
+                doc = self.nlp(text)
+            except (AttributeError, ValueError, IndexError) as e:
+                logger.warning(f"SpaCy link detection failed: {e}")
+                # Use regex fallback on SpaCy failure
+                self._detect_links_regex_fallback(text, entities, existing_entities)
+                return
 
         # Iterate through tokens to find URLs and emails
         for token in doc:
