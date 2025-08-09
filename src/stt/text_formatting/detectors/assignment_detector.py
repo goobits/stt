@@ -7,7 +7,7 @@ import re
 from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
-from stt.text_formatting.constants import get_resources
+from stt.text_formatting.constants import get_resources, get_nested_resource
 from stt.text_formatting.utils import is_inside_entity
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
@@ -102,7 +102,7 @@ class AssignmentDetector:
     def _setup_operator_patterns(self):
         """Setup operator patterns from language resources."""
         # Get operator keywords for the current language
-        operators = get_resources(self.language)["spoken_keywords"]["operators"]
+        operators = get_nested_resource(self.language, "spoken_keywords", "operators")
 
         # Build a map of operator patterns to their symbols
         operator_patterns = {}
@@ -240,8 +240,7 @@ class AssignmentDetector:
     ) -> None:
         """Regex-based fallback for operator detection when spaCy is not available."""
         # Get operator keywords for the current language
-        resources = get_resources(self.language)
-        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        operators = get_nested_resource(self.language, "spoken_keywords", "operators")
 
         # Build patterns for all operators
         for operator_phrase, symbol in operators.items():

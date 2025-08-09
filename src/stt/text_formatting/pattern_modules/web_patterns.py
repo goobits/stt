@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
-from ..constants import get_resources
+from ..constants import get_resources, get_nested_resource
 from ..pattern_cache import cached_pattern
 
 
@@ -92,8 +92,7 @@ DOMAIN_EXCLUDE_WORDS = {
 def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    url_keywords = resources["spoken_keywords"]["url"]
+    url_keywords = get_nested_resource(language, "spoken_keywords", "url")
 
     # Get keyword patterns from URL_KEYWORDS
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
@@ -172,8 +171,7 @@ def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
 @cached_pattern
 def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken email pattern dynamically for the specified language."""
-    resources = get_resources(language)
-    url_keywords = resources["spoken_keywords"]["url"]
+    url_keywords = get_nested_resource(language, "spoken_keywords", "url")
 
     # Get keywords for email patterns
     at_keywords = [k for k, v in url_keywords.items() if v == "@"]
@@ -186,7 +184,10 @@ def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
 
     # Email action words from resources or defaults
-    email_actions = resources.get("context_words", {}).get("email_actions", ["email", "contact", "write to", "send to"])
+    try:
+        email_actions = get_nested_resource(language, "context_words", "email_actions")
+    except KeyError:
+        email_actions = ["email", "contact", "write to", "send to"]
     email_actions_sorted = sorted(email_actions, key=len, reverse=True)
     action_pattern = "|".join(re.escape(action) for action in email_actions_sorted)
 
@@ -250,8 +251,7 @@ def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
 @cached_pattern
 def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken protocol pattern dynamically for the specified language."""
-    resources = get_resources(language)
-    url_keywords = resources["spoken_keywords"]["url"]
+    url_keywords = get_nested_resource(language, "spoken_keywords", "url")
 
     # Get keywords
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
@@ -306,8 +306,7 @@ def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
 def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the port number pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    url_keywords = resources["spoken_keywords"]["url"]
+    url_keywords = get_nested_resource(language, "spoken_keywords", "url")
 
     # Get colon keywords from URL_KEYWORDS
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]

@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
-from ..constants import get_resources
+from ..constants import get_resources, get_nested_resource
 from ..pattern_cache import cached_pattern
 
 
@@ -110,8 +110,7 @@ ALL_FILE_EXTENSIONS = sum(FILE_EXTENSIONS.values(), [])
 def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get slash keywords from CODE_KEYWORDS
     slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
@@ -134,8 +133,7 @@ def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
 def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the underscore delimiter pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get underscore keywords from CODE_KEYWORDS
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
@@ -159,8 +157,7 @@ def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
 def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get underscore keywords from CODE_KEYWORDS
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
@@ -184,8 +181,7 @@ def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
 def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get dash keywords from CODE_KEYWORDS
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
@@ -203,8 +199,7 @@ def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
 def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short flag pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get dash keywords from CODE_KEYWORDS
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
@@ -227,8 +222,7 @@ def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
 def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern dynamically from keywords in constants."""
     # Get resources for the specified language
-    resources = get_resources(language)
-    code_keywords = resources["spoken_keywords"]["code"]
+    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
 
     # Get equals keywords from CODE_KEYWORDS
     equals_keywords = [k for k, v in code_keywords.items() if v == "="]
