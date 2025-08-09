@@ -19,6 +19,7 @@ from stt.core.config import get_config, setup_logging
 # Import centralized regex patterns
 from . import regex_patterns
 from .capitalizer import SmartCapitalizer
+from .spacy_doc_cache import initialize_global_doc_processor
 
 # Import common data structures
 from stt.text_formatting.common import Entity, EntityType, NumberParser
@@ -69,6 +70,9 @@ class TextFormatter:
 
         # Load shared NLP model once
         self.nlp = get_nlp()
+        
+        # Initialize global document processor for centralized SpaCy doc caching
+        initialize_global_doc_processor(self.nlp, max_cache_size=10)
 
         # Initialize components with dependency injection and language support
         self.entity_detector = EntityDetector(nlp=self.nlp, language=self.language)

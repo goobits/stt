@@ -13,6 +13,7 @@ from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.utils import is_inside_entity
+from stt.text_formatting.spacy_doc_cache import get_global_doc_processor
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 
@@ -167,13 +168,15 @@ class MathematicalExpressionDetector:
             True if the expression is idiomatic (should not be converted to math)
 
         """
-        if not self.nlp:
+        # Use centralized document processor for better caching
+        doc_processor = get_global_doc_processor()
+        if not doc_processor:
             # No fallback needed - if SpaCy unavailable, assume mathematical
             return False
-        try:
-            doc = self.nlp(full_text)
-        except (AttributeError, ValueError, IndexError) as e:
-            logger.warning(f"SpaCy idiomatic expression detection failed: {e}")
+            
+        doc = doc_processor.get_or_create_doc(full_text)
+        if not doc:
+            logger.warning("SpaCy idiomatic expression detection failed")
             return False
 
         try:

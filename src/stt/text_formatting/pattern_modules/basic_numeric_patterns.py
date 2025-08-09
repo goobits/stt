@@ -12,6 +12,7 @@ from typing import Pattern, Union, Tuple, List
 
 from ..common import NumberParser
 from ..nlp_provider import get_nlp
+from ..spacy_doc_cache import get_global_doc_processor
 from ...core.config import setup_logging
 
 # Setup logger for this module
@@ -96,8 +97,16 @@ class SpacyOrdinalMatcher:
             SpacyOrdinalMatch object if ordinal found, None otherwise
         """
         try:
-            # Process the text with spaCy
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+            
+            if not doc:
+                return None
             
             # Find ORDINAL entities starting from the given position
             for ent in doc.ents:
@@ -148,7 +157,16 @@ class SpacyOrdinalMatcher:
         """
         matches = []
         try:
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+                
+            if not doc:
+                raise Exception("No document available")
             for ent in doc.ents:
                 if ent.label_ == "ORDINAL":
                     if not self._should_skip_ordinal_basic(ent, text):
@@ -178,7 +196,16 @@ class SpacyOrdinalMatcher:
         """
         matches = []
         try:
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+                
+            if not doc:
+                raise Exception("No document available")
             for ent in doc.ents:
                 if ent.label_ == "ORDINAL":
                     if not self._should_skip_ordinal_basic(ent, text):

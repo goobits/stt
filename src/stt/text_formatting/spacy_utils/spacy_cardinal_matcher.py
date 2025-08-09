@@ -13,6 +13,7 @@ from typing import Optional, Set, List, Tuple
 
 from ...core.config import setup_logging
 from ..number_word_context import NumberWordContextAnalyzer, NumberWordDecision
+from ..spacy_doc_cache import get_global_doc_processor
 
 # Setup logging
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
@@ -114,7 +115,16 @@ class SpacyCardinalMatcher:
             return self._find_number_words_fallback(text)
             
         try:
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+                
+            if not doc:
+                return self._find_number_words_fallback(text)
             number_spans = []
             
             for ent in doc.ents:
@@ -169,7 +179,16 @@ class SpacyCardinalMatcher:
         """
         if self.nlp:
             try:
-                doc = self.nlp(word.strip())
+                # Use centralized document processor for better caching
+                doc_processor = get_global_doc_processor()
+                if doc_processor:
+                    doc = doc_processor.get_or_create_doc(word.strip())
+                else:
+                    # Fallback to direct nlp processing if processor not available
+                    doc = self.nlp(word.strip())
+                    
+                if not doc:
+                    return word.lower().strip() in self._fallback_number_words
                 return any(ent.label_ == "CARDINAL" for ent in doc.ents)
             except Exception:
                 pass

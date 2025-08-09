@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional, Pattern
 
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting.common import Entity, EntityType
+from stt.text_formatting.spacy_doc_cache import get_global_doc_processor
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting import pattern_modules
@@ -348,12 +349,13 @@ class MathematicalProcessor(BaseNumericProcessor):
         It checks if 'plus' is preceded by a number and followed by a noun, which indicates
         idiomatic usage like 'five plus years of experience'.
         """
-        if not self.nlp:
+        # Use centralized document processor for better caching
+        doc_processor = get_global_doc_processor()
+        if not doc_processor:
             return False
         
-        try:
-            doc = self.nlp(full_text)
-        except (AttributeError, ValueError, IndexError) as e:
+        doc = doc_processor.get_or_create_doc(full_text)
+        if not doc:
             return False
 
         try:

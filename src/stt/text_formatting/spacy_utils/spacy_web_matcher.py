@@ -18,6 +18,7 @@ from typing import Optional, List, Tuple, Dict, Set
 from enum import Enum
 
 from ...core.config import setup_logging
+from ..spacy_doc_cache import get_global_doc_processor
 from ..constants import get_resources
 
 # Setup logging
@@ -144,7 +145,16 @@ class SpacyWebMatcher:
             return self._detect_emails_fallback(text)
         
         try:
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+                
+            if not doc:
+                return self._detect_emails_fallback(text)
             email_spans = []
             
             # Look for communication verbs and their dependencies
@@ -250,7 +260,16 @@ class SpacyWebMatcher:
                 
                 # Use spaCy to understand the syntax around the "at" keyword
                 try:
-                    context_doc = self.nlp(context)
+                    # Use centralized document processor for better caching
+                    doc_processor = get_global_doc_processor()
+                    if doc_processor:
+                        context_doc = doc_processor.get_or_create_doc(context)
+                    else:
+                        # Fallback to direct nlp processing if processor not available
+                        context_doc = self.nlp(context) if self.nlp else None
+                        
+                    if not context_doc:
+                        continue
                     email_span = self._analyze_at_context(context, context_doc, at_start - context_start)
                     if email_span:
                         # Convert back to absolute positions
@@ -376,7 +395,16 @@ class SpacyWebMatcher:
             return self._detect_urls_fallback(text)
         
         try:
-            doc = self.nlp(text)
+            # Use centralized document processor for better caching
+            doc_processor = get_global_doc_processor()
+            if doc_processor:
+                doc = doc_processor.get_or_create_doc(text)
+            else:
+                # Fallback to direct nlp processing if processor not available
+                doc = self.nlp(text) if self.nlp else None
+                
+            if not doc:
+                return self._detect_urls_fallback(text)
             url_spans = []
             
             # Look for navigation verbs and their targets
