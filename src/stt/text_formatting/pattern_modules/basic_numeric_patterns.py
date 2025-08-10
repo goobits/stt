@@ -301,7 +301,24 @@ class SpacyOrdinalMatcher:
         idiomatic_starts = ['place', 'time', 'person', 'thing', 'impression', 'thought']
         for idiom in idiomatic_starts:
             if following_text.startswith(idiom):
-                return True
+                # Check for technical/formal context that should override idiomatic detection
+                full_context = text.lower()
+                technical_indicators = [
+                    'software', 'technology', 'generation', 'quarter', 'earnings', 
+                    'report', 'century', 'winner', 'performance', 'meeting',
+                    'deadline', 'conference', 'agenda', 'process', 'option',
+                    'item', 'step', 'iphone', 'competition', 'race', 'contest',
+                    'ranking', 'leaderboard', 'score', 'match', 'tournament',
+                    'came in', 'finished', 'placed', 'ranked', 'position',
+                    'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration',
+                    'contractor', 'vendor', 'supplier', 'developer', 'provider'
+                ]
+                
+                # If we find technical indicators, don't skip (allow conversion)
+                if any(indicator in full_context for indicator in technical_indicators):
+                    return False
+                else:
+                    return True
                 
         return False
 

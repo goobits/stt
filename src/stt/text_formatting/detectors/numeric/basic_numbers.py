@@ -130,37 +130,18 @@ class BasicNumberDetector:
                 # Try to parse the compound ordinal
                 parsed_ordinal = self.number_parser.parse_ordinal(full_ordinal)
                 if parsed_ordinal and parsed_ordinal != full_ordinal:  # Only if it actually converted something
-                    # Apply the same context filtering as regular ordinals
+                    # For compound ordinals, apply simplified context filtering
                     should_skip = False
-                    if doc:
-                        # Find the token and apply same idiomatic filtering logic
-                        ordinal_token = None
-                        next_token = None
-                        for token in doc:
-                            if token.idx == match.start():
-                                ordinal_token = token
-                                # For compound ordinals, we need to check the token after the last word
-                                ordinal_words = full_ordinal.split()
-                                last_word_start = match.start() + len(" ".join(ordinal_words[:-1]))
-                                if ordinal_words:
-                                    last_word_start += 1  # space
-                                for t in doc:
-                                    if t.idx >= last_word_start and t.text.lower() == ordinal_words[-1].lower():
-                                        if t.i + 1 < len(doc):
-                                            next_token = doc[t.i + 1]
-                                        break
-                                break
-                        
-                        if ordinal_token and next_token:
-                            # Apply same filtering logic as simple ordinals
-                            idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
-                            if ordinal_part.lower() in idiomatic_phrases:
-                                if next_token.text.lower() in idiomatic_phrases[ordinal_part.lower()]:
-                                    should_skip = True
-                            
-                            # Skip if it's at sentence start and followed by comma
-                            if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
-                                should_skip = True
+                    
+                    # Only skip if it's clearly an idiomatic sentence starter like "Twenty first, we need to..."
+                    if match.start() == 0:  # Starts at beginning of text
+                        # Find what follows the compound ordinal
+                        remaining_text = text[match.end():].strip()
+                        if remaining_text.startswith(','):
+                            should_skip = True
+                    
+                    # Don't apply the complex idiomatic filtering to compound ordinals
+                    # because they are inherently more specific and technical in nature
                     
                     if not should_skip:
                         entities.append(
@@ -213,10 +194,27 @@ class BasicNumberDetector:
                             ordinal_token.text.lower() in idiomatic_phrases
                             and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
                         ):
-                            logger.debug(
-                                f"Skipping ORDINAL '{match.group()}' due to idiomatic follower word '{next_token.text}' (POS: {next_token.pos_})."
-                            )
-                            continue
+                            # Check for technical/formal context that should override idiomatic detection
+                            full_context = text.lower()
+                            technical_indicators = [
+                                'software', 'technology', 'generation', 'quarter', 'earnings', 
+                                'report', 'century', 'winner', 'performance', 'meeting',
+                                'deadline', 'conference', 'agenda', 'process', 'option',
+                                'item', 'step', 'iphone', 'competition', 'race', 'contest',
+                                'ranking', 'leaderboard', 'score', 'match', 'tournament',
+                                'came in', 'finished', 'placed', 'ranked', 'position',
+                                'this is the', 'that was the', 'it was the', 'attempt', 'try', 'iteration',
+                                'contractor', 'vendor', 'supplier', 'developer', 'provider'
+                            ]
+                            
+                            # If we find technical indicators, convert to numeric ordinal (don't skip)
+                            if any(indicator in full_context for indicator in technical_indicators):
+                                logger.debug(f"Technical context override: allowing ORDINAL '{match.group()}' despite idiomatic pattern")
+                            else:
+                                logger.debug(
+                                    f"Skipping ORDINAL '{match.group()}' due to idiomatic follower word '{next_token.text}' (POS: {next_token.pos_})."
+                                )
+                                continue
 
                     # Skip if it's at sentence start and followed by comma ("First, we...")
                     if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
