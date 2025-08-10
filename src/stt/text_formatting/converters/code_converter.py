@@ -314,13 +314,25 @@ class CodePatternConverter(BasePatternConverter):
                 converted = text
         
         # Add comma after certain abbreviations when they introduce examples or clarifications
-        # This follows standard grammar rules for Latin abbreviations
+        # This follows standard grammar rules for Latin abbreviations, but only in appropriate contexts
         comma_requiring_abbreviations = {"i.e.", "e.g.", "viz.", "sc.", "cf."}
         
         # Check if this abbreviation typically requires a comma
         if any(converted.startswith(abbrev.rstrip('.')) for abbrev in comma_requiring_abbreviations):
-            # Add comma if not already present
-            if not converted.endswith(','):
+            # Only add comma when the abbreviation is at the beginning of a phrase that introduces examples
+            # Don't add comma when the abbreviation is used in the middle of a sentence for clarification
+            # Context check: if the entity text starts with the full phrase like "for example", add comma
+            # But if it's just the abbreviation like "i.e." in context, don't auto-add comma
+            original_text = entity.text.lower().strip()
+            
+            # Add comma only for standalone abbreviations that clearly introduce examples
+            should_add_comma = (
+                original_text in ["e g", "e.g."] or  # Standalone e.g.
+                (converted in ["e.g.", "i.e."] and 
+                 original_text.startswith(("for example", "that is")))  # Full phrase conversions
+            )
+            
+            if should_add_comma and not converted.endswith(','):
                 converted = converted + ","
         
         return converted

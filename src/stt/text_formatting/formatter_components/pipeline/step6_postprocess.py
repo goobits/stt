@@ -93,7 +93,7 @@ def restore_abbreviations(text: str, resources: dict) -> str:
     text = batch_abbreviation_processing(text)
     
     # Handle additional edge cases that aren't in the batch processor
-    text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.),(\s)", r"\1 \2,\3", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)([,.]?)(\s)", r"\1 \2\3\4", text, flags=re.IGNORECASE)
     
     return text
 

@@ -66,7 +66,7 @@ class BatchRegexProcessor:
             (_get_compiled_pattern(r"(i\.e\.)(\s+[a-zA-Z])", re.IGNORECASE), r"\1,\2"),
             (_get_compiled_pattern(r"(e\.g\.)(\s+[a-zA-Z])", re.IGNORECASE), r"\1,\2"),
             (_get_compiled_pattern(r",,"), ","),  # Remove double commas first
-            (_get_compiled_pattern(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)", re.IGNORECASE), r"\1 \2"),
+            (_get_compiled_pattern(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)([,.]?)", re.IGNORECASE), r"\1 \2\3"),
         ]
         
     def batch_cleanup_substitutions(self, text: str) -> str:
