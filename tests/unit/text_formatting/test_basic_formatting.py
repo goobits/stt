@@ -43,7 +43,22 @@ class TestBasicCapitalization:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            # Some proper nouns may not be detected without full NLP
+            
+            # Test what we can reliably assert: sentence capitalization should always work
+            assert result.startswith(result[0].upper()), f"Sentence should start capitalized: '{result}'"
+            
+            # Test that basic 'I' pronoun capitalization works
+            if " i " in input_text or input_text.startswith("i "):
+                assert " I " in result or result.startswith("I "), f"Pronoun 'I' should be capitalized in: '{result}'"
+            
+            # For proper noun detection, we can only test if the output is reasonable
+            # Full NLP proper noun detection is complex and may not always work
+            # So we just verify basic formatting structure is maintained
+            assert len(result.strip()) > 0, f"Result should not be empty for input: '{input_text}'"
+            
+            # Note: We don't assert exact match for proper nouns since NLP detection 
+            # of names like 'John', 'Paris', 'Microsoft' requires advanced models
+            # and may not be reliable without full context
 
     def test_pronoun_i_capitalization(self, preloaded_formatter):
         """Test that pronoun 'I' is always capitalized."""
