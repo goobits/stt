@@ -372,6 +372,24 @@ class SmartCapitalizer:
                             break
                 
                 if not is_protected:
+                    # Special case: Don't capitalize temporal words when used as adverbs
+                    # "Today", "Tomorrow", "Yesterday" should only be capitalized as proper nouns (newspaper names)
+                    temporal_words = {"today", "tomorrow", "yesterday"}
+                    if proper_noun.lower() in temporal_words:
+                        # Check if this is being used as a temporal adverb rather than proper noun
+                        # Look for preceding context that suggests temporal usage
+                        preceding_context = text[max(0, start-20):start].lower().strip()
+                        temporal_indicators = ["watch", "see", "check", "buy", "sell", "trade", "monitor", 
+                                             "look at", "analyze", "track", "follow", "review", "until", 
+                                             "by", "on", "for", "since", "from"]
+                        
+                        # If preceded by temporal indicators, treat as adverb (don't capitalize)
+                        is_temporal_adverb = any(indicator in preceding_context for indicator in temporal_indicators)
+                        
+                        if is_temporal_adverb:
+                            logger.debug(f"Skipping capitalization of '{matched_text}' - temporal adverb context")
+                            continue
+                    
                     # Replace with proper capitalization, preserving case pattern of original
                     if matched_text.islower():
                         replacement = proper_noun

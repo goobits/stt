@@ -405,6 +405,14 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
             # Check what comes after the phrase
             remaining_text = text[end_pos:].lstrip()
             
+            # Special case: Don't add comma before Latin abbreviations that already have punctuation
+            # This prevents "for example, e.g.," and "that is, i.e.," patterns
+            if remaining_text:
+                # Check if the remaining text starts with a Latin abbreviation (converted form)
+                latin_abbrev_pattern = r'^(e\.g\.|i\.e\.|vs\.|etc\.)'
+                if re.match(latin_abbrev_pattern, remaining_text, re.IGNORECASE):
+                    return matched_phrase  # Don't add comma
+            
             # Only add comma if:
             # 1. There's more text after the phrase
             # 2. The phrase is not already followed by punctuation
