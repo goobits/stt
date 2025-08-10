@@ -100,7 +100,11 @@ class CodePatternConverter(BasePatternConverter):
                 has_spoken_underscores = " underscore " in context.lower()
 
         # First, handle all spoken separators to create a clean string
-        text = re.sub(r"\s*underscore\s*", "_", text, flags=re.IGNORECASE)
+        # Handle consecutive underscores first (for dunder patterns like __init__)
+        text = re.sub(r"\bunderscore\s+underscore\b", "__", text, flags=re.IGNORECASE)
+        
+        # Then handle single underscores
+        text = re.sub(r"\s+underscore\s+", "_", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*dash\s*", "-", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE)
 
@@ -115,7 +119,7 @@ class CodePatternConverter(BasePatternConverter):
         filename_part, extension = parts
         extension = extension.lower()
 
-        # Replace all spoken number sequences with digits *before* splitting into words
+        # Replace all spoken number sequences with digits FIRST
         def number_word_replacer(match):
             # Try parse_as_digits first for filenames, then fall back to regular parsing
             result = self.number_parser.parse_as_digits(match.group(0))
@@ -131,10 +135,30 @@ class CodePatternConverter(BasePatternConverter):
             + r"))*\b"
         )
         filename_part = re.sub(number_word_pattern, number_word_replacer, filename_part, flags=re.IGNORECASE)
+        
+        # Handle compound filename patterns AFTER number conversion
+        # Insert underscores for common filename patterns like "file version", "test case", etc.
+        underscore_patterns = [
+            (r"\b(\w+)\s+(version)\s+(\d+)\b", r"\1_\2_\3"),  # "report version 2" -> "report_version_2"
+            (r"\b(\w+)\s+(file)\s+(\d+)\b", r"\1_\2_\3"),    # "log file 100" -> "log_file_100" 
+            (r"\b(test)\s+(case)\s+(\d+)\b", r"\1_\2_\3"),    # "test case 3" -> "test_case_3"
+            (r"\b(config)\s+(v)(\d+)\b", r"\1_\2\3"),         # "config v1" -> "config_v1"
+        ]
+        
+        for pattern, replacement in underscore_patterns:
+            filename_part = re.sub(pattern, replacement, filename_part, flags=re.IGNORECASE)
 
         # If underscores were spoken, they dictate the format
         if has_spoken_underscores:
-            return f"{filename_part.replace(' ', '_').lower()}.{extension}"
+            # Special handling for dunder patterns (e.g., "__init__")
+            # Check if this is already a properly formatted dunder pattern
+            if re.match(r'^__\w+__$', filename_part.replace(' ', '')):
+                # This is a dunder pattern, just remove spaces without adding underscores
+                formatted_filename = filename_part.replace(' ', '').lower()
+            else:
+                # Regular underscore handling
+                formatted_filename = filename_part.replace(' ', '_').lower()
+            return f"{formatted_filename}.{extension}"
 
         # Otherwise, apply casing rules based on the config
         format_rule = self.config.get_filename_format(extension)

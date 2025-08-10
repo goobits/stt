@@ -170,8 +170,46 @@ class FileDetector:
             else:
                 logger.debug("SPACY FILENAME: Entity overlaps with existing entity, skipping")
 
-        if len(entities) == entities_before_spacy:
-            logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
+        # Check if we should run regex fallback
+        # Run it if: 1) SpaCy found no entities, or 2) SpaCy entities are poor quality
+        should_run_fallback = len(entities) == entities_before_spacy
+        poor_quality_entities = []
+        
+        if not should_run_fallback:
+            # Check if SpaCy entities are poor quality (very short filename parts)
+            new_entities = entities[entities_before_spacy:]
+            for entity in new_entities:
+                if entity.type == EntityType.FILENAME:
+                    # Extract the filename part (before the extension)
+                    filename_text = entity.text
+                    if " dot " in filename_text.lower():
+                        filename_part = filename_text.lower().split(" dot ")[0].strip()
+                        filename_words = filename_part.split()
+                        
+                        # Check for poor quality indicators:
+                        # 1. Very short (1-2 words)
+                        # 2. Partial dunder patterns (starts/ends with "underscore")
+                        is_short = len(filename_words) <= 2
+                        is_partial_dunder = (filename_part.startswith("underscore ") or 
+                                           filename_part.endswith(" underscore"))
+                        
+                        if is_short or is_partial_dunder:
+                            logger.debug(f"SpaCy entity '{entity.text}' has poor quality filename part '{filename_part}' (words: {len(filename_words)}, partial_dunder: {is_partial_dunder}), marking for replacement")
+                            poor_quality_entities.append(entity)
+                            should_run_fallback = True
+        
+        if should_run_fallback:
+            # Remove poor quality entities before running fallback
+            for poor_entity in poor_quality_entities:
+                if poor_entity in entities:
+                    entities.remove(poor_entity)
+                if poor_entity in all_entities:
+                    all_entities.remove(poor_entity)
+                    
+            if len(entities) == entities_before_spacy:
+                logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
+            else:
+                logger.debug(f"SpaCy filename detection found {len(poor_quality_entities)} poor quality entities, removed them and trying regex fallback")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
 
     def _detect_filenames_regex_fallback(
