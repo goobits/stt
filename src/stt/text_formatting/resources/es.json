@@ -26,6 +26,7 @@
       "más más": "++",
       "menos menos": "--",
       "igual igual": "==",
+      "guión guión": "--",
       "por": "×",
       "dividido por": "÷",
       "dividido entre": "÷",
@@ -83,6 +84,51 @@
       "equis": "X",
       "yankee": "Y",
       "zulú": "Z"
+    },
+    "multi_word_entities": {
+      "operators": {
+        "menos menos": "--",
+        "mas mas": "++", 
+        "más más": "++",
+        "igual igual": "==",
+        "guión guión": "--"
+      },
+      "separators": {
+        "guión bajo": "_",
+        "guión medio": "-"
+      },
+      "compound_patterns": {
+        "flag_sequences": {
+          "pattern": "guión guión WORD guión WORD",
+          "description": "Long flag followed by short flag: --output-file",
+          "example": "guión guión salida guión archivo -> --salida-archivo"
+        },
+        "underscore_sequences": {
+          "pattern": "WORD guión bajo WORD guión bajo WORD",
+          "description": "Underscore-connected variables: var_name_suffix",
+          "example": "archivo guión bajo configuración guión bajo principal -> archivo_configuración_principal"
+        }
+      },
+      "spacing_rules": {
+        "guión guión": {
+          "preserve_leading_space": true,
+          "consume_trailing_space": true,
+          "connects_to_following": true,
+          "description": "Command flag operator that connects to its argument"
+        },
+        "guión bajo": {
+          "preserve_leading_space": false,
+          "consume_trailing_space": false,
+          "connects_to_following": true,
+          "description": "Underscore connector that joins words"
+        },
+        "menos menos": {
+          "preserve_leading_space": true,
+          "consume_trailing_space": true,
+          "connects_to_following": true,
+          "description": "Decrement operator that connects to context"
+        }
+      }
     }
   },
   "abbreviations": {

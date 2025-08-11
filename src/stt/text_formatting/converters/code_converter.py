@@ -517,6 +517,23 @@ class CodePatternConverter(BasePatternConverter):
 
     def convert_command_flag(self, entity: Entity) -> str:
         """Convert spoken flags to proper format."""
+        # Theory 15: Handle Spanish multi-word operators that are misclassified as COMMAND_FLAG
+        # This fixes cases like "menos menos" -> "--" that should be operators, not flags
+        if hasattr(self, 'language') and self.language == "es":
+            entity_text_lower = entity.text.lower().strip()
+            spanish_operators = {
+                "menos menos": "--",
+                "mas mas": "++", 
+                "más más": "++",
+                "igual igual": "==",
+                "guión guión": "--"
+            }
+            
+            if entity_text_lower in spanish_operators:
+                # For operators, we want to preserve proper spacing context
+                # The spacing will be handled by the formatter pipeline
+                return spanish_operators[entity_text_lower]
+        
         if entity.metadata and "name" in entity.metadata:
             name = entity.metadata["name"]
             flag_type = entity.metadata.get("type")

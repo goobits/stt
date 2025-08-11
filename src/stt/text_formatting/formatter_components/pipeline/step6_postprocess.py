@@ -109,8 +109,8 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
     This handles cases where keywords like 'slash', 'dot', 'at' remain in the text
     after entity conversion, typically due to entity boundary issues.
     
-    Uses spaCy for context awareness to prevent inappropriate conversions when
-    words like 'colon' and 'underscore' are used descriptively.
+    Theory 15: Spanish Entity-Aware Sentence Boundary Detection
+    Enhanced with Spanish multi-word entity processing and compound pattern recognition.
     
     Args:
         text: Text to process
@@ -124,6 +124,31 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
     original_text = text
     # Get language-specific keywords
     resources = get_resources(language)
+    
+    # Theory 15: Process Spanish multi-word entities FIRST before single-word processing
+    if language == "es":
+        logger.info(f"THEORY_15: Starting Spanish multi-word processing for: '{text}'")
+        text_before = text
+        
+        # First, fix Spanish operator spacing issues that may have been introduced by earlier steps
+        text = _fix_spanish_operator_spacing(text)
+        
+        text = _process_spanish_multi_word_entities(text, resources)
+        
+        if text != text_before:
+            logger.info(f"THEORY_15: Multi-word entities changed: '{text_before}' -> '{text}'")
+        
+        # Process compound entity patterns
+        text_before_compound = text
+        text = _process_spanish_compound_patterns(text, resources)
+        
+        if text != text_before_compound:
+            logger.info(f"THEORY_15: Compound patterns changed: '{text_before_compound}' -> '{text}'")
+        
+        if text != original_text:
+            logger.info(f"THEORY_15: Final result: '{original_text}' -> '{text}'")
+
+    # Get URL keywords for remaining single-word processing
     url_keywords = resources.get("spoken_keywords", {}).get("url", {})
 
     # Only convert safe keywords that are less likely to appear in natural language
@@ -134,25 +159,14 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
         "slash": "/",
         "colon": ":",
         "underscore": "_",
-        # Spanish keywords
+        # Spanish keywords (single words only - multi-word handled above)
         "barra": "/",
         "dos puntos": ":",
-        "guión bajo": "_",
-        "guión": "-",
+        "guión bajo": "_",  # Add back guión bajo for fallback
+        "guión": "-",       # Add back guión for fallback
         "arroba": "@",
         "punto": ".",
     }
-    
-    # Theory 14: Add Spanish operators for multi-word entities like "guión guión", "menos menos"
-    if language == "es":
-        operators = resources.get("spoken_keywords", {}).get("operators", {})
-        safe_keywords.update(operators)
-        logger.info(f"THEORY_14: Added Spanish operators to safe keywords: {list(operators.keys())}")
-        
-        # Also add missing "guión guión" mapping if it's not in resources
-        if "guión guión" not in safe_keywords:
-            safe_keywords["guión guión"] = "--"
-            logger.info(f"THEORY_14: Added missing 'guión guión' -> '--' mapping")
 
     # Filter to only keywords we want to convert when orphaned
     keywords_to_convert = {}
@@ -160,14 +174,15 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
         if keyword in safe_keywords and safe_keywords[keyword] == symbol:
             keywords_to_convert[keyword] = symbol
     
-    # Theory 14: For Spanish, also add safe keywords that aren't in url_keywords but are operators
+    # Add Spanish operators that might not be in URL keywords but need conversion
     if language == "es":
-        for keyword, symbol in safe_keywords.items():
-            if keyword not in keywords_to_convert and " " in keyword:  # Multi-word Spanish entities
+        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        for keyword, symbol in operators.items():
+            # Only add single-word operators (multi-word handled above)
+            if " " not in keyword and keyword not in keywords_to_convert:
                 keywords_to_convert[keyword] = symbol
-                logger.info(f"THEORY_14: Added Spanish multi-word keyword: '{keyword}' -> '{symbol}'")
 
-    # Sort by length (longest first) to handle multi-word keywords properly
+    # Sort by length (longest first) to handle any remaining multi-word keywords
     sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
 
     # Define keywords that should consume surrounding spaces when converted
@@ -176,36 +191,233 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
     # Define keywords that require context validation
     context_sensitive_keywords = {"colon", "underscore"}
 
-    # Convert keywords that appear as standalone words
+    # Convert remaining keywords that appear as standalone words
     for keyword, symbol in sorted_keywords:
         if keyword in context_sensitive_keywords:
             # Use context-aware conversion for sensitive keywords
             text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language, doc)
+        elif keyword == "guión" and language == "es":
+            # Only convert single "guión" if it's not part of a multi-word entity (already handled above)
+            # Only convert "guión" if it's not followed by "bajo" or "guión"
+            pattern = rf"\b{re.escape(keyword)}\b(?!\s+(?:bajo|guión))"
+            if symbol in space_consuming_symbols:
+                # For these symbols, consume surrounding spaces but preserve the negative lookahead
+                pattern = rf"\s*\b{re.escape(keyword)}\b(?!\s+(?:bajo|guión))\s*"
+            text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
         else:
-            # Special handling for Spanish multi-word entities with proper spacing
-            if language == "es" and " " in keyword:
-                # Use Spanish-aware conversion for multi-word entities
-                logger.info(f"THEORY_14: Processing Spanish multi-word entity: '{keyword}' -> '{symbol}'")
-                text = _convert_spanish_multi_word_entity(text, keyword, symbol, language)
-            elif keyword == "guión" and language == "es":
-                # Only convert "guión" if it's not followed by "bajo"  
-                pattern = rf"\b{re.escape(keyword)}\b(?!\s+bajo)"
-                if symbol in space_consuming_symbols:
-                    # For these symbols, consume surrounding spaces but preserve the negative lookahead
-                    pattern = rf"\s*\b{re.escape(keyword)}\b(?!\s+bajo)\s*"
+            # Use simple conversion for other keywords
+            if symbol in space_consuming_symbols:
+                # For these symbols, consume surrounding spaces
+                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
             else:
-                # Use simple conversion for other keywords
-                if symbol in space_consuming_symbols:
-                    # For these symbols, consume surrounding spaces
-                    pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
-                    # Simple replacement that consumes spaces
-                    text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
-                else:
-                    # For other keywords, preserve word boundaries
-                    pattern = rf"\b{re.escape(keyword)}\b"
-                    text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+                # For other keywords, preserve word boundaries
+                pattern = rf"\b{re.escape(keyword)}\b"
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
+    return text
+
+
+def _fix_spanish_operator_spacing(text: str) -> str:
+    """
+    Fix Spanish operator spacing issues introduced by earlier pipeline steps.
+    
+    Theory 15: Spanish Entity-Aware Sentence Boundary Detection
+    
+    This handles cases where Spanish operators like "--", "++", "==" have incorrect
+    spacing after being converted in earlier steps.
+    
+    Args:
+        text: Text that may have Spanish operator spacing issues
+        
+    Returns:
+        Text with corrected Spanish operator spacing
+    """
+    import re
+    
+    # Common Spanish operator spacing patterns to fix
+    spacing_fixes = [
+        # "y --" -> "y--" (decrement/flag operators)
+        (r'\b(y|o|con|sin|pero|mas|además|también|hasta|para|por|desde|hacia|entre|durante)\s+(--|\+\+|==)\b', 
+         r'\1\2'),
+        
+        # "valor --" -> "valor--" (variable operators) 
+        (r'\b([a-zA-ZáéíóúüñÁÉÍÓÚÜÑ_]\w*)\s+(--|\+\+|==)(?=\s|$|\.|,|;|:)', 
+         r'\1\2'),
+         
+        # Fix spacing around single dashes in certain contexts  
+        # "y -" at end of sentence -> "y--" if it should be decrement
+        (r'\b(y|o|con|sin|pero|mas|además|también|hasta|para|por|desde|hacia|entre|durante)\s+-(?=\s*[.!?]|$)', 
+         r'\1--'),
+    ]
+    
+    for pattern, replacement in spacing_fixes:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    
+    return text
+
+
+def _process_spanish_multi_word_entities(text: str, resources: dict) -> str:
+    """
+    Process Spanish multi-word entities like 'menos menos' -> '--', 'guión guión' -> '--'.
+    
+    Theory 15: Spanish Entity-Aware Sentence Boundary Detection
+    
+    This function handles Spanish multi-word entities before single-word processing
+    to prevent conflicts and ensure proper conversion of compound entities.
+    
+    Args:
+        text: Text to process
+        resources: Spanish language resources
+        
+    Returns:
+        Text with Spanish multi-word entities converted
+    """
+    import re
+    
+    # Get multi-word entity mappings from resources
+    multi_word_data = resources.get("multi_word_entities", {})
+    operators = multi_word_data.get("operators", {})
+    separators = multi_word_data.get("separators", {})
+    spacing_rules = multi_word_data.get("spacing_rules", {})
+    
+    # Combine all multi-word entities to process
+    all_multi_word = {**operators, **separators}
+    
+    # Sort by length (longest first) to handle overlapping patterns correctly
+    sorted_entities = sorted(all_multi_word.items(), key=lambda x: len(x[0]), reverse=True)
+    
+    for keyword, symbol in sorted_entities:
+        if keyword.lower() in text.lower():
+            logger.info(f"THEORY_15: Processing multi-word entity: '{keyword}' -> '{symbol}' in text: '{text}'")
+            
+            # Get spacing rules for this entity
+            rule = spacing_rules.get(keyword, {})
+            preserve_leading = rule.get("preserve_leading_space", True)
+            consume_trailing = rule.get("consume_trailing_space", True)
+            connects_to_following = rule.get("connects_to_following", False)
+            
+            # Create pattern based on spacing rules
+            if keyword == "guión guión":
+                # Special handling for "guión guión" - it's a flag operator
+                pattern = rf"\b{re.escape(keyword)}\b"
+                replacement = symbol
+                
+                def guion_guion_replacement(match):
+                    start_pos = match.start()
+                    end_pos = match.end()
+                    
+                    # Check for space before
+                    char_before = text[start_pos - 1] if start_pos > 0 else ""
+                    
+                    # For command flags, preserve leading space but no trailing space
+                    if char_before != " " and start_pos > 0:
+                        return " " + symbol
+                    else:
+                        return symbol
+                
+                text = re.sub(pattern, guion_guion_replacement, text, flags=re.IGNORECASE)
+                
+            elif keyword == "guión bajo":
+                # Special handling for "guión bajo" - it connects words
+                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+                
+            elif keyword == "menos menos":
+                # Special handling for "menos menos" - decrement operator
+                pattern = rf"\b{re.escape(keyword)}\b"
+                
+                def menos_menos_replacement(match):
+                    start_pos = match.start()
+                    char_before = text[start_pos - 1] if start_pos > 0 else ""
+                    
+                    # Preserve leading space, no trailing space
+                    if char_before != " " and start_pos > 0:
+                        return " " + symbol
+                    else:
+                        return symbol
+                
+                text = re.sub(pattern, menos_menos_replacement, text, flags=re.IGNORECASE)
+                
+            else:
+                # Generic multi-word entity processing
+                pattern = rf"\b{re.escape(keyword)}\b"
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+    
+    return text
+
+
+def _process_spanish_compound_patterns(text: str, resources: dict) -> str:
+    """
+    Process Spanish compound entity patterns like 'guión guión salida guión archivo' -> '--salida-archivo'.
+    
+    Theory 15: Spanish Entity-Aware Sentence Boundary Detection
+    
+    This function handles complex compound patterns where multiple entities appear
+    in sequence and need to be processed as a single unit.
+    
+    Args:
+        text: Text to process  
+        resources: Spanish language resources
+        
+    Returns:
+        Text with compound patterns processed
+    """
+    import re
+    
+    # Get compound patterns from resources
+    multi_word_data = resources.get("multi_word_entities", {})
+    compound_patterns = multi_word_data.get("compound_patterns", {})
+    
+    # Pattern 1: "guión guión WORD guión WORD" -> "--WORD-WORD"
+    # This handles cases like "guión guión salida guión archivo" -> "--salida-archivo"
+    flag_pattern = r"\bguión\s+guión\s+(\w+)\s+guión\s+(\w+)\b"
+    
+    def process_flag_sequence(match):
+        word1 = match.group(1)  # e.g., "salida"
+        word2 = match.group(2)  # e.g., "archivo"
+        
+        # Create compound flag: --word1-word2
+        result = f"--{word1}-{word2}"
+        logger.info(f"THEORY_15: Compound flag pattern: '{match.group(0)}' -> '{result}'")
+        return result
+    
+    text = re.sub(flag_pattern, process_flag_sequence, text, flags=re.IGNORECASE)
+    
+    # Pattern 2: "WORD guión bajo WORD guión bajo WORD" -> "WORD_WORD_WORD"
+    # This handles cases like "archivo guión bajo configuración guión bajo principal" -> "archivo_configuración_principal"
+    underscore_pattern = r"\b(\w+)\s+guión\s+bajo\s+(\w+)\s+guión\s+bajo\s+(\w+)\b"
+    
+    def process_underscore_sequence(match):
+        word1 = match.group(1)  # e.g., "archivo"
+        word2 = match.group(2)  # e.g., "configuración" 
+        word3 = match.group(3)  # e.g., "principal"
+        
+        # Create compound underscore variable: word1_word2_word3
+        result = f"{word1}_{word2}_{word3}"
+        logger.info(f"THEORY_15: Compound underscore pattern: '{match.group(0)}' -> '{result}'")
+        return result
+    
+    text = re.sub(underscore_pattern, process_underscore_sequence, text, flags=re.IGNORECASE)
+    
+    # Pattern 3: Handle longer underscore sequences (2+ underscores)
+    # Match any sequence of "WORD guión bajo WORD ..." 
+    extended_underscore_pattern = r"\b(\w+(?:\s+guión\s+bajo\s+\w+){2,})\b"
+    
+    def process_extended_underscore_sequence(match):
+        sequence = match.group(1)
+        
+        # Split on "guión bajo" and extract words
+        parts = re.split(r'\s+guión\s+bajo\s+', sequence, flags=re.IGNORECASE)
+        words = [part.strip() for part in parts]
+        
+        # Join with underscores
+        result = "_".join(words)
+        logger.info(f"THEORY_15: Extended underscore pattern: '{sequence}' -> '{result}'")
+        return result
+    
+    text = re.sub(extended_underscore_pattern, process_extended_underscore_sequence, text, flags=re.IGNORECASE)
+    
     return text
 
 
