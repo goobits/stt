@@ -16,6 +16,7 @@ from typing import Pattern
 
 from ..constants import get_resources, get_nested_resource
 from ..pattern_cache import cached_pattern
+from ..universal_code_mapper import get_universal_code_mapper, CodeSymbolType
 
 
 # ==============================================================================
@@ -108,91 +109,71 @@ ALL_FILE_EXTENSIONS = sum(FILE_EXTENSIONS.values(), [])
 
 @cached_pattern
 def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the slash command pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get slash keywords from CODE_KEYWORDS
-    slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
-    slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
-    slash_escaped = [re.escape(k) for k in slash_keywords_sorted]
-    slash_pattern = f"(?:{'|'.join(slash_escaped)})"
-
-    return re.compile(
-        rf"""
+    """Builds the slash command pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
+    
+    pattern_template = r"""
         \b                                  # Word boundary
-        {slash_pattern}\s+                  # Slash keyword followed by space
+        {SLASH_KEYWORDS}\s+                 # Slash keyword followed by space
         ([a-zA-Z][a-zA-Z0-9_-]*)           # Command name (starts with letter, can contain letters, numbers, underscore, hyphen)
         \b                                  # Word boundary
-        """,
-        re.VERBOSE | re.IGNORECASE,
+    """
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.SLASH],
+        pattern_template=pattern_template
     )
 
 
 @cached_pattern
 def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the underscore delimiter pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get underscore keywords from CODE_KEYWORDS
-    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
-    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
-    underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
-    underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
-
-    return re.compile(
-        rf"""
-        \b                                  # Word boundary
-        ((?:{underscore_pattern}\s+)+)      # One or more underscore keywords followed by space (captured)
-        ([a-zA-Z][a-zA-Z0-9_-]*)           # Content (starts with letter, can contain letters, numbers, underscore, hyphen)
-        ((?:\s+{underscore_pattern})+)      # One or more space followed by underscore keywords (captured)
-        (?=\s|$)                           # Must be followed by space or end of string
-        """,
-        re.VERBOSE | re.IGNORECASE,
+    """Builds the underscore delimiter pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
+    
+    pattern_template = r"""
+        \b                                      # Word boundary
+        ((?:{UNDERSCORE_KEYWORDS}\s+)+)        # One or more underscore keywords followed by space (captured)
+        ([a-zA-Z][a-zA-Z0-9_-]*)               # Content (starts with letter, can contain letters, numbers, underscore, hyphen)
+        ((?:\s+{UNDERSCORE_KEYWORDS})+)        # One or more space followed by underscore keywords (captured)
+        (?=\s|$)                               # Must be followed by space or end of string
+    """
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.UNDERSCORE],
+        pattern_template=pattern_template
     )
 
 
 @cached_pattern
 def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the simple underscore pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get underscore keywords from CODE_KEYWORDS
-    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
-    underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
-    underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
-    underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
-
-    return re.compile(
-        rf"""
-        \b                                  # Word boundary
-        ([\w][\w0-9_-]*)                   # First word (starts with letter, supports Unicode)
-        \s+{underscore_pattern}\s+          # Space, underscore keyword, space
-        ([\w][\w0-9_-]*)                   # Second word (starts with letter, supports Unicode)
-        \b                                  # Word boundary
-        """,
-        re.VERBOSE | re.IGNORECASE | re.UNICODE,
+    """Builds the simple underscore pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
+    
+    pattern_template = r"""
+        \b                                      # Word boundary
+        ([\w][\w0-9_-]*)                       # First word (starts with letter, supports Unicode)
+        \s+{UNDERSCORE_KEYWORDS}\s+             # Space, underscore keyword, space
+        ([\w][\w0-9_-]*)                       # Second word (starts with letter, supports Unicode)
+        \b                                      # Word boundary
+    """
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.UNDERSCORE],
+        pattern_template=pattern_template
     )
 
 
 @cached_pattern
 def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the long flag pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get dash keywords from CODE_KEYWORDS
-    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
-    dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
-    dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
-    dash_pattern = f"(?:{'|'.join(dash_escaped)})"
-
-    # Two-tier approach:
-    # 1. Match known compound flags like "save dev" → "--save-dev"
-    # 2. Match single-word flags like "verbose" → "--verbose"
-    # This prevents issues like "verbose enables" matching both words
+    """Builds the long flag pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
     
     # Define known compound flags that should be matched as two words
     compound_flag_names = [
@@ -217,60 +198,69 @@ def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     else:
         flag_name_pattern = r"([a-zA-Z][a-zA-Z0-9_-]*)"
     
-    return re.compile(
-        rf"\b{dash_pattern}\s+{dash_pattern}\s+{flag_name_pattern}\b",
-        re.IGNORECASE,
+    pattern_template = f"\\b{{DASH_KEYWORDS}}\\s+{{DASH_KEYWORDS}}\\s+{flag_name_pattern}\\b"
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.DASH],
+        pattern_template=pattern_template
     )
 
 
 @cached_pattern
 def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the short flag pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get dash keywords from CODE_KEYWORDS
-    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
-    dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
-
-    # Create the pattern without any language-specific if-statements
-    dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
-
-    # For Spanish, prevent matching "guión bajo" as a short flag since "guión bajo" is underscore, not dash
+    """Builds the short flag pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
+    
+    # For Spanish, we need to handle "guión bajo" (underscore) vs "guión" (dash)
     if language == "es":
-        # Use negative lookahead to prevent matching "guión" when followed by "bajo"
-        return re.compile(rf"\b(?:(?:guión)(?!\s+bajo)|menos)\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+        # Get dash keywords from mapper, excluding ones that conflict with underscore
+        dash_phrases = mapper.get_spoken_phrases_for_symbol(language, CodeSymbolType.DASH)
+        # Remove "guión" and replace with "guión" + negative lookahead
+        safe_dash_phrases = []
+        for phrase in dash_phrases:
+            if phrase == "guión":
+                safe_dash_phrases.append("(?:guión)(?!\\s+bajo)")
+            else:
+                safe_dash_phrases.append(re.escape(phrase))
+        # Deduplicate
+        safe_dash_phrases = list(set(safe_dash_phrases))
+        dash_pattern = f"(?:{'|'.join(safe_dash_phrases)})"
+        pattern_template = f"\\b{dash_pattern}\\s+([a-zA-Z0-9-]+)\\b"
+        return re.compile(pattern_template, re.IGNORECASE)
     else:
-        # This pattern now correctly handles all languages without special casing,
-        # as long as the JSON files are correctly configured
-        return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+        pattern_template = r"\b{DASH_KEYWORDS}\s+([a-zA-Z0-9-]+)\b"
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.DASH],
+        pattern_template=pattern_template
+    )
 
 
 @cached_pattern
 def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
-    """Builds the assignment pattern dynamically from keywords in constants."""
-    # Get resources for the specified language
-    code_keywords = get_nested_resource(language, "spoken_keywords", "code")
-
-    # Get equals keywords from CODE_KEYWORDS
-    equals_keywords = [k for k, v in code_keywords.items() if v == "="]
-    equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
-    equals_escaped = [re.escape(k) for k in equals_keywords_sorted]
-    equals_pattern = f"(?:{'|'.join(equals_escaped)})"
-
-    return re.compile(
-        rf"""
-        \b                                  # Word boundary
-        (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
-        ([a-zA-Z_]\w*)                      # Variable name (capture group 2)
-        \s+{equals_pattern}\s+              # Space, equals keyword, space
-        (                                   # Value (capture group 3) - now captures chained assignments
+    """Builds the assignment pattern using Universal Code Mapper for cross-language support."""
+    # Use Universal Code Mapper for smart cross-language pattern building
+    mapper = get_universal_code_mapper()
+    
+    pattern_template = r"""
+        \b                                      # Word boundary
+        (?:(let|const|var)\s+)?                 # Optional variable declaration keyword (capture group 1)
+        ([a-zA-Z_]\w*)                          # Variable name (capture group 2)
+        \s+{EQUALS_KEYWORDS}\s+                 # Space, equals keyword, space
+        (                                       # Value (capture group 3) - now captures chained assignments
             (?!.*\b(?:times|plus|minus|divided\s+by|over|squared?|cubed?)\b)  # Not a math expression
             (?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?        # Stop at conjunctions
         )
         (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+|--|\+\+)  # Lookahead: end of string, punctuation, conjunctions, or operators
-        """,
-        re.VERBOSE | re.IGNORECASE,
+    """
+    
+    return mapper.build_universal_pattern(
+        language=language,
+        symbol_types=[CodeSymbolType.EQUALS],
+        pattern_template=pattern_template
     )
 
 
