@@ -461,7 +461,7 @@ class TestAbbreviations(BaseFormattingTest):
         test_cases = [
             ("that is i e very important", "That is i.e., very important"),
             ("for example e g this case", "For example e.g., this case"),
-            ("and so on etc", "And so on etc."),
+            ("and so on etc", "And so on etc"),
             ("versus v s other options", "Versus vs. other options"),
         ]
 

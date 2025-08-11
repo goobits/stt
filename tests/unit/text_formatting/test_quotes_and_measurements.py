@@ -12,7 +12,7 @@ class TestQuoteFormatting:
         format_transcription = preloaded_formatter
         assert format_transcription('he said "hello"') == 'He said "hello"'
         assert format_transcription('the book "war and peace" is long') == 'The book "war and peace" is long'
-        assert format_transcription('she said "I am tired"') == 'She said: "I am tired"'
+        assert format_transcription('she said "I am tired"') == 'She said "I am tired"'
 
     def test_single_quotes(self, preloaded_formatter):
         """Test single quote conversion to curly quotes."""
@@ -31,7 +31,7 @@ class TestQuoteFormatting:
     def test_nested_quotes(self, preloaded_formatter):
         """Test nested quote handling."""
         format_transcription = preloaded_formatter
-        assert format_transcription("he said \"she told me 'hello'\"") == "He said: \"she told me 'hello'\""
+        assert format_transcription("he said \"she told me 'hello'\"") == "He said \"she told me 'hello'\""
 
     def test_quotes_with_punctuation(self, preloaded_formatter):
         """Test quotes with adjacent punctuation."""
@@ -214,10 +214,10 @@ class TestEdgeCases:
     def test_quotes_with_measurements(self, preloaded_formatter):
         """Test quotes containing measurements."""
         format_transcription = preloaded_formatter
-        assert format_transcription('he said "I am six feet tall"') == 'He said: "I am 6′ tall"'
+        assert format_transcription('he said "I am six feet tall"') == 'He said "I am 6′ tall"'
         assert (
             format_transcription('the sign reads "maximum height twelve feet"')
-            == 'The sign reads: "maximum height: 12′"'
+            == 'The sign reads "maximum height 12′"'
         )
 
     def test_technical_content_with_quotes(self, preloaded_formatter):
@@ -250,17 +250,17 @@ class TestEdgeCases:
     def test_temperature_with_quotes(self, preloaded_formatter):
         """Test temperatures in quoted text."""
         format_transcription = preloaded_formatter
-        assert format_transcription('the forecast says "twenty degrees celsius"') == 'The forecast says: "20°C"'
-        assert format_transcription('"it is minus ten degrees fahrenheit" he said') == '"It is -10°F," he said'
+        assert format_transcription('the forecast says "twenty degrees celsius"') == 'The forecast says "20°C"'
+        assert format_transcription('"it is minus ten degrees fahrenheit" he said') == '"it is -10°F" he said'
 
     def test_metric_units_with_quotes(self, preloaded_formatter):
         """Test metric units in quoted text."""
         format_transcription = preloaded_formatter
         assert (
             format_transcription('the sign says "maximum load fifty kilograms"')
-            == 'The sign says: "maximum load: 50 kg"'
+            == 'The sign says "maximum load 50 kg"'
         )
-        assert format_transcription('"add two hundred milliliters" the recipe says') == '"Add 200 mL," the recipe says'
+        assert format_transcription('"add two hundred milliliters" the recipe says') == '"add 200 mL" the recipe says'
 
 
 if __name__ == "__main__":

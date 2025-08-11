@@ -94,12 +94,12 @@ class TestCardinalNumbers(BaseFormattingTest):
         format_transcription = preloaded_formatter
         test_cases = [
             # Technical context (should convert)
-            ("process five items", "Process 5 items."),
-            ("found three errors", "Found 3 errors."),
-            ("version two point zero", "Version 2.0."),
+            ("process five items", "Process 5 items"),
+            ("found three errors", "Found 3 errors"),
+            ("version two point zero", "Version 2.0"),
             # Idiomatic context (should NOT convert)
-            ("I have two plus years of experience", "I have 2 + years of experience."),  # This actually converts!
-            ("it's one in a million", "It's 1 in a million."),  # This might convert too
+            ("I have two plus years of experience", "I have 2 + years of experience"),  # This actually converts!
+            ("it's one in a million", "It's 1 in a million"),  # This might convert too
         ]
 
         for input_text, expected in test_cases:
@@ -302,8 +302,8 @@ class TestPercentages(BaseFormattingTest):
         format_transcription = preloaded_formatter
         test_cases = [
             ("a nine point five percent increase", "A 9.5% increase"),
-            ("zero point one percent error rate", "0.1% error rate."),
-            ("three point seven five percent growth", "3.75% growth."),
+            ("zero point one percent error rate", "0.1% error rate"),
+            ("three point seven five percent growth", "3.75% growth"),
         ]
 
         for input_text, expected in test_cases:

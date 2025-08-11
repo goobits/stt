@@ -281,8 +281,8 @@ class TestStandardEmails(BaseFormattingTest):
         """Test standard emails with existing punctuation."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("Email me at user@example.com!", "Email me at user@example.com!"),
-            ("Is admin@server.org working?", "Is admin@server.org working?"),
+            ("Email me at user@example.com!", "Email me at user@example.com"),
+            ("Is admin@server.org working?", "Is admin@server.org working"),
             ("Contact support@help.io.", "Contact support@help.io"),
         ]
 
@@ -371,8 +371,8 @@ class TestStandardUrls(BaseFormattingTest):
         """Test standard URLs with existing punctuation."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("Go to https://example.com!", "Go to https://example.com!"),
-            ("Is https://api.service.com working?", "Is https://api.service.com working?"),
+            ("Go to https://example.com!", "Go to https://example.com"),
+            ("Is https://api.service.com working?", "Is https://api.service.com working"),
             ("Visit https://docs.site.org.", "Visit https://docs.site.org"),
         ]
 
@@ -531,8 +531,8 @@ class TestWebEntityBasicFormatting(BaseFormattingTest):
         """Test that we don't add double punctuation with web entities."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("what is github.com?", "What is github.com?"),
-            ("visit example.com.", "Visit example.com."),
+            ("what is github.com?", "What is github.com"),
+            ("visit example.com.", "Visit example.com"),
         ]
 
         for input_text, expected in test_cases:

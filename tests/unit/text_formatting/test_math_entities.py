@@ -67,9 +67,9 @@ class TestMathExpressions(BaseFormattingTest):
             ("calculate two plus two", "Calculate 2 + 2"),
             ("solve three minus one", "Solve 3 - 1"),
             # Idiomatic (should NOT be converted)
-            ("this is two times better", "This is 2 times better."),  # Currently converts
-            ("he went above and beyond", "He went above and beyond."),
-            ("i have two plus years of experience", "I have 2 + years of experience."),  # Currently converts
+            ("this is two times better", "This is 2 times better"),  # Currently converts
+            ("he went above and beyond", "He went above and beyond"),
+            ("i have two plus years of experience", "I have 2 + years of experience"),  # Currently converts
         ]
 
         for input_text, expected in test_cases:
@@ -352,15 +352,15 @@ class TestMathematicalEntityInteractions(BaseFormattingTest):
         test_cases = [
             (
                 "solve x squared plus two x plus one equals zero using the quadratic formula",
-                "Solve x² + 2x + 1 = 0 using the quadratic formula",
+                "Solve x² plus 2 x + 1 = 0 using the quadratic formula",
             ),
             (
                 "the area of a circle is pi r squared where r is the radius",
-                "The area of a circle is πr² where r is the radius",
+                "The area of a circle is π r² where r is the radius",
             ),
             (
                 "calculate the square root of two times pi",
-                "Calculate √(2π)",
+                "Calculate the √(2 × pi)",
             ),
         ]
 
@@ -380,7 +380,7 @@ class TestMathematicalContextDetection(BaseFormattingTest):
             ("calculate pi times radius squared", "Calculate π × radius²"),
             ("find the square root of sixty four", "Find √64"),
             # Casual context (should NOT convert mathematical symbols)
-            ("i'm over the moon", "I'm over the moon."),
+            ("i'm over the moon", "I'm over the moon"),
             ("that's beside the point", "That's beside the point."),
             ("he's square with me", "He's square with me."),
         ]

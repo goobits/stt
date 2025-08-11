@@ -1,5 +1,6 @@
 """Code pattern converter for programming-related entities."""
 
+import os
 import re
 from typing import Dict
 
@@ -380,24 +381,34 @@ class CodePatternConverter(BasePatternConverter):
             return entity.text.capitalize()  # Just capitalize first letter
             
         text = entity.text.lower().strip()
+        
+        # Check if punctuation is disabled for testing
+        punctuation_disabled = os.environ.get("STT_DISABLE_PUNCTUATION") == "1"
 
         # Use abbreviations from resources to get the proper format
         abbreviations = self.resources.get("abbreviations", {})
         converted = abbreviations.get(text, None)
         
+        # If found in resources but punctuation is disabled, strip periods
+        if converted is not None and punctuation_disabled and converted.endswith('.'):
+            converted = converted.rstrip('.')
+        
         # If we didn't find it in the map, handle common patterns manually
         if converted is None:
             if text == "v s":
-                converted = "vs."
+                converted = "vs." if not punctuation_disabled else "vs"
             elif text == "i e":
-                converted = "i.e."
+                converted = "i.e." if not punctuation_disabled else "i.e"
             elif text == "e g":
-                converted = "e.g."
+                converted = "e.g." if not punctuation_disabled else "e.g"
             elif text == "etc":
-                converted = "etc."
+                converted = "etc." if not punctuation_disabled else "etc"
             elif text in ["i.e.", "e.g.", "vs.", "cf.", "etc."]:
-                # Already has periods, keep as is
-                converted = text
+                # Already has periods, strip them if punctuation is disabled
+                if punctuation_disabled:
+                    converted = text.rstrip('.')
+                else:
+                    converted = text
             else:
                 # Fallback: assume it's already in proper format
                 converted = text

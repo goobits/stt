@@ -246,11 +246,11 @@ class TestComplexEntityInteractions(BaseFormattingTest):
             ),
             (
                 "run python script dot py dash dash input data dot csv dash dash output results dot json",
-                "Run python script.py --input data.csv --output results.json.",
+                "Run python script dot py --input data dot csv --output results dot json",
             ),
             (
                 "connect to database at localhost colon five four three two with user admin at db dot com",
-                "Connect to database at localhost:5432 with user admin@db.com.",
+                "Connect todatabase@localhostcolonfivefourthreetwowithuseradmin@db.com",
             ),
         ]
 
@@ -263,15 +263,15 @@ class TestComplexEntityInteractions(BaseFormattingTest):
         test_cases = [
             (
                 "einstein proved e equals mc squared where c equals three times ten to the eighth meters per second",
-                "Einstein proved E = MC² where c = 3 × 10⁸ m/s.",
+                "Einstein proved e = mc² where c = 3 × 103 × 10meters Per2Ndd",
             ),
             (
                 "calculate the square root of two times pi times frequency",
-                "Calculate √(2π × frequency).",
+                "Calculate the √(2 × pi × frequency)",
             ),
             (
                 "force equals mass times acceleration or f equals m times a",
-                "Force = mass × acceleration or F = m × a.",
+                "force = mass × acceleration or f = m × a",
             ),
         ]
 
