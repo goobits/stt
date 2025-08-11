@@ -421,5 +421,51 @@
       "pdf": "PDF"
     },
     "proper_nouns": ["Redis", "MySQL", "PostgreSQL", "MongoDB", "Docker", "Kubernetes", "GitHub", "GitLab", "JavaScript", "TypeScript", "Python", "Java", "React", "Angular", "Vue", "Node", "Express", "Django", "Flask", "Spring", "Laravel", "Ubuntu", "CentOS", "Debian", "Windows", "MacOS", "Linux", "Android", "iOS", "Chrome", "Firefox", "Safari", "Edge", "Apache", "Nginx", "Tomcat", "Jenkins", "Terraform", "Ansible", "AWS", "Azure", "Google", "Microsoft", "Apple", "Facebook", "Meta", "Twitter", "LinkedIn", "Instagram", "YouTube", "Netflix", "Spotify", "Slack", "Discord", "Zoom", "Teams", "Skype", "WhatsApp", "Telegram", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Today", "Tomorrow", "Yesterday", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  },
+  "capitalization_context": {
+    "entity_capitalization_rules": {
+      "COMMAND_FLAG": {
+        "spacing_before": {
+          "prepositions": ["with", "using", "via", "for", "by", "through"],
+          "require_space": true
+        },
+        "capitalization": {
+          "sentence_start": true,
+          "after_preposition": false,
+          "preserve_case": false
+        },
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Command flags need space after prepositions and don't capitalize following words"
+      },
+      "DECREMENT_OPERATOR": {
+        "spacing_before": {
+          "variables": true,
+          "require_space": false  
+        },
+        "capitalization": {
+          "sentence_start": false,
+          "preserve_case": true,
+          "prevent_sentence_capitalization": true
+        },
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Decrement operators don't start sentences and preserve variable case"
+      },
+      "INCREMENT_OPERATOR": {
+        "spacing_before": {
+          "variables": true,
+          "require_space": false
+        },
+        "capitalization": {
+          "sentence_start": false,
+          "preserve_case": true,
+          "prevent_sentence_capitalization": true
+        },
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Increment operators don't start sentences and preserve variable case"
+      }
+    }
   }
 }

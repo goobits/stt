@@ -53,6 +53,10 @@ class SmartCapitalizer:
         if not text:
             return text
 
+        # Apply entity type-specific spacing rules first
+        if entities:
+            text = self.rules.apply_entity_type_spacing_rules(text, entities, self.language)
+
         # Preserve all-caps words (acronyms like CPU, API, JSON) and number+unit combinations (500MB, 2.5GHz)
         # But exclude version numbers (v16.4.2)
         all_caps_words = {}
@@ -131,7 +135,7 @@ class SmartCapitalizer:
         abbrev_pattern = self.rules.get_common_abbreviations_pattern()
         text = re.sub(rf"(\b(?:{abbrev_pattern})\s+)([a-zA-Z])", protect_after_abbreviation, text)
 
-        # Fix first letter capitalization with entity protection
+        # Fix first letter capitalization with entity protection and entity type rules
         if text and text[0].islower():
             # Find the first alphabetic character to potentially capitalize
             first_letter_index = -1
@@ -141,15 +145,29 @@ class SmartCapitalizer:
                     break
 
             if first_letter_index != -1:
-                should_capitalize = self.protection.should_capitalize_first_letter(
-                    text, first_letter_index, entities
-                )
+                # Check for entities that prevent sentence capitalization
+                should_prevent = False
+                if entities:
+                    for entity in entities:
+                        # Check if entity contains or starts at the first letter
+                        if (entity.start <= first_letter_index < entity.end and 
+                            self.rules.should_prevent_sentence_capitalization(entity.type, entity.text)):
+                            logger.debug(f"Entity {entity.type} prevents sentence capitalization: '{entity.text}'")
+                            should_prevent = True
+                            break
 
-                if should_capitalize:
-                    logger.debug(f"Capitalizing first letter at index {first_letter_index}")
-                    text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
+                if not should_prevent:
+                    should_capitalize = self.protection.should_capitalize_first_letter(
+                        text, first_letter_index, entities
+                    )
+
+                    if should_capitalize:
+                        logger.debug(f"Capitalizing first letter at index {first_letter_index}")
+                        text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
+                    else:
+                        logger.debug("Not capitalizing first letter")
                 else:
-                    logger.debug("Not capitalizing first letter")
+                    logger.debug("Not capitalizing first letter due to entity type rule")
 
         # Fix "i" pronoun using grammatical context
         if self.nlp:

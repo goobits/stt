@@ -215,6 +215,10 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
                 pattern = rf"\b{re.escape(keyword)}\b"
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
+    # THEORY 16: Fix capitalization after entity modifications for Spanish
+    if language == "es" and text != original_text:
+        text = _fix_capitalization_after_entity_changes(original_text, text, language)
+    
     return text
 
 
@@ -236,25 +240,147 @@ def _fix_spanish_operator_spacing(text: str) -> str:
     import re
     
     # Common Spanish operator spacing patterns to fix
+    # BUT preserve space after prepositions before flags
     spacing_fixes = [
-        # "y --" -> "y--" (decrement/flag operators)
-        (r'\b(y|o|con|sin|pero|mas|además|también|hasta|para|por|desde|hacia|entre|durante)\s+(--|\+\+|==)\b', 
-         r'\1\2'),
-        
-        # "valor --" -> "valor--" (variable operators) 
-        (r'\b([a-zA-ZáéíóúüñÁÉÍÓÚÜÑ_]\w*)\s+(--|\+\+|==)(?=\s|$|\.|,|;|:)', 
-         r'\1\2'),
-         
         # Fix spacing around single dashes in certain contexts  
         # "y -" at end of sentence -> "y--" if it should be decrement
-        (r'\b(y|o|con|sin|pero|mas|además|también|hasta|para|por|desde|hacia|entre|durante)\s+-(?=\s*[.!?]|$)', 
+        (r'\b(y|o|sin|pero|mas|además|también|hasta|desde|hacia|entre|durante)\s+-(?=\s*[.!?]|$)', 
          r'\1--'),
+         
+        # REMOVED: "con --" -> "con--" pattern because "con" is a preposition that should keep space before flags
     ]
     
     for pattern, replacement in spacing_fixes:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     
+    # Handle specific variable + operator patterns (careful not to affect preposition + flag)
+    text = _fix_variable_operator_spacing(text)
+    
     return text
+
+
+def _fix_variable_operator_spacing(text: str) -> str:
+    """
+    Fix variable + operator spacing specifically, avoiding preposition + flag patterns.
+    
+    This handles cases like "valor --" -> "valor--" but NOT "con --" -> "con--"
+    since "con" is a preposition that should keep space before flags.
+    Only joins operators to words that appear to be variables, not verbs or other words.
+    """
+    import re
+    
+    # Split text by word boundaries to check context
+    words = text.split()
+    result_words = []
+    
+    for i, word in enumerate(words):
+        # Check if word starts with operators (might have punctuation attached)
+        operator_match = None
+        for op in ['--', '++', '==']:
+            if word.startswith(op):
+                operator_match = op
+                break
+        
+        if operator_match and i > 0:
+            prev_word = words[i-1].lower()
+            
+            # Spanish prepositions that should keep space before flags
+            spanish_prepositions = {
+                'con', 'usando', 'para', 'por', 'mediante', 'bajo', 
+                'desde', 'hacia', 'entre', 'durante', 'hasta'
+            }
+            
+            # Spanish verbs and command words that should keep space before flags
+            # (but NOT variable names like "valor", "contador", etc.)
+            spanish_command_words = {
+                'usa', 'ejecuta', 'comando', 'prueba', 'corre', 'instala', 
+                'actualiza', 'borra', 'crea', 'abre', 'guarda', 'compila'
+            }
+            
+            # If previous word is a preposition or command word, keep the space (don't join)
+            if prev_word in spanish_prepositions or prev_word in spanish_command_words:
+                result_words.append(word)
+            else:
+                # Check if it looks like a variable name pattern
+                # Variables typically are common programming/data identifiers
+                common_variable_names = {
+                    'valor', 'contador', 'índice', 'index', 'item', 'dato', 'data',
+                    'suma', 'total', 'count', 'num', 'numero', 'temp', 'resultado',
+                    'x', 'y', 'z', 'i', 'j', 'k', 'n', 'm', 'a', 'b', 'c'
+                }
+                
+                if (prev_word.islower() and 
+                    (prev_word in common_variable_names or 
+                     len(prev_word) <= 3 or  # short identifiers like 'x', 'id' 
+                     '_' in prev_word)):     # underscore variables
+                    
+                    # For comparison operators (==), keep space for readability
+                    if operator_match == '==':
+                        result_words.append(word)
+                    else:
+                        # For increment/decrement operators (++, --), join without space  
+                        if result_words:
+                            result_words[-1] = result_words[-1] + word
+                        else:
+                            result_words.append(word)
+                else:
+                    # Keep space for other cases
+                    result_words.append(word)
+        else:
+            result_words.append(word)
+    
+    return ' '.join(result_words)
+
+
+def _fix_capitalization_after_entity_changes(original_text: str, modified_text: str, language: str) -> str:
+    """
+    Fix capitalization after entity modifications.
+    
+    THEORY 16: Entity Type-Specific Capitalization Rules
+    
+    When postprocessing modifies entities (like joining "valor --" -> "valor--"),
+    the capitalization may need to be corrected based on entity type rules.
+    
+    Args:
+        original_text: Text before entity modifications 
+        modified_text: Text after entity modifications
+        language: Language code
+        
+    Returns:
+        Text with corrected capitalization
+    """
+    import re
+    from ...constants import get_resources
+    
+    # Get language resources for capitalization context rules
+    resources = get_resources(language)
+    context_rules = resources.get("capitalization_context", {})
+    entity_rules = context_rules.get("entity_capitalization_rules", {})
+    
+    # Patterns that should not be capitalized at sentence start
+    operator_patterns = [
+        r'^([a-zA-ZáéíóúüñÁÉÍÓÚÜÑ_]\w*)(--|\+\+|==)',  # variable operators like "valor--"
+        r'^([a-zA-ZáéíóúüñÁÉÍÓÚÜÑ_]\w*)(\s*-\s*[a-zA-Z])',  # variable with dash like "valor -x"
+    ]
+    
+    result_text = modified_text
+    
+    for pattern in operator_patterns:
+        match = re.search(pattern, result_text, re.IGNORECASE)
+        if match:
+            word = match.group(1)
+            operator = match.group(2)
+            
+            # Check if this matches a decrement/increment pattern that should not be capitalized
+            if operator in ['--', '++', '==']:
+                # Convert to lowercase at sentence start for operators
+                if word[0].isupper():
+                    corrected_word = word[0].lower() + word[1:]
+                    result_text = result_text[:match.start(1)] + corrected_word + result_text[match.end(1):]
+                    logger.debug(f"THEORY_16: Corrected capitalization: '{word}{operator}' -> '{corrected_word}{operator}'")
+                    break
+    
+    return result_text
 
 
 def _process_spanish_multi_word_entities(text: str, resources: dict) -> str:
@@ -307,11 +433,30 @@ def _process_spanish_multi_word_entities(text: str, resources: dict) -> str:
                     start_pos = match.start()
                     end_pos = match.end()
                     
+                    # Check preceding words for Spanish prepositions
+                    preceding_text = text[:start_pos].strip()
+                    words_before = preceding_text.lower().split()
+                    
+                    # Spanish prepositions that require space before flag
+                    spanish_prepositions = ["con", "usando", "para", "por", "mediante", "a través de", "con el", "bajo"]
+                    
+                    # Check if preceded by preposition
+                    preceded_by_preposition = False
+                    for prep in spanish_prepositions:
+                        prep_words = prep.split()
+                        if len(words_before) >= len(prep_words):
+                            last_words = words_before[-len(prep_words):]
+                            if last_words == prep_words:
+                                preceded_by_preposition = True
+                                break
+                    
                     # Check for space before
                     char_before = text[start_pos - 1] if start_pos > 0 else ""
                     
-                    # For command flags, preserve leading space but no trailing space
-                    if char_before != " " and start_pos > 0:
+                    # For command flags after prepositions, ensure space is preserved
+                    if preceded_by_preposition and char_before == " ":
+                        return " " + symbol
+                    elif char_before != " " and start_pos > 0:
                         return " " + symbol
                     else:
                         return symbol

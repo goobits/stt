@@ -220,3 +220,121 @@ class CapitalizationRules:
         """
         context_rules = self.get_capitalization_context_rules()
         return set(context_rules.get("continuation_words", []))
+
+    def apply_entity_type_spacing_rules(self, text: str, entities: list, language: str) -> str:
+        """Apply entity type-specific spacing rules.
+        
+        Args:
+            text: Text to process
+            entities: List of entities with position information
+            language: Language code (e.g., "en", "es")
+            
+        Returns:
+            Text with spacing rules applied
+        """
+        if not entities:
+            return text
+        
+        # Get entity-specific rules
+        context_rules = self.get_capitalization_context_rules()
+        entity_rules = context_rules.get("entity_capitalization_rules", {})
+        
+        # Sort entities by position (reverse order to maintain positions during modification)
+        sorted_entities = sorted(entities, key=lambda e: getattr(e, 'start', 0), reverse=True)
+        
+        for entity in sorted_entities:
+            entity_type_name = getattr(entity.type, 'name', str(entity.type)) if hasattr(entity, 'type') else None
+            if not entity_type_name:
+                continue
+                
+            entity_rule = entity_rules.get(entity_type_name, {})
+            spacing_rule = entity_rule.get("spacing_before", {})
+            
+            if spacing_rule.get("require_space"):
+                text = self._apply_spacing_rule(text, entity, spacing_rule, language)
+        
+        return text
+
+    def _apply_spacing_rule(self, text: str, entity, spacing_rule: dict, language: str) -> str:
+        """Apply spacing rule for a specific entity.
+        
+        Args:
+            text: Text to process
+            entity: Entity object
+            spacing_rule: Spacing rule configuration
+            language: Language code
+            
+        Returns:
+            Text with spacing rule applied
+        """
+        entity_start = getattr(entity, 'start', 0)
+        entity_end = getattr(entity, 'end', 0)
+        entity_text = getattr(entity, 'text', '')
+        
+        if entity_start <= 0 or entity_end > len(text):
+            return text
+        
+        # Check preposition requirements
+        prepositions = spacing_rule.get("prepositions", [])
+        if prepositions and entity_start > 0:
+            # Look for prepositions before this entity
+            preceding_text = text[:entity_start].strip()
+            words_before = preceding_text.lower().split()
+            
+            # Check if the last word(s) before the entity form a preposition
+            for prep in prepositions:
+                prep_words = prep.lower().split()
+                if len(words_before) >= len(prep_words):
+                    # Check if the last N words match this preposition
+                    last_words = words_before[-len(prep_words):]
+                    if last_words == prep_words:
+                        # Ensure there's a space between preposition and entity
+                        pre_entity_char = text[entity_start - 1] if entity_start > 0 else ''
+                        if pre_entity_char != ' ':
+                            text = text[:entity_start] + ' ' + text[entity_start:]
+                            # Update entity positions for any subsequent processing
+                            if hasattr(entity, 'start'):
+                                entity.start += 1
+                            if hasattr(entity, 'end'):
+                                entity.end += 1
+                        break
+        
+        return text
+
+    def should_prevent_sentence_capitalization(self, entity_type: EntityType, entity_text: str) -> bool:
+        """Check if an entity should prevent sentence-start capitalization.
+        
+        Args:
+            entity_type: The entity type to check
+            entity_text: The entity text
+            
+        Returns:
+            True if this entity should prevent sentence-start capitalization
+        """
+        context_rules = self.get_capitalization_context_rules()
+        entity_rules = context_rules.get("entity_capitalization_rules", {})
+        
+        entity_type_name = entity_type.name if hasattr(entity_type, 'name') else str(entity_type)
+        entity_rule = entity_rules.get(entity_type_name, {})
+        
+        capitalization_rule = entity_rule.get("capitalization", {})
+        return capitalization_rule.get("prevent_sentence_capitalization", False)
+
+    def should_preserve_entity_case(self, entity_type: EntityType, context: str = "") -> bool:
+        """Check if an entity's case should be preserved.
+        
+        Args:
+            entity_type: The entity type to check
+            context: Surrounding text context
+            
+        Returns:
+            True if the entity case should be preserved
+        """
+        context_rules = self.get_capitalization_context_rules()
+        entity_rules = context_rules.get("entity_capitalization_rules", {})
+        
+        entity_type_name = entity_type.name if hasattr(entity_type, 'name') else str(entity_type)
+        entity_rule = entity_rules.get(entity_type_name, {})
+        
+        capitalization_rule = entity_rule.get("capitalization", {})
+        return capitalization_rule.get("preserve_case", False)
