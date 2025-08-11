@@ -30,6 +30,9 @@ from stt.text_formatting.entity_boundary_tracker import EntityBoundaryTracker
 # Theory 17: Spanish Conversational Flow Preservation
 from stt.text_formatting.conversational_entity_processor import ConversationalEntityProcessor
 
+# Theory 18: Intelligent Word-After-Entity Classification
+from stt.text_formatting.intelligent_word_classifier import IntelligentWordClassifier
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,7 @@ def convert_entities(
                 logger.info(f"THEORY_17: Applied conversational flow processing: '{text}' -> '{conversational_result[0]}'")
                 text = conversational_result[0]
                 entities = conversational_result[1]
+    
     
     # Step 3a: Pre-conversion conflict check
     # Resolve any remaining conflicts before conversion to prevent position tracking issues

@@ -157,6 +157,25 @@ class TextFormatter:
         logger.debug(f"Step 1.5 - Detecting multi-word idioms: '{text}'")
         protected_idiom_entities = self._detect_multi_word_idioms(text)
         logger.debug(f"Step 1.5 - Protected idioms: {len(protected_idiom_entities)} entities")
+        
+        # STEP 1.75: Apply intelligent word classification (Theory 18)
+        if current_language == "es":
+            logger.debug(f"Step 1.75 - Applying intelligent word classification: '{text}'")
+            try:
+                from stt.text_formatting.intelligent_word_classifier import IntelligentWordClassifier
+                word_classifier = IntelligentWordClassifier(current_language)
+                if word_classifier.active:
+                    classified_text, word_changes = word_classifier.process_text_with_word_classification(text, [])
+                    if word_changes > 0:
+                        logger.info(f"THEORY_18: Applied word classification with {word_changes} changes: '{text}' -> '{classified_text}'")
+                        text = classified_text
+                    else:
+                        logger.debug("THEORY_18: No word classifications applied")
+                else:
+                    logger.debug("THEORY_18: Word classifier not active")
+            except Exception as e:
+                logger.warning(f"THEORY_18: Error in word classification: {e}")
+            logger.debug(f"Step 1.75 - After word classification: '{text}'")
 
         # STEP 2: Detect all entities with deduplication
         logger.debug(f"Step 2 - Starting entity detection on: '{text}'")

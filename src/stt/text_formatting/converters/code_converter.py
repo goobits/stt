@@ -461,8 +461,10 @@ class CodePatternConverter(BasePatternConverter):
             right = entity.metadata.get("right", "")
 
             # Check if right side contains math expressions - if so, convert operators first
+            # Theory 18: Also detect mathematical operators that have been pre-converted by word classification
             has_math_operators = bool(
-                re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE)
+                re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE) or
+                re.search(r"[+\-×÷*/]", right)  # Detect already-converted mathematical symbols
             )
 
             if has_math_operators:
