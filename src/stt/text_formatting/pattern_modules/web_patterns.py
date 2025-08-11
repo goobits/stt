@@ -16,6 +16,7 @@ from typing import Pattern
 
 from ..constants import get_resources, get_nested_resource
 from ..pattern_cache import cached_pattern
+from ..modern_pattern_cache import cached_pattern as modern_cached_pattern
 
 
 # ==============================================================================
@@ -88,7 +89,7 @@ DOMAIN_EXCLUDE_WORDS = {
 # ==============================================================================
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -168,7 +169,7 @@ def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken email pattern dynamically for the specified language."""
     url_keywords = get_nested_resource(language, "spoken_keywords", "url")
@@ -248,7 +249,7 @@ def build_spoken_email_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the spoken protocol pattern dynamically for the specified language."""
     url_keywords = get_nested_resource(language, "spoken_keywords", "url")
@@ -302,7 +303,7 @@ def build_spoken_protocol_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-@cached_pattern
+@modern_cached_pattern(category='common', language_aware=True)
 def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the port number pattern dynamically from keywords in constants."""
     # Get resources for the specified language
@@ -424,7 +425,7 @@ PORT_NUMBER_PATTERN = build_port_number_pattern("en")
 
 
 # WWW domain rescue pattern: "wwwgooglecom" -> "www.google.com"
-@cached_pattern
+@modern_cached_pattern(category='specialized', language_aware=False)
 def build_www_domain_rescue_pattern() -> re.Pattern[str]:
     """Build WWW domain rescue pattern."""
     return re.compile(
@@ -492,14 +493,14 @@ URL_PARAMETER_PARSE_PATTERN = build_url_parameter_parse_pattern()
 # ==============================================================================
 
 # URL and email patterns for punctuation protection (pre-compiled)
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=False)
 def build_url_protection_pattern() -> re.Pattern[str]:
     """Build URL protection pattern."""
     return re.compile(
         r"\b(?:https?://)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:/[^?\s]*)?(?:\?[^\s]*)?", re.IGNORECASE
     )
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=False)
 def build_email_protection_pattern() -> re.Pattern[str]:
     """Build email protection pattern."""
     return re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b", re.IGNORECASE)

@@ -16,6 +16,7 @@ from typing import Pattern
 
 from ..constants import get_resources, get_nested_resource
 from ..pattern_cache import cached_pattern
+from ..modern_pattern_cache import cached_pattern as modern_cached_pattern
 from ..universal_code_mapper import get_universal_code_mapper, CodeSymbolType
 
 
@@ -107,7 +108,7 @@ ALL_FILE_EXTENSIONS = sum(FILE_EXTENSIONS.values(), [])
 # ==============================================================================
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the slash command pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -127,7 +128,7 @@ def build_slash_command_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the underscore delimiter pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -148,7 +149,7 @@ def build_underscore_delimiter_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-@cached_pattern
+@modern_cached_pattern(category='core', language_aware=True)
 def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the simple underscore pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -169,7 +170,7 @@ def build_simple_underscore_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-@cached_pattern
+@modern_cached_pattern(category='common', language_aware=True)
 def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the long flag pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -207,7 +208,7 @@ def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-@cached_pattern
+@modern_cached_pattern(category='common', language_aware=True)
 def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the short flag pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -239,7 +240,7 @@ def build_short_flag_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
-@cached_pattern
+@modern_cached_pattern(category='common', language_aware=True)
 def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
     """Builds the assignment pattern using Universal Code Mapper for cross-language support."""
     # Use Universal Code Mapper for smart cross-language pattern building
@@ -477,20 +478,20 @@ def get_compiled_code_pattern(pattern_name: str) -> Pattern | None:
     return pattern_map.get(pattern_name)
 
 
-# Getter functions for the new cached patterns
+# Getter functions for the cached patterns
 def get_file_extension_detection_pattern() -> re.Pattern[str]:
     """Get the file extension detection pattern."""
-    return build_file_extension_detection_pattern()
+    return FILE_EXTENSION_DETECTION_PATTERN
 
 
 def get_filename_with_extension_pattern() -> re.Pattern[str]:
     """Get the filename with extension pattern."""
-    return build_filename_with_extension_pattern()
+    return FILENAME_WITH_EXTENSION_PATTERN
 
 
 def get_spoken_dot_filename_pattern() -> re.Pattern[str]:
     """Get the spoken dot filename pattern."""
-    return build_spoken_dot_filename_pattern()
+    return SPOKEN_DOT_FILENAME_PATTERN
 
 
 def get_full_spoken_filename_pattern() -> re.Pattern[str]:

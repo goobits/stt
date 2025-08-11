@@ -25,6 +25,7 @@ from . import regex_patterns
 from .constants import get_resources
 from .nlp_provider import get_nlp, get_punctuator
 from .spacy_doc_cache import initialize_global_doc_processor
+from .modern_pattern_cache import warm_common_patterns, get_cache_stats
 from .utils import is_inside_entity
 
 # Local imports - specialized components
@@ -72,6 +73,14 @@ class TextFormatter:
         
         # Initialize global document processor for centralized SpaCy doc caching with enhanced cache size
         initialize_global_doc_processor(self.nlp, max_cache_size=50)
+        
+        # Theory 10: Initialize modern pattern cache for performance optimization
+        try:
+            warm_common_patterns(self.language)
+            cache_stats = get_cache_stats()
+            logger.debug(f"Pattern cache warmed: {cache_stats.cache_size} patterns for language {self.language}")
+        except Exception as e:
+            logger.warning(f"Failed to warm pattern cache: {e}")
 
         # Initialize components with dependency injection and language support
         self.entity_detector = EntityDetector(nlp=self.nlp, language=self.language)
