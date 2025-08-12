@@ -58,6 +58,7 @@ class UniversalPriorityManager:
         EntityType.EMAIL: 80,
         EntityType.SPOKEN_EMAIL: 80,
         EntityType.TEMPERATURE: 80,
+        EntityType.CURRENCY: 76,  # Moved above MATH_EXPRESSION for compound expressions
         EntityType.MATH_EXPRESSION: 75,
         EntityType.MATH: 75,
         EntityType.ROOT_EXPRESSION: 74,
@@ -73,7 +74,6 @@ class UniversalPriorityManager:
         EntityType.CENTS: 63,
         EntityType.PROGRAMMING_KEYWORD: 63,
         EntityType.COMMAND_FLAG: 62,
-        EntityType.CURRENCY: 62,
         EntityType.POUNDS: 61,
         EntityType.EUROS: 61,
         EntityType.UNDERSCORE_DELIMITER: 60,
@@ -84,7 +84,7 @@ class UniversalPriorityManager:
         EntityType.FREQUENCY: 54,
         EntityType.VERSION: 53,
         EntityType.PORT_NUMBER: 52,
-        EntityType.MONEY: 50,
+        EntityType.MONEY: 76,  # Moved above MATH_EXPRESSION to match CURRENCY priority
         EntityType.METRIC_LENGTH: 50,
         EntityType.METRIC_WEIGHT: 50,
         EntityType.METRIC_VOLUME: 50,
