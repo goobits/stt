@@ -1,58 +1,514 @@
 {
+  "framework_validation": {
+    "timestamp": 1754985589.8961782,
+    "version": "Phase 3 Implementation",
+    "target_case": "from nine to five -> From 9 to 5",
+    "framework_status": "COMPLETE",
+    "components_implemented": 4,
+    "components_total": 4
+  },
+  "integration_testing": {
+    "summary": {
+      "timestamp": 1754985589.8938432,
+      "total_categories": 2,
+      "total_tests": 10,
+      "total_passed": 0,
+      "total_failed": 10,
+      "overall_success_rate": 0.0,
+      "critical_failures_count": 4,
+      "performance_issues_count": 2
+    },
+    "category_breakdown": {
+      "time_range": {
+        "success_rate": 0.0,
+        "test_count": 8,
+        "passed_count": 0,
+        "avg_time_ms": 402.89907983969897
+      },
+      "conflict_detection": {
+        "success_rate": 0.0,
+        "test_count": 2,
+        "passed_count": 0,
+        "avg_time_ms": 54.58780378103256
+      }
+    },
+    "critical_failures": [
+      {
+        "category": "time_range",
+        "input": "from nine to five",
+        "expected": "From 9 to 5",
+        "actual": "From nine to five.",
+        "error": null
+      },
+      {
+        "category": "time_range",
+        "input": "meeting from two to three on friday",
+        "expected": "Meeting from 2 to 3 on Friday",
+        "actual": "Meeting from 2 - 3 on friday.",
+        "error": null
+      },
+      {
+        "category": "time_range",
+        "input": "nine to five",
+        "expected": "9-5",
+        "actual": "Nine to five.",
+        "error": null
+      },
+      {
+        "category": "conflict_detection",
+        "input": "from two to five dollars",
+        "expected": "From $2 to $5",
+        "actual": "From two to $5.",
+        "error": null
+      }
+    ],
+    "performance_issues": [
+      {
+        "category": "time_range",
+        "avg_time_ms": 402.89907983969897
+      },
+      {
+        "category": "conflict_detection",
+        "avg_time_ms": 54.58780378103256
+      }
+    ],
+    "recommendations": [
+      "CRITICAL: 4 high-priority patterns are failing. These should be addressed immediately.",
+      "Focus on time_range patterns: 3 critical failures",
+      "Focus on conflict_detection patterns: 1 critical failures",
+      "Performance concerns in 2 pattern categories. Consider pattern optimization.",
+      "Pattern categories with <80% success rate: time_range (0.0%), conflict_detection (0.0%)"
+    ],
+    "detailed_reports": {
+      "time_range": {
+        "pattern_category": "time_range",
+        "test_count": 8,
+        "passed_count": 0,
+        "failed_count": 8,
+        "partial_count": 3,
+        "success_rate": 0.0,
+        "avg_execution_time_ms": 402.89907983969897,
+        "detailed_results": [
+          {
+            "test_case": {
+              "input_text": "from nine to five",
+              "expected_output": "From 9 to 5",
+              "pattern_name": "time_range",
+              "context": "standalone_time_range",
+              "metadata": {
+                "priority": "high",
+                "test_type": "regression"
+              }
+            },
+            "formatter_output": "From nine to five.",
+            "expected_output": "From 9 to 5",
+            "passed": false,
+            "execution_time_ms": 2839.437836781144,
+            "error_message": null,
+            "partial_match": false,
+            "confidence_score": 0.6206896551724138
+          },
+          {
+            "test_case": {
+              "input_text": "meeting from two to three on friday",
+              "expected_output": "Meeting from 2 to 3 on Friday",
+              "pattern_name": "time_range",
+              "context": "time_range_in_sentence",
+              "metadata": {
+                "priority": "high",
+                "test_type": "regression"
+              }
+            },
+            "formatter_output": "Meeting from 2 - 3 on friday.",
+            "expected_output": "Meeting from 2 to 3 on Friday",
+            "passed": false,
+            "execution_time_ms": 69.02629183605313,
+            "error_message": null,
+            "partial_match": true,
+            "confidence_score": 0.9310344827586207
+          },
+          {
+            "test_case": {
+              "input_text": "from ten AM to two PM",
+              "expected_output": "From 10 AM to 2 PM",
+              "pattern_name": "time_range",
+              "context": "time_range_with_ampm",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "enhancement"
+              }
+            },
+            "formatter_output": "From 10 AM to 2 PM.",
+            "expected_output": "From 10 AM to 2 PM",
+            "passed": false,
+            "execution_time_ms": 53.31031605601311,
+            "error_message": null,
+            "partial_match": true,
+            "confidence_score": 0.972972972972973
+          },
+          {
+            "test_case": {
+              "input_text": "nine to five",
+              "expected_output": "9-5",
+              "pattern_name": "time_range_compact",
+              "context": "compact_time_range",
+              "metadata": {
+                "priority": "high",
+                "test_type": "regression"
+              }
+            },
+            "formatter_output": "Nine to five.",
+            "expected_output": "9-5",
+            "passed": false,
+            "execution_time_ms": 50.05872622132301,
+            "error_message": null,
+            "partial_match": false,
+            "confidence_score": 0.0
+          },
+          {
+            "test_case": {
+              "input_text": "nine to five shift",
+              "expected_output": "9-5 shift",
+              "pattern_name": "time_range_compact",
+              "context": "time_range_with_job_context",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "enhancement"
+              }
+            },
+            "formatter_output": "Nine to five shift.",
+            "expected_output": "9-5 shift",
+            "passed": false,
+            "execution_time_ms": 53.18098980933428,
+            "error_message": null,
+            "partial_match": false,
+            "confidence_score": 0.42857142857142855
+          },
+          {
+            "test_case": {
+              "input_text": "from eight to six",
+              "expected_output": "From 8 to 6",
+              "pattern_name": "time_range",
+              "context": "reverse_time_range",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "edge_case"
+              }
+            },
+            "formatter_output": "From 8 - 6.",
+            "expected_output": "From 8 to 6",
+            "passed": false,
+            "execution_time_ms": 53.13984118402004,
+            "error_message": null,
+            "partial_match": true,
+            "confidence_score": 0.8181818181818182
+          },
+          {
+            "test_case": {
+              "input_text": "between one and three",
+              "expected_output": "Between 1 and 3",
+              "pattern_name": "time_range_between",
+              "context": "between_time_range",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "alternative_pattern"
+              }
+            },
+            "formatter_output": "Between 4.",
+            "expected_output": "Between 1 and 3",
+            "passed": false,
+            "execution_time_ms": 50.55010179057717,
+            "error_message": null,
+            "partial_match": false,
+            "confidence_score": 0.64
+          },
+          {
+            "test_case": {
+              "input_text": "working hours are nine to five",
+              "expected_output": "Working hours are 9-5",
+              "pattern_name": "time_range_context",
+              "context": "time_range_with_context",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "contextual"
+              }
+            },
+            "formatter_output": "Workingh are nine to five.",
+            "expected_output": "Working hours are 9-5",
+            "passed": false,
+            "execution_time_ms": 54.48853503912687,
+            "error_message": null,
+            "partial_match": false,
+            "confidence_score": 0.5531914893617021
+          }
+        ],
+        "recommendations": [
+          "Fix 3 high-priority pattern failures",
+          "Optimize 1 slow pattern tests (>100ms)",
+          "Review 3 tests with partial matches - may need pattern refinement"
+        ],
+        "timestamp": 1754985589.784363
+      },
+      "conflict_detection": {
+        "pattern_category": "conflict_detection",
+        "test_count": 2,
+        "passed_count": 0,
+        "failed_count": 2,
+        "partial_count": 2,
+        "success_rate": 0.0,
+        "avg_execution_time_ms": 54.58780378103256,
+        "detailed_results": [
+          {
+            "test_case": {
+              "input_text": "from two to five dollars",
+              "expected_output": "From $2 to $5",
+              "pattern_name": "financial_range",
+              "context": "financial_range_not_time",
+              "metadata": {
+                "priority": "high",
+                "test_type": "conflict_detection"
+              }
+            },
+            "formatter_output": "From two to $5.",
+            "expected_output": "From $2 to $5",
+            "passed": false,
+            "execution_time_ms": 54.9679771065712,
+            "error_message": null,
+            "partial_match": true,
+            "confidence_score": 0.7857142857142857
+          },
+          {
+            "test_case": {
+              "input_text": "divide from nine to five",
+              "expected_output": "Divide from 9 to 5",
+              "pattern_name": "math_range",
+              "context": "mathematical_not_time",
+              "metadata": {
+                "priority": "medium",
+                "test_type": "conflict_detection"
+              }
+            },
+            "formatter_output": "Divide from nine to five.",
+            "expected_output": "Divide from 9 to 5",
+            "passed": false,
+            "execution_time_ms": 54.20763045549393,
+            "error_message": null,
+            "partial_match": true,
+            "confidence_score": 0.7441860465116279
+          }
+        ],
+        "recommendations": [
+          "Fix 1 high-priority pattern failures",
+          "Review 2 tests with partial matches - may need pattern refinement"
+        ],
+        "timestamp": 1754985589.8937695
+      }
+    },
+    "target_case_analysis": {
+      "found": true,
+      "category": "time_range",
+      "input": "from nine to five",
+      "expected": "From 9 to 5",
+      "actual": "From nine to five.",
+      "passed": false,
+      "confidence": 0.6206896551724138,
+      "execution_time_ms": 2839.437836781144,
+      "error": null,
+      "status": "FAIL"
+    }
+  },
+  "conflict_analysis": {
+    "total_conflicts": 12,
+    "severity_breakdown": {
+      "high": 3,
+      "medium": 3,
+      "low": 6
+    },
+    "pattern_breakdown": {
+      "time_range_from_to_time": 8,
+      "time_range_compact_time": 12,
+      "conflict_math_range": 3,
+      "conflict_reference_range": 2,
+      "conflict_version_range": 2
+    },
+    "critical_cases": [],
+    "high_severity_cases": [
+      "from two to five dollars",
+      "divide from nine to five",
+      "calculate from two to eight"
+    ],
+    "recommendations": [
+      "HIGH: 3 high-severity conflicts should be resolved",
+      "Most problematic pattern: time_range_compact_time (12 conflicts)"
+    ],
+    "detailed_conflicts": [
+      {
+        "input": "from two to five dollars",
+        "expected": "financial",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time"
+        ],
+        "severity": "high",
+        "context_clues": [
+          "financial_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time). Implement priority ordering to prefer financial context."
+      },
+      {
+        "input": "divide from nine to five",
+        "expected": "mathematical",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time",
+          "conflict_math_range"
+        ],
+        "severity": "high",
+        "context_clues": [
+          "mathematical_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time, conflict_math_range). Implement priority ordering to prefer mathematical context. Mathematical context detected. Math patterns should override time patterns."
+      },
+      {
+        "input": "calculate from two to eight",
+        "expected": "mathematical",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time",
+          "conflict_math_range"
+        ],
+        "severity": "high",
+        "context_clues": [
+          "mathematical_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time, conflict_math_range). Implement priority ordering to prefer mathematical context. Mathematical context detected. Math patterns should override time patterns."
+      },
+      {
+        "input": "add from one to ten",
+        "expected": "mathematical",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time",
+          "conflict_math_range"
+        ],
+        "severity": "medium",
+        "context_clues": [
+          "mathematical_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time, conflict_math_range). Implement priority ordering to prefer mathematical context. Mathematical context detected. Math patterns should override time patterns."
+      },
+      {
+        "input": "from page nine to five",
+        "expected": "reference",
+        "patterns": [
+          "time_range_compact_time",
+          "conflict_reference_range"
+        ],
+        "severity": "medium",
+        "context_clues": [
+          "reference_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_compact_time, conflict_reference_range). Implement priority ordering to prefer reference context."
+      },
+      {
+        "input": "from line one to ten",
+        "expected": "reference",
+        "patterns": [
+          "time_range_compact_time",
+          "conflict_reference_range"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "reference_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_compact_time, conflict_reference_range). Implement priority ordering to prefer reference context."
+      },
+      {
+        "input": "version nine to five",
+        "expected": "technical",
+        "patterns": [
+          "time_range_compact_time",
+          "conflict_version_range"
+        ],
+        "severity": "medium",
+        "context_clues": [
+          "technical_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_compact_time, conflict_version_range). Implement priority ordering to prefer technical context."
+      },
+      {
+        "input": "from build two to three",
+        "expected": "technical",
+        "patterns": [
+          "time_range_compact_time",
+          "conflict_version_range"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "technical_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_compact_time, conflict_version_range). Implement priority ordering to prefer technical context."
+      },
+      {
+        "input": "working from nine to five",
+        "expected": "time",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "time_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time). Implement priority ordering to prefer time context. Time context clues present. Ensure time range patterns have sufficient priority."
+      },
+      {
+        "input": "schedule from two to four",
+        "expected": "time",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "time_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time). Implement priority ordering to prefer time context. Time context clues present. Ensure time range patterns have sufficient priority."
+      },
+      {
+        "input": "from nine to five shift",
+        "expected": "time",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "time_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time). Implement priority ordering to prefer time context. Time context clues present. Ensure time range patterns have sufficient priority."
+      },
+      {
+        "input": "office from eight to six",
+        "expected": "time",
+        "patterns": [
+          "time_range_from_to_time",
+          "time_range_compact_time"
+        ],
+        "severity": "low",
+        "context_clues": [
+          "time_context"
+        ],
+        "recommendation": "Multiple patterns match (time_range_from_to_time, time_range_compact_time). Implement priority ordering to prefer time context. Time context clues present. Ensure time range patterns have sufficient priority."
+      }
+    ]
+  },
   "summary": {
-    "languages_tested": [
-      "en",
-      "es"
-    ],
-    "patterns_tested": [
-      "mathematical",
-      "currency",
-      "web"
-    ],
-    "test_level": "standard",
-    "overall_success_rate": 0.3277777777777778,
-    "language_rankings": {
-      "en": 0.39444444444444443,
-      "es": 0.2611111111111111
-    },
-    "pattern_rankings": {
-      "mathematical": 0.25,
-      "currency": 0.4,
-      "web": 0.3333333333333333
-    }
-  },
-  "language_summaries": {
-    "en": {
-      "total_tests": 12,
-      "total_passed": 5,
-      "total_failed": 7,
-      "average_success_rate": 0.39444444444444443,
-      "pattern_count": 3,
-      "perfect_patterns": [],
-      "problematic_patterns": [
-        "mathematical",
-        "web"
-      ]
-    },
-    "es": {
-      "total_tests": 12,
-      "total_passed": 3,
-      "total_failed": 9,
-      "average_success_rate": 0.2611111111111111,
-      "pattern_count": 3,
-      "perfect_patterns": [],
-      "problematic_patterns": [
-        "mathematical",
-        "currency",
-        "web"
-      ]
-    }
-  },
-  "recommendations": [
-    "Overall success rate is 32.8%. Consider improving resource quality and pattern definitions.",
-    "Language 'es' has low success rate (26.1%). Review resource completeness and accuracy.",
-    "Language 'en' has low success rate (39.4%). Review resource completeness and accuracy.",
-    "Pattern 'mathematical' has low success rate (25.0%). Review pattern logic and test cases.",
-    "Pattern 'web' has low success rate (33.3%). Review pattern logic and test cases."
-  ]
+    "framework_complete": true,
+    "target_case_working": false,
+    "critical_issues_found": 0,
+    "high_priority_issues": 3,
+    "total_conflicts": 12,
+    "success_rate": 0.0
+  }
 }

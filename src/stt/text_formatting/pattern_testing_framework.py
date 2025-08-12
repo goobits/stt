@@ -25,6 +25,7 @@ import json
 from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
+from stt.text_formatting.formatter import format_transcription
 
 logger = setup_logging(__name__)
 
@@ -48,6 +49,7 @@ class PatternTestResult:
     execution_time_ms: float
     error_message: Optional[str] = None
     matched_entities: Optional[List[Entity]] = None
+    formatter_output: Optional[str] = None  # Full formatter output for integration testing
 
 
 @dataclass
@@ -76,41 +78,87 @@ class PatternTestRegistry:
         resources = get_resources(self.language)
         temporal_resources = resources.get("temporal", {})
         
-        # Time range pattern test cases
+        # Time range pattern test cases - comprehensive set
         time_range_cases = [
             PatternTestCase(
                 "from nine to five",
                 "From 9 to 5",
                 "time_range",
-                context="standalone_time_range"
+                context="standalone_time_range",
+                metadata={"priority": "high", "test_type": "regression"}
             ),
             PatternTestCase(
                 "meeting from two to three on friday",
                 "Meeting from 2 to 3 on Friday",
                 "time_range",
-                context="time_range_in_sentence"
+                context="time_range_in_sentence",
+                metadata={"priority": "high", "test_type": "regression"}
             ),
             PatternTestCase(
                 "from ten AM to two PM",
                 "From 10 AM to 2 PM",
                 "time_range",
-                context="time_range_with_ampm"
+                context="time_range_with_ampm",
+                metadata={"priority": "medium", "test_type": "enhancement"}
             ),
             PatternTestCase(
                 "nine to five",
                 "9-5",
                 "time_range_compact",
-                context="compact_time_range"
+                context="compact_time_range",
+                metadata={"priority": "high", "test_type": "regression"}
             ),
             PatternTestCase(
                 "nine to five shift",
                 "9-5 shift",
                 "time_range_compact",
-                context="time_range_with_job_context"
+                context="time_range_with_job_context",
+                metadata={"priority": "medium", "test_type": "enhancement"}
             ),
+            # Additional edge cases for comprehensive testing
+            PatternTestCase(
+                "from eight to six",
+                "From 8 to 6",
+                "time_range",
+                context="reverse_time_range",
+                metadata={"priority": "medium", "test_type": "edge_case"}
+            ),
+            PatternTestCase(
+                "between one and three",
+                "Between 1 and 3",
+                "time_range_between",
+                context="between_time_range",
+                metadata={"priority": "medium", "test_type": "alternative_pattern"}
+            ),
+            PatternTestCase(
+                "working hours are nine to five",
+                "Working hours are 9-5",
+                "time_range_context",
+                context="time_range_with_context",
+                metadata={"priority": "medium", "test_type": "contextual"}
+            )
+        ]
+        
+        # Numerical entity test cases for conflict detection
+        numeric_conflict_cases = [
+            PatternTestCase(
+                "from two to five dollars",
+                "From $2 to $5",  # Should be financial, not time
+                "financial_range",
+                context="financial_range_not_time",
+                metadata={"priority": "high", "test_type": "conflict_detection"}
+            ),
+            PatternTestCase(
+                "divide from nine to five",
+                "Divide from 9 to 5",  # Mathematical context, not time
+                "math_range",
+                context="mathematical_not_time",
+                metadata={"priority": "medium", "test_type": "conflict_detection"}
+            )
         ]
         
         self.test_cases["time_range"] = time_range_cases
+        self.test_cases["conflict_detection"] = numeric_conflict_cases
     
     def register_pattern(self, pattern_def: PatternDefinition):
         """Register a pattern definition."""
@@ -141,6 +189,7 @@ class PatternValidator:
     def __init__(self, language: str = "en"):
         self.language = language
         self.registry = PatternTestRegistry(language)
+        self.formatter_cache = {}  # Cache formatter instances for performance
     
     def validate_pattern_syntax(self, pattern: Pattern[str]) -> Tuple[bool, Optional[str]]:
         """Validate that a regex pattern compiles correctly."""
@@ -197,28 +246,189 @@ class PatternValidator:
         
         return results
     
+    def test_full_formatter_integration(self, test_cases: List[PatternTestCase]) -> List[PatternTestResult]:
+        """Test patterns using the full text formatter pipeline."""
+        results = []
+        
+        for test_case in test_cases:
+            start_time = time.perf_counter()
+            
+            try:
+                # Use the actual formatter to process the text
+                formatter_output = format_transcription(test_case.input_text)
+                execution_time = (time.perf_counter() - start_time) * 1000
+                
+                # Compare with expected output
+                passed = formatter_output.strip() == test_case.expected_output.strip()
+                
+                result = PatternTestResult(
+                    test_case=test_case,
+                    actual_output=formatter_output,
+                    passed=passed,
+                    execution_time_ms=execution_time,
+                    formatter_output=formatter_output,
+                    error_message=None if passed else f"Expected '{test_case.expected_output}', got '{formatter_output}'"
+                )
+                
+                results.append(result)
+                
+            except Exception as e:
+                execution_time = (time.perf_counter() - start_time) * 1000
+                results.append(PatternTestResult(
+                    test_case=test_case,
+                    actual_output="",
+                    passed=False,
+                    execution_time_ms=execution_time,
+                    error_message=f"Formatter error: {str(e)}",
+                    formatter_output=None
+                ))
+        
+        return results
+    
+    def analyze_pattern_coverage(self, test_results: List[PatternTestResult]) -> Dict[str, Any]:
+        """Analyze pattern coverage and effectiveness."""
+        total_tests = len(test_results)
+        passed_tests = sum(1 for r in test_results if r.passed)
+        failed_tests = total_tests - passed_tests
+        
+        # Categorize by test type
+        by_priority = {"high": [], "medium": [], "low": []}
+        by_test_type = {}
+        by_context = {}
+        
+        for result in test_results:
+            # Priority analysis
+            priority = result.test_case.metadata.get("priority", "medium") if result.test_case.metadata else "medium"
+            by_priority[priority].append(result)
+            
+            # Test type analysis
+            test_type = result.test_case.metadata.get("test_type", "unknown") if result.test_case.metadata else "unknown"
+            if test_type not in by_test_type:
+                by_test_type[test_type] = []
+            by_test_type[test_type].append(result)
+            
+            # Context analysis
+            context = result.test_case.context or "no_context"
+            if context not in by_context:
+                by_context[context] = []
+            by_context[context].append(result)
+        
+        # Calculate metrics
+        priority_metrics = {}
+        for priority, results in by_priority.items():
+            if results:
+                priority_metrics[priority] = {
+                    "total": len(results),
+                    "passed": sum(1 for r in results if r.passed),
+                    "success_rate": sum(1 for r in results if r.passed) / len(results) * 100
+                }
+        
+        test_type_metrics = {}
+        for test_type, results in by_test_type.items():
+            if results:
+                test_type_metrics[test_type] = {
+                    "total": len(results),
+                    "passed": sum(1 for r in results if r.passed),
+                    "success_rate": sum(1 for r in results if r.passed) / len(results) * 100
+                }
+        
+        return {
+            "total_tests": total_tests,
+            "passed_tests": passed_tests,
+            "failed_tests": failed_tests,
+            "overall_success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0,
+            "priority_breakdown": priority_metrics,
+            "test_type_breakdown": test_type_metrics,
+            "context_breakdown": {context: len(results) for context, results in by_context.items()}
+        }
+    
     def detect_pattern_conflicts(self, patterns: List[Tuple[str, Pattern[str]]]) -> Dict[str, List[str]]:
         """Detect overlapping patterns that might cause conflicts."""
         conflicts = {}
+        
+        # Enhanced test strings covering more edge cases
         test_strings = [
+            # Time range patterns
             "from nine to five",
             "meeting from two to three",
             "nine to five shift",
             "between ten and twelve",
             "two to three hours",
             "from january to march",
+            # Potential conflict patterns
+            "from two to five dollars",  # Financial vs time
+            "divide from nine to five",  # Mathematical vs time
+            "nine to five employees",    # Job context vs time
+            "from page nine to five",   # Document reference vs time
+            "numbers from one to ten",  # Numerical sequence vs time
+            "chapters two to five",     # Reference vs time
+            "versions nine to five",    # Technical vs time
         ]
         
         for test_string in test_strings:
             matching_patterns = []
             for name, pattern in patterns:
-                if pattern.search(test_string):
-                    matching_patterns.append(name)
+                try:
+                    if pattern.search(test_string):
+                        matching_patterns.append(name)
+                except Exception as e:
+                    logger.warning(f"Pattern '{name}' failed on '{test_string}': {e}")
             
             if len(matching_patterns) > 1:
                 conflicts[test_string] = matching_patterns
-        
+                
         return conflicts
+    
+    def generate_pattern_performance_report(self, results: List[PatternTestResult]) -> Dict[str, Any]:
+        """Generate detailed performance analysis of patterns."""
+        if not results:
+            return {"error": "No results to analyze"}
+            
+        # Timing analysis
+        execution_times = [r.execution_time_ms for r in results]
+        avg_time = sum(execution_times) / len(execution_times)
+        min_time = min(execution_times)
+        max_time = max(execution_times)
+        
+        # Performance by context
+        context_performance = {}
+        for result in results:
+            context = result.test_case.context or "no_context"
+            if context not in context_performance:
+                context_performance[context] = []
+            context_performance[context].append(result.execution_time_ms)
+        
+        context_stats = {}
+        for context, times in context_performance.items():
+            context_stats[context] = {
+                "avg_time_ms": sum(times) / len(times),
+                "min_time_ms": min(times),
+                "max_time_ms": max(times),
+                "test_count": len(times)
+            }
+        
+        # Identify slow patterns
+        slow_threshold = avg_time * 2  # Patterns taking more than 2x average
+        slow_patterns = []
+        for result in results:
+            if result.execution_time_ms > slow_threshold:
+                slow_patterns.append({
+                    "input": result.test_case.input_text,
+                    "time_ms": result.execution_time_ms,
+                    "context": result.test_case.context
+                })
+        
+        return {
+            "timing_stats": {
+                "avg_time_ms": avg_time,
+                "min_time_ms": min_time,
+                "max_time_ms": max_time,
+                "total_tests": len(results)
+            },
+            "context_performance": context_stats,
+            "slow_patterns": slow_patterns,
+            "performance_threshold_ms": slow_threshold
+        }
 
 
 class PatternPerformanceTester:
@@ -261,6 +471,7 @@ class PatternTestFramework:
         self.validator = PatternValidator(language)
         self.performance_tester = PatternPerformanceTester()
         self.results_cache = {}
+        self.integration_mode = True  # Enable full formatter integration by default
     
     def add_time_range_patterns(self):
         """Add time range patterns for testing."""
