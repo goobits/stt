@@ -41,9 +41,6 @@ from stt.text_formatting.spanish_conversational_flow import SpanishConversationa
 # PHASE 19: Entity Validation Framework
 from stt.text_formatting.formatter_components.validation import create_entity_validator
 
-# PHASE 23: Entity Boundary Validation
-from stt.text_formatting.entity_boundary_validator import create_validation_manager
-
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
@@ -115,9 +112,6 @@ def detect_all_entities(
     """
     start_time = time.perf_counter()
     
-    # PHASE 23: Initialize boundary validation manager
-    boundary_validator = create_validation_manager(strict_mode=False, language=language)
-    
     # PHASE 21: Debug tracing - Detection start
     debugger = get_entity_debugger()
     debugger.trace_pipeline_state(
@@ -188,11 +182,6 @@ def detect_all_entities(
     else:
         logger.info("Web entities detected: 0")
     
-    # PHASE 23: Validate boundary integrity after web detection
-    _, web_validation_warnings = boundary_validator.validate_at_step("web_detection", final_entities, text)
-    if web_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Web detection validation warnings: {len(web_validation_warnings)}")
-    
     # PHASE 21: Debug tracing - Web entities
     if is_debug_enabled(DebugModule.DETECTION):
         debug_entity_list(
@@ -215,11 +204,6 @@ def detect_all_entities(
     else:
         logger.info("Letter entities detected: 0")
     
-    # PHASE 23: Validate boundary integrity after letter detection
-    _, letter_validation_warnings = boundary_validator.validate_at_step("letter_detection", final_entities, text)
-    if letter_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Letter detection validation warnings: {len(letter_validation_warnings)}")
-    
     # PHASE 21: Debug tracing - Letter entities
     if is_debug_enabled(DebugModule.DETECTION):
         debug_entity_list(
@@ -240,11 +224,6 @@ def detect_all_entities(
         logger.info(f"Code entities detected: {len(code_entities)} - {entity_descriptions}")
     else:
         logger.info("Code entities detected: 0")
-    
-    # PHASE 23: Validate boundary integrity after code detection
-    _, code_validation_warnings = boundary_validator.validate_at_step("code_detection", final_entities, text)
-    if code_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Code detection validation warnings: {len(code_validation_warnings)}")
     
     # PHASE 21: Debug tracing - Code entities
     if is_debug_enabled(DebugModule.DETECTION):
@@ -268,11 +247,6 @@ def detect_all_entities(
     else:
         logger.info("Numeric entities detected: 0")
     
-    # PHASE 23: Validate boundary integrity after numeric detection
-    _, numeric_validation_warnings = boundary_validator.validate_at_step("numeric_detection", final_entities, text)
-    if numeric_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Numeric detection validation warnings: {len(numeric_validation_warnings)}")
-    
     # PHASE 21: Debug tracing - Numeric entities
     if is_debug_enabled(DebugModule.DETECTION):
         debug_entity_list(
@@ -294,11 +268,6 @@ def detect_all_entities(
         logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {entity_descriptions}")
     else:
         logger.info("Base SpaCy entities detected: 0")
-    
-    # PHASE 23: Validate boundary integrity after SpaCy detection
-    _, spacy_validation_warnings = boundary_validator.validate_at_step("spacy_detection", final_entities, text)
-    if spacy_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: SpaCy detection validation warnings: {len(spacy_validation_warnings)}")
     
     # PHASE 21: Debug tracing - Base SpaCy entities
     if is_debug_enabled(DebugModule.DETECTION):
@@ -335,11 +304,6 @@ def detect_all_entities(
     # Apply deduplication and overlap resolution with language-aware priorities
     deduplicated_entities = _deduplicate_entities(final_entities, entity_priorities)
     
-    # PHASE 23: Validate boundary integrity after deduplication
-    _, dedup_validation_warnings = boundary_validator.validate_at_step("deduplication", deduplicated_entities, text)
-    if dedup_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Deduplication validation warnings: {len(dedup_validation_warnings)}")
-    
     # PHASE 21: Debug tracing - Post-deduplication
     if is_debug_enabled(DebugModule.DETECTION):
         debug_entity_list(
@@ -354,11 +318,6 @@ def detect_all_entities(
     
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
     priority_filtered_entities = _apply_priority_filtering(deduplicated_entities, entity_priorities)
-    
-    # PHASE 23: Validate boundary integrity after priority filtering
-    _, priority_validation_warnings = boundary_validator.validate_at_step("priority_filtering", priority_filtered_entities, text)
-    if priority_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Priority filtering validation warnings: {len(priority_validation_warnings)}")
     
     # PHASE 21: Debug tracing - Post-priority-filtering
     if is_debug_enabled(DebugModule.DETECTION):
@@ -404,18 +363,8 @@ def detect_all_entities(
     if total_entities > 100:  # Log performance stats for larger entity sets
         logger.info(f"Phase D: Large entity set processed ({total_entities} entities) in {elapsed:.4f}s")
     
-    # PHASE 23: Final comprehensive boundary validation
-    final_sorted_entities = sorted(conflict_resolved_entities, key=lambda e: e.start)
-    _, final_validation_warnings = boundary_validator.validate_at_step("final_detection", final_sorted_entities, text)
-    if final_validation_warnings:
-        logger.debug(f"PHASE_23_BOUNDARY: Final detection validation warnings: {len(final_validation_warnings)}")
-    
-    # PHASE 23: Log boundary validation summary
-    validation_summary = boundary_validator.get_validation_summary()
-    if validation_summary["statistics"]["validations_performed"] > 0:
-        logger.debug(f"PHASE_23_BOUNDARY: Detection pipeline validation summary: {validation_summary['statistics']}")
-    
     # PHASE 21: Debug tracing - Final detection results
+    final_sorted_entities = sorted(conflict_resolved_entities, key=lambda e: e.start)
     if is_debug_enabled(DebugModule.DETECTION):
         debugger.trace_pipeline_state(
             "detection_complete",
@@ -426,8 +375,7 @@ def detect_all_entities(
                 "final_entities": final_count,
                 "processing_time": elapsed,
                 "language": language,
-                "efficiency_ratio": f"{final_count}/{total_entities}" if total_entities > 0 else "0/0",
-                "boundary_validation": validation_summary["statistics"]
+                "efficiency_ratio": f"{final_count}/{total_entities}" if total_entities > 0 else "0/0"
             }
         )
         
