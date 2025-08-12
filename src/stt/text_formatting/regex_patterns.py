@@ -43,11 +43,6 @@ from .pattern_modules import (
     build_letter_sequence_pattern,
     create_artifact_patterns,
     create_profanity_pattern,
-    # Universal Punctuation Framework (Phase 22)
-    get_universal_punctuation_normalizer,
-    get_universal_punctuation_patterns,
-    normalize_punctuation_universal,
-    validate_punctuation_framework,
 )
 
 # ==============================================================================
