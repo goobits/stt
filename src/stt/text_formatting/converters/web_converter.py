@@ -486,20 +486,31 @@ class WebPatternConverter(BasePatternConverter):
                         converted_parts.append(part)
                         i += 1
 
-                # Check if the first part is an action word - if so, keep it separate
+                # Check for action phrases that should be kept separate
+                # This handles cases like "mi email es usuario" where we want "mi email es" + "usuario"
                 action_words = {"email", "contact", "send", "forward", "reach", "notify", "message", "mail", "write", "communicate", "visit", "go", "check", "navigate"}
-                if converted_parts and converted_parts[0].lower() in action_words:
-                    # Keep the action word separate, join the rest without spaces for the actual email username
-                    action_word = converted_parts[0]
-                    username_parts = converted_parts[1:] if len(converted_parts) > 1 else []
-                    if username_parts:
-                        actual_username = "".join(username_parts)
-                        username = f"{action_word} {actual_username}"
+                spanish_words = {"mi", "tu", "su", "es", "envía", "enviar", "contacta", "contactar"}
+                
+                # Look for action phrase patterns at the beginning, but stop before number words
+                action_phrase_end = 0
+                for i in range(len(converted_parts)):
+                    word = converted_parts[i].lower()
+                    # Stop if we hit a number word - don't include it in the action phrase
+                    if word in self.number_parser.all_number_words:
+                        break
+                    if word in action_words or word in spanish_words:
+                        action_phrase_end = i + 1
                     else:
-                        # Edge case: only action word, no actual username
-                        username = action_word
+                        break
+                
+                if action_phrase_end > 0 and action_phrase_end < len(converted_parts):
+                    # Split into action phrase and username
+                    action_phrase = " ".join(converted_parts[:action_phrase_end])
+                    username_parts = converted_parts[action_phrase_end:]
+                    actual_username = "".join(username_parts)  # Join username without spaces
+                    username = f"{action_phrase} {actual_username}"
                 else:
-                    # Join without spaces for email usernames (normal case)
+                    # No action phrase, join without spaces for email usernames (normal case)
                     username = "".join(converted_parts)
 
             # Now convert spoken separators in the processed username
