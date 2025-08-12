@@ -131,6 +131,10 @@ class CodePatternConverter(BasePatternConverter):
                 context_start = max(0, entity_pos - 20)
                 context = full_text[context_start : entity.end]
                 has_spoken_underscores = " underscore " in context.lower()
+        
+        # PHASE 13 FIX: Also check if the filename already contains underscores
+        # This preserves underscores in filenames like "config_i.js" even when not explicitly spoken
+        has_existing_underscores = "_" in text
 
         # Handle spoken separators BEFORE processing compound filename logic
         # Use unique placeholder for underscore to preserve compound detection logic
@@ -199,8 +203,8 @@ class CodePatternConverter(BasePatternConverter):
                     has_spoken_underscores = True  # Mark as having underscores due to compound logic
                     break
 
-        # If underscores were spoken OR compound patterns were detected, use underscore format
-        if has_spoken_underscores or "🔸" in filename_part:
+        # If underscores were spoken OR compound patterns were detected OR filename already has underscores, use underscore format
+        if has_spoken_underscores or has_existing_underscores or "🔸" in filename_part:
             # Convert placeholder back to underscore and handle remaining spaces
             filename_part = filename_part.replace("🔸", "_")
             
