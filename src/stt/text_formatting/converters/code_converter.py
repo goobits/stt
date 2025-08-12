@@ -419,29 +419,65 @@ class CodePatternConverter(BasePatternConverter):
         if any(converted.startswith(abbrev.rstrip('.')) for abbrev in comma_requiring_abbreviations):
             # Check context from full text to see if there's already an introductory phrase
             context_before = ""
+            context_around = ""
             if full_text and hasattr(entity, 'start') and entity.start > 0:
                 # Look at text before this entity for context
-                start_context = max(0, entity.start - 20)
+                start_context = max(0, entity.start - 30)
                 context_before = full_text[start_context:entity.start]
+                # Also check a wider context around the entity to detect phrases that include the abbreviation
+                end_context = min(len(full_text), entity.end + 10) if hasattr(entity, 'end') else entity.start + len(entity.text) + 10
+                context_around = full_text[start_context:end_context]
             
             original_text = entity.text.lower().strip()
             
-            # Add comma only for standalone abbreviations that clearly introduce examples
-            # If there's already an introductory phrase like "for example" before this abbreviation,
-            # don't add comma since the phrase already serves that function
+            # Enhanced context detection for introductory phrases
+            # Check if the abbreviation is part of a "that is" or "for example" phrase
             has_intro_phrase_before = (
                 "for example" in context_before.lower() or
                 "that is" in context_before.lower()
             )
             
+            # NEW: Check if the abbreviation is immediately preceded by an introductory phrase
+            # This handles cases like "that is i.e." where "that is" introduces the concept and "i.e." provides clarification
+            has_intro_phrase_immediate = False
+            if context_around:
+                # Check for patterns like "that is i.e." or "for example e.g."
+                intro_abbrev_patterns = [
+                    r'\bthat\s+is\s+i\.?e\.?\b',
+                    r'\bfor\s+example\s+e\.?g\.?\b',
+                    r'\bthat\s+is\s+i\s+e\b',
+                    r'\bfor\s+example\s+e\s+g\b'
+                ]
+                has_intro_phrase_immediate = any(
+                    re.search(pattern, context_around.lower()) for pattern in intro_abbrev_patterns
+                )
+                
+            
+            # Check if this looks like a list introduction context (where comma IS appropriate)
+            # Patterns like "use patterns i.e. singleton and factory" where the abbreviation introduces a list
+            looks_like_list_introduction = False
+            if full_text and hasattr(entity, 'end'):
+                # Look at text after the abbreviation to see if it looks like a list
+                text_after_start = entity.end if hasattr(entity, 'end') else entity.start + len(entity.text)
+                text_after = full_text[text_after_start:text_after_start + 50].strip()
+                # If text after contains "and", "or", multiple items, it likely introduces a list
+                list_indicators = ['and', 'or', ',']
+                looks_like_list_introduction = any(indicator in text_after.lower() for indicator in list_indicators)
+                
+            
+            # Only add comma for abbreviations that introduce lists/examples, NOT for simple meaning clarifications
             should_add_comma = (
                 original_text in ["e g", "e.g.", "i e", "i.e."] and
                 not original_text.startswith(("for example", "that is")) and  # Full phrase conversions
-                not has_intro_phrase_before  # No intro phrase in context
+                not has_intro_phrase_before and  # No intro phrase in context before
+                not has_intro_phrase_immediate and  # Not part of "that is i.e." pattern
+                looks_like_list_introduction  # Only when introducing a list/examples
             ) or (
                 converted in ["e.g.", "i.e."] and 
-                original_text.startswith(("for example", "that is"))  # Full phrase conversions
+                original_text.startswith(("for example", "that is")) and  # Full phrase conversions
+                looks_like_list_introduction  # Only when introducing a list
             )
+            
             
             # THEORY 8: Check if this entity is protected by Universal Entity State Coordination
             # Don't modify entities that are already in their final form or protected

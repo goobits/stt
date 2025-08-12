@@ -63,8 +63,11 @@ class BatchRegexProcessor:
     def _compile_abbreviation_patterns(self) -> List[Tuple[Pattern[str], str]]:
         """Pre-compile common abbreviation patterns."""
         return [
-            (_get_compiled_pattern(r"(i\.e\.)(\s+[a-zA-Z])", re.IGNORECASE), r"\1,\2"),
-            (_get_compiled_pattern(r"(e\.g\.)(\s+[a-zA-Z])", re.IGNORECASE), r"\1,\2"),
+            # THEORY A FIX: Context-aware comma addition for abbreviations
+            # Only add comma when abbreviation introduces a list/enumeration, not for simple meaning clarification
+            # Pattern: Add comma only when abbreviation is followed by multiple items (contains "and", "or", commas)
+            (_get_compiled_pattern(r"(i\.e\.)(\s+)([^,]*(?:and|or|,)[^.!?]*)", re.IGNORECASE), r"\1,\2\3"),
+            (_get_compiled_pattern(r"(e\.g\.)(\s+)([^,]*(?:and|or|,)[^.!?]*)", re.IGNORECASE), r"\1,\2\3"),
             (_get_compiled_pattern(r",,"), ","),  # Remove double commas first
             (_get_compiled_pattern(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)", re.IGNORECASE), r"\1 \2,"),
         ]
