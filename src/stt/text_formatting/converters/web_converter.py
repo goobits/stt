@@ -56,8 +56,10 @@ class WebPatternConverter(BasePatternConverter):
                     r"^(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-]?\w+$", value.lower()
                 ):
                     parsed_value = self.number_parser.parse(value)
-                    # If not a number, remove spaces for URL-friendliness
                     value = parsed_value or value.replace(" ", "")
+                else:
+                    # For non-numeric values, always remove spaces for URL-friendliness
+                    value = value.replace(" ", "")
 
                 # Format as key=value with no spaces
                 processed_parts.append(f"{key}={value}")
