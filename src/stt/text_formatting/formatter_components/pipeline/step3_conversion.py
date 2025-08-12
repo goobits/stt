@@ -39,6 +39,9 @@ from stt.text_formatting.spanish_technical_patterns import get_spanish_technical
 # PHASE 19: Entity Validation Framework
 from stt.text_formatting.formatter_components.validation import create_entity_validator
 
+# PHASE 23: Entity Boundary Validation
+from stt.text_formatting.entity_boundary_validator import create_validation_manager
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -84,6 +87,12 @@ def convert_entities(
         
     language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
     logger.info(f"THEORY_14_DEBUG: Processing {len(entities)} entities for language '{language}'")
+    
+    # PHASE 23: Initialize boundary validation for conversion
+    boundary_validator = create_validation_manager(strict_mode=False, language=language)
+    _, pre_conversion_warnings = boundary_validator.validate_at_step("pre_conversion", entities, text)
+    if pre_conversion_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Pre-conversion validation warnings: {len(pre_conversion_warnings)}")
     
     # PHASE 21: Debug tracing - Conversion start
     debugger = get_entity_debugger()
@@ -319,8 +328,21 @@ def convert_entities(
     if validated_entities:
         processed_text = _fix_entity_spacing_issues(processed_text, validated_entities)
 
+    # PHASE 23: Validate boundary integrity after conversion
+    conversion_boundary_warnings = boundary_validator.validate_conversion_result(
+        entities, validated_entities, text, processed_text
+    )
+    if conversion_boundary_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Post-conversion validation warnings: {len(conversion_boundary_warnings)}")
+    
+    # PHASE 23: Final boundary validation
+    _, final_conversion_warnings = boundary_validator.validate_at_step("post_conversion", validated_entities, processed_text)
+    if final_conversion_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Final conversion validation warnings: {len(final_conversion_warnings)}")
+
     # PHASE 21: Debug tracing - Conversion complete
     if is_debug_enabled(DebugModule.CONVERSION):
+        validation_summary = boundary_validator.get_validation_summary()
         debugger.trace_pipeline_state(
             "conversion_complete",
             processed_text,
@@ -332,7 +354,8 @@ def convert_entities(
                 "entities_input": len(entities),
                 "entities_output": len(validated_entities),
                 "entities_validated": len(converted_entities),
-                "entities_removed_invalid": len(converted_entities) - len(validated_entities)
+                "entities_removed_invalid": len(converted_entities) - len(validated_entities),
+                "boundary_validation": validation_summary["statistics"]
             }
         )
         
@@ -431,6 +454,13 @@ def convert_entities_with_boundary_tracking(
     """
     logger.debug(f"Converting {len(entities)} entities with boundary tracking")
     
+    # PHASE 23: Initialize boundary validation for tracking conversion
+    language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
+    boundary_validator = create_validation_manager(strict_mode=False, language=language)
+    _, pre_tracking_warnings = boundary_validator.validate_at_step("pre_boundary_tracking", entities, text)
+    if pre_tracking_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Pre-boundary tracking validation warnings: {len(pre_tracking_warnings)}")
+    
     # PHASE 21: Debug tracing - Boundary tracking conversion start
     if is_debug_enabled(DebugModule.CONVERSION):
         debug_entity_list(
@@ -444,7 +474,6 @@ def convert_entities_with_boundary_tracking(
     
     # Initialize the boundary tracker
     boundary_tracker = EntityBoundaryTracker(entities, text)
-    language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
     
     # Sort entities by start position to process in sequence
     sorted_entities = sorted(boundary_tracker.entities, key=lambda e: e.start)
@@ -521,6 +550,18 @@ def convert_entities_with_boundary_tracking(
     if updated_entities:
         final_text = _fix_entity_spacing_issues(final_text, updated_entities)
     
+    # PHASE 23: Validate boundary integrity after boundary tracking
+    tracking_boundary_warnings = boundary_validator.validate_conversion_result(
+        entities, updated_entities, text, final_text
+    )
+    if tracking_boundary_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Boundary tracking validation warnings: {len(tracking_boundary_warnings)}")
+    
+    # PHASE 23: Final boundary validation for tracking
+    _, final_tracking_warnings = boundary_validator.validate_at_step("post_boundary_tracking", updated_entities, final_text)
+    if final_tracking_warnings:
+        logger.debug(f"PHASE_23_BOUNDARY: Final boundary tracking validation warnings: {len(final_tracking_warnings)}")
+    
     # Log debug information for troubleshooting
     debug_info = boundary_tracker.get_debug_info()
     if debug_info['changes_count'] > 0:
@@ -530,6 +571,7 @@ def convert_entities_with_boundary_tracking(
     
     # PHASE 21: Debug tracing - Boundary tracking complete
     if is_debug_enabled(DebugModule.CONVERSION):
+        validation_summary = boundary_validator.get_validation_summary()
         debugger = get_entity_debugger()
         debugger.trace_pipeline_state(
             "boundary_tracking_complete",
@@ -540,7 +582,8 @@ def convert_entities_with_boundary_tracking(
                 "entities_processed": len(entities),
                 "entities_final": len(updated_entities),
                 "text_length_change": len(final_text) - len(text),
-                "tracking_effectiveness": f"{debug_info['changes_count']} boundary fixes applied"
+                "tracking_effectiveness": f"{debug_info['changes_count']} boundary fixes applied",
+                "boundary_validation": validation_summary["statistics"]
             }
         )
     
