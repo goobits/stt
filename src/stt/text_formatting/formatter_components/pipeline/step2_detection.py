@@ -44,12 +44,6 @@ from stt.text_formatting.formatter_components.validation import create_entity_va
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
-# PHASE 21: Debug Mode Enhancement - Entity Detection Pipeline Tracing
-from stt.text_formatting.debug_utils import (
-    get_entity_debugger, debug_entity_list, debug_performance, 
-    DebugModule, is_debug_enabled
-)
-
 # Legacy entity priorities for backward compatibility
 # Now replaced by the Universal Priority Manager system
 ENTITY_PRIORITIES = None  # Will be set by get_entity_priorities() function
@@ -72,7 +66,6 @@ def get_entity_priorities(language: str = "en") -> Dict[EntityType, int]:
     return priority_manager.get_all_priorities()
 
 
-@debug_performance("entity_detection", DebugModule.DETECTION)
 def detect_all_entities(
     text: str,
     detectors: Dict[str, Any],
@@ -112,15 +105,6 @@ def detect_all_entities(
     """
     start_time = time.perf_counter()
     
-    # PHASE 21: Debug tracing - Detection start
-    debugger = get_entity_debugger()
-    debugger.trace_pipeline_state(
-        "detection_start", 
-        text, 
-        existing_entities or [],
-        {"language": language, "detectors": list(detectors.keys())}
-    )
-    
     if existing_entities is None:
         existing_entities = []
     
@@ -129,16 +113,6 @@ def detect_all_entities(
     
     logger.debug(f"Phase D: Starting entity detection for text of length {len(text)}")
     logger.debug(f"Phase D: Interval tree optimization {'ENABLED' if INTERVAL_TREE_AVAILABLE else 'DISABLED'}")
-    
-    # PHASE 21: Debug tracing - Log existing entities
-    if existing_entities and is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            existing_entities, 
-            "detection", 
-            "existing_entities",
-            DebugModule.DETECTION,
-            text=text
-        )
     
     # Theory 17: Initialize conversational flow analysis for Spanish
     conversational_analyzer = None
@@ -182,18 +156,6 @@ def detect_all_entities(
     else:
         logger.info("Web entities detected: 0")
     
-    # PHASE 21: Debug tracing - Web entities
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            web_entities, 
-            "detection", 
-            "web_detector",
-            DebugModule.DETECTION,
-            text=text,
-            detector_type="web_detector",
-            total_so_far=len(final_entities)
-        )
-    
     # Spoken letters are very specific patterns and should run early to avoid conflicts
     letter_entities = detectors["spoken_letter_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(letter_entities)
@@ -204,18 +166,6 @@ def detect_all_entities(
     else:
         logger.info("Letter entities detected: 0")
     
-    # PHASE 21: Debug tracing - Letter entities
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            letter_entities, 
-            "detection", 
-            "spoken_letter_detector",
-            DebugModule.DETECTION,
-            text=text,
-            detector_type="spoken_letter_detector",
-            total_so_far=len(final_entities)
-        )
-    
     code_entities = detectors["code_detector"].detect(text, final_entities, doc=doc, pipeline_state=pipeline_state)
     final_entities.extend(code_entities)
     if code_entities:
@@ -224,18 +174,6 @@ def detect_all_entities(
         logger.info(f"Code entities detected: {len(code_entities)} - {entity_descriptions}")
     else:
         logger.info("Code entities detected: 0")
-    
-    # PHASE 21: Debug tracing - Code entities
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            code_entities, 
-            "detection", 
-            "code_detector",
-            DebugModule.DETECTION,
-            text=text,
-            detector_type="code_detector",
-            total_so_far=len(final_entities)
-        )
     
     # Numeric entities are next, as they are more specific than base SpaCy entities.
     numeric_entities = detectors["numeric_detector"].detect(text, final_entities, doc=doc)
@@ -247,18 +185,6 @@ def detect_all_entities(
     else:
         logger.info("Numeric entities detected: 0")
     
-    # PHASE 21: Debug tracing - Numeric entities
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            numeric_entities, 
-            "detection", 
-            "numeric_detector",
-            DebugModule.DETECTION,
-            text=text,
-            detector_type="numeric_detector",
-            total_so_far=len(final_entities)
-        )
-    
     # Finally, run the base SpaCy detector for general entities like DATE, TIME, etc.
     base_spacy_entities = detectors["entity_detector"].detect_entities(text, final_entities, doc=doc)
     final_entities.extend(base_spacy_entities)
@@ -269,18 +195,6 @@ def detect_all_entities(
     else:
         logger.info("Base SpaCy entities detected: 0")
     
-    # PHASE 21: Debug tracing - Base SpaCy entities
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            base_spacy_entities, 
-            "detection", 
-            "entity_detector",
-            DebugModule.DETECTION,
-            text=text,
-            detector_type="entity_detector",
-            total_so_far=len(final_entities)
-        )
-    
     # Theory 17: Add conversational entities to the final list
     final_entities.extend(conversational_entities)
     if conversational_entities:
@@ -289,47 +203,11 @@ def detect_all_entities(
     # Get language-specific priorities for this processing run
     entity_priorities = get_entity_priorities(language)
     
-    # PHASE 21: Debug tracing - Pre-deduplication state
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            final_entities,
-            "detection",
-            "pre_deduplication",
-            DebugModule.DETECTION,
-            text=text,
-            total_before_dedup=len(final_entities),
-            unique_types=len(set(e.type for e in final_entities))
-        )
-    
     # Apply deduplication and overlap resolution with language-aware priorities
     deduplicated_entities = _deduplicate_entities(final_entities, entity_priorities)
     
-    # PHASE 21: Debug tracing - Post-deduplication
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            deduplicated_entities,
-            "detection", 
-            "post_deduplication",
-            DebugModule.DETECTION,
-            text=text,
-            entities_removed=len(final_entities) - len(deduplicated_entities),
-            deduplication_ratio=f"{len(deduplicated_entities)}/{len(final_entities)}"
-        )
-    
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
     priority_filtered_entities = _apply_priority_filtering(deduplicated_entities, entity_priorities)
-    
-    # PHASE 21: Debug tracing - Post-priority-filtering
-    if is_debug_enabled(DebugModule.DETECTION):
-        debug_entity_list(
-            priority_filtered_entities,
-            "detection",
-            "post_priority_filtering", 
-            DebugModule.DETECTION,
-            text=text,
-            entities_filtered=len(deduplicated_entities) - len(priority_filtered_entities),
-            final_count=len(priority_filtered_entities)
-        )
     
     # PHASE 19: Entity Validation Framework - Validate detected entities for consistency
     validator = create_entity_validator(language)
@@ -363,27 +241,8 @@ def detect_all_entities(
     if total_entities > 100:  # Log performance stats for larger entity sets
         logger.info(f"Phase D: Large entity set processed ({total_entities} entities) in {elapsed:.4f}s")
     
-    # PHASE 21: Debug tracing - Final detection results
-    final_sorted_entities = sorted(conflict_resolved_entities, key=lambda e: e.start)
-    if is_debug_enabled(DebugModule.DETECTION):
-        debugger.trace_pipeline_state(
-            "detection_complete",
-            text,
-            final_sorted_entities,
-            {
-                "total_raw_entities": total_entities,
-                "final_entities": final_count,
-                "processing_time": elapsed,
-                "language": language,
-                "efficiency_ratio": f"{final_count}/{total_entities}" if total_entities > 0 else "0/0"
-            }
-        )
-        
-        # Log performance if enabled
-        debugger.trace_performance("detect_all_entities", elapsed, DebugModule.DETECTION)
-    
     # Return final sorted list
-    return final_sorted_entities
+    return sorted(conflict_resolved_entities, key=lambda e: e.start)
 
 
 def _deduplicate_entities(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
