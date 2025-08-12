@@ -271,14 +271,19 @@ class WebPatternConverter(BasePatternConverter):
                 if (converted_words and 
                     converted_words[-1].lower() not in self.url_keywords):
                     prev_word = converted_words[-1].lower()
-                    # Only merge for domain-like contexts, not for command words
-                    domain_prefixes = {"server", "api", "db", "host", "www", "cdn", "mail", "ftp", "app", "site", "web"}
-                    version_contexts = {"v", "version"}
-                    # Explicitly list command/navigation words that should NOT merge
-                    command_words = {"to", "go", "visit", "check", "at", "from", "with", "on", "in", "for", "by"}
+                    # Only merge for specific technical domain contexts where concatenation is expected
+                    # Be conservative - only merge for clear technical identifiers, not general words
+                    technical_prefixes = {"api", "db", "www", "cdn", "ftp"}  # Removed: server, servidor, host, mail, app, site, web
+                    # These are technical abbreviations that commonly merge with numbers in subdomains
                     
-                    if prev_word in domain_prefixes:
-                        # Merge for domain names: "server" + "1" = "server1"
+                    version_contexts = {"v", "version", "versión"}
+                    # Explicitly list command/navigation words that should NOT merge (English + Spanish)
+                    english_commands = {"to", "go", "visit", "check", "at", "from", "with", "on", "in", "for", "by"}
+                    spanish_commands = {"a", "ir", "visita", "revisar", "en", "desde", "con", "sobre", "para", "por"}
+                    command_words = english_commands.union(spanish_commands)
+                    
+                    if prev_word in technical_prefixes:
+                        # Merge for technical domain names: "api" + "1" = "api1", "db" + "2" = "db2"  
                         should_merge = True
                     elif prev_word in version_contexts:
                         # Merge for versions: "v" + "2" = "v2"  
@@ -317,8 +322,25 @@ class WebPatternConverter(BasePatternConverter):
             pattern_boundary = rf"\b{re.escape(keyword)}\b"
             text = re.sub(pattern_boundary, replacement, text, flags=re.IGNORECASE)
         
-        # Remove all spaces to create the final URL
-        return text.replace(" ", "")
+        # Remove spaces around URL symbols, but preserve spaces in general text
+        # This handles cases like "servidor 1.ejemplo.com" where we want to keep the space
+        # but remove spaces around dots, slashes, etc.
+        
+        # Only remove spaces that are immediately adjacent to URL symbols
+        # Common URL symbols that should not have spaces around them
+        url_symbols = ['.', '/', ':', '@', '?', '=', '&', '-', '_']
+        
+        # Remove spaces before and after URL symbols ONLY in URL contexts
+        # Be more conservative - only remove spaces when the symbols are clearly part of a URL structure
+        for symbol in url_symbols:
+            if symbol in text:
+                # Remove space before symbol: "word ." -> "word."
+                text = re.sub(rf'\s+{re.escape(symbol)}', symbol, text)
+                # Remove space after symbol only for certain symbols that should connect: ". ", "/ ", "@ "
+                if symbol in ['.', '/', '@']:
+                    text = re.sub(rf'{re.escape(symbol)}\s+', symbol, text)
+        
+        return text
 
     def convert_url(self, entity: Entity) -> str:
         """Convert URL with proper formatting"""

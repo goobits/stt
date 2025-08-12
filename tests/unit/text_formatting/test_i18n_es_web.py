@@ -12,9 +12,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestSpanishSpokenUrls:
+class TestSpanishSpokenUrls(BaseFormattingTest):
     """Test Spanish SPOKEN_URL entity detection and formatting."""
 
     def test_basic_spoken_urls(self, spanish_formatter):
@@ -75,7 +76,7 @@ class TestSpanishSpokenUrls:
             self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishSpokenEmails:
+class TestSpanishSpokenEmails(BaseFormattingTest):
     """Test Spanish SPOKEN_EMAIL entity detection and formatting."""
 
     def test_basic_spoken_emails(self, spanish_formatter):
@@ -104,7 +105,7 @@ class TestSpanishSpokenEmails:
 
 
 
-class TestSpanishNumericEntities:
+class TestSpanishNumericEntities(BaseFormattingTest):
     """Test Spanish numeric entity detection and formatting."""
 
     def test_spanish_numbers(self, spanish_formatter):

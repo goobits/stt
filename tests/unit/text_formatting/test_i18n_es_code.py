@@ -11,9 +11,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestSpanishSlashCommands:
+class TestSpanishSlashCommands(BaseFormattingTest):
     """Test Spanish SLASH_COMMAND entity detection and formatting."""
 
     def test_basic_slash_commands(self, spanish_formatter):
@@ -51,7 +52,7 @@ class TestSpanishSlashCommands:
             self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishCommandFlags:
+class TestSpanishCommandFlags(BaseFormattingTest):
     """Test Spanish COMMAND_FLAG entity detection and formatting."""
 
     def test_short_flags(self, spanish_formatter):
@@ -79,7 +80,7 @@ class TestSpanishCommandFlags:
             self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishUnderscorePatterns:
+class TestSpanishUnderscorePatterns(BaseFormattingTest):
     """Test Spanish underscore pattern detection and formatting."""
 
     def test_simple_underscore_variables(self, spanish_formatter):
@@ -106,7 +107,7 @@ class TestSpanishUnderscorePatterns:
             self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishCodeOperators:
+class TestSpanishCodeOperators(BaseFormattingTest):
     """Test Spanish code operator detection and formatting."""
 
     def test_increment_decrement(self, spanish_formatter):
@@ -145,7 +146,7 @@ class TestSpanishCodeOperators:
             self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishMixedPatterns:
+class TestSpanishMixedPatterns(BaseFormattingTest):
     """Test Spanish mixed code patterns."""
 
     def test_code_with_urls(self, spanish_formatter):
