@@ -48,12 +48,20 @@ class MathematicalProcessor(BaseNumericProcessor):
         # Build number pattern for reuse
         number_pattern = self._build_number_pattern()
         
-        # 1. Math expressions (with pyparsing validation) - Highest priority
+        # 1. Scientific notation - Highest priority to prevent conflicts with general math
+        rules.append(ProcessingRule(
+            pattern=self._build_scientific_notation_pattern(),
+            entity_type=EntityType.SCIENTIFIC_NOTATION,
+            metadata_extractor=self._extract_scientific_metadata,
+            priority=125
+        ))
+        
+        # 2. Math expressions (with pyparsing validation)  
         rules.append(ProcessingRule(
             pattern=pattern_modules.get_complex_math_expression_pattern(self.language),
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_complex_math_metadata,
-            context_filters=[self._filter_idiomatic_over, self._filter_idiomatic_spacy],
+            context_filters=[self._filter_idiomatic_over, self._filter_idiomatic_spacy, self._filter_scientific_notation],
             priority=120
         ))
         
@@ -65,7 +73,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             priority=118
         ))
         
-        # Special case: number + constant pattern (e.g., "two pi")
+        # 3. Special case: number + constant pattern (e.g., "two pi")
         rules.append(ProcessingRule(
             pattern=pattern_modules.get_number_constant_pattern(self.language),
             entity_type=EntityType.MATH_EXPRESSION,
@@ -73,7 +81,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             priority=115
         ))
         
-        # 2. Root expressions (square/cube root)
+        # 4. Root expressions (square/cube root)
         rules.append(ProcessingRule(
             pattern=re.compile(r"\b(square|cube)\s+root\s+of\s+([\w\s+\-*/]+)\b", re.IGNORECASE),
             entity_type=EntityType.ROOT_EXPRESSION,
@@ -81,20 +89,12 @@ class MathematicalProcessor(BaseNumericProcessor):
             priority=113
         ))
         
-        # 3. Mathematical constants (from resources)
+        # 5. Mathematical constants (from resources)
         rules.append(ProcessingRule(
             pattern=self._build_math_constants_pattern(),
             entity_type=EntityType.MATH_CONSTANT,
             metadata_extractor=self._extract_constant_metadata,
             priority=110
-        ))
-        
-        # 4. Scientific notation
-        rules.append(ProcessingRule(
-            pattern=self._build_scientific_notation_pattern(),
-            entity_type=EntityType.SCIENTIFIC_NOTATION,
-            metadata_extractor=self._extract_scientific_metadata,
-            priority=108
         ))
         
         # 5. Negative numbers
@@ -135,6 +135,17 @@ class MathematicalProcessor(BaseNumericProcessor):
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_complex_power_metadata,
             priority=100
+        ))
+        
+        # Ordinal power expressions without "power" like "two to the fourth", "ten to the sixth" 
+        rules.append(ProcessingRule(
+            pattern=re.compile(
+                r"\b(" + number_pattern + r"|[a-zA-Z]+)\s+to\s+the\s+(" + ordinal_pattern + r")\b",
+                re.IGNORECASE
+            ),
+            entity_type=EntityType.MATH_EXPRESSION,
+            metadata_extractor=self._extract_ordinal_power_metadata,
+            priority=98
         ))
         
         return rules
@@ -329,6 +340,22 @@ class MathematicalProcessor(BaseNumericProcessor):
         
         return {"base": base, "power": power}
     
+    def _extract_ordinal_power_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from ordinal power matches (two to the fourth)."""
+        base = match.group(1)
+        ordinal_text = match.group(2)
+        
+        # Try to parse the ordinal as a number
+        power = self.number_parser.parse_ordinal(ordinal_text)
+        if not power:
+            # Fallback to regular number parsing
+            power = self.number_parser.parse(ordinal_text)
+        if not power:
+            # If we still can't parse, keep the original text
+            power = ordinal_text
+        
+        return {"base": base, "power": power}
+    
     # Context filters
     
     def _filter_idiomatic_over(self, text: str, start: int, end: int) -> bool:
@@ -353,6 +380,17 @@ class MathematicalProcessor(BaseNumericProcessor):
             r"^\w+\s+minus\s+minus[.!?]?$", potential_expr, re.IGNORECASE
         ):
             return False
+        
+        return True
+    
+    def _filter_scientific_notation(self, text: str, start: int, end: int) -> bool:
+        """Filter expressions that match scientific notation pattern."""
+        expr = text[start:end]
+        
+        # Check if this expression matches the scientific notation pattern
+        scientific_pattern = self._build_scientific_notation_pattern()
+        if scientific_pattern.search(expr):
+            return False  # Don't process as general math expression
         
         return True
     

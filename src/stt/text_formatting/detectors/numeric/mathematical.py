@@ -423,7 +423,15 @@ class MathematicalExpressionDetector:
             re.IGNORECASE
         )
 
-        for pattern in [simple_power_pattern, complex_power_pattern]:
+        # Ordinal power expressions like "two to the fourth", "ten to the sixth"
+        # Use fallback pattern string for regex building (actual spaCy detection happens elsewhere)
+        ordinal_pattern_str = self._get_ordinal_pattern_string()
+        ordinal_power_pattern = re.compile(
+            r"\b(" + number_pattern + r"|[a-zA-Z]+)\s+to\s+the\s+(" + ordinal_pattern_str + r")\b",
+            re.IGNORECASE
+        )
+
+        for pattern in [simple_power_pattern, complex_power_pattern, ordinal_power_pattern]:
             for match in pattern.finditer(text):
                 check_entities = all_entities if all_entities else entities
                 if not is_inside_entity(match.start(), match.end(), check_entities):
@@ -431,6 +439,16 @@ class MathematicalExpressionDetector:
                     if pattern == simple_power_pattern:
                         power_word = match.group(2).lower()
                         power = "2" if power_word == "squared" else "3"
+                    elif pattern == ordinal_power_pattern:
+                        # Handle ordinal power expressions like "to the sixth"
+                        ordinal_text = match.group(2).lower()
+                        # Try to parse the ordinal as a number
+                        power = self.number_parser.parse_ordinal(ordinal_text)
+                        if not power:
+                            # Fallback to regular number parsing
+                            power = self.number_parser.parse(ordinal_text)
+                        if not power:
+                            continue  # Skip if we can't parse the ordinal
                     else:
                         power = match.group(2)
 
@@ -452,7 +470,11 @@ class MathematicalExpressionDetector:
         Order matters - more specific patterns should be detected first to avoid
         conflicts with more general patterns.
         """
-        # Detect scientific notation first (most specific pattern)
+        # Detect power expressions first - must happen before ordinals are processed elsewhere
+        self.detect_roots_and_powers(text, entities, all_entities)
+        
+        all_entities = (all_entities or []) + entities
+        # Detect scientific notation second (most specific pattern)
         self.detect_scientific_notation(text, entities, all_entities)
         
         all_entities = (all_entities or []) + entities
@@ -463,9 +485,6 @@ class MathematicalExpressionDetector:
         
         all_entities = (all_entities or []) + entities
         self.detect_negative_numbers(text, entities, all_entities)
-        
-        all_entities = (all_entities or []) + entities
-        self.detect_roots_and_powers(text, entities, all_entities)
         
         # Detect general math expressions last (most general pattern)
         all_entities = (all_entities or []) + entities

@@ -277,16 +277,33 @@ def apply_coordination_aware_capitalization(
                 # Case preservation is already handled above
                 
         elif guidance.capitalization_context == "dot_filename":
-            # Ensure dot filenames stay lowercase
+            # Ensure only the extension part of filenames is lowercase, preserve filename casing
             if '.' in entity.text and entity.start < len(capitalized_text):
                 current_text = capitalized_text[entity.start:entity.end]
-                if current_text != entity.text.lower():
-                    logger.debug(f"THEORY_19: Forcing lowercase for dot filename: '{entity.text}'")
-                    capitalized_text = (
-                        capitalized_text[:entity.start] + 
-                        entity.text.lower() + 
-                        capitalized_text[entity.end:]
-                    )
+                
+                # Split filename into name and extension parts
+                parts = entity.text.rsplit('.', 1)
+                if len(parts) == 2:
+                    filename_part, extension = parts
+                    # Preserve filename part casing, ensure extension is lowercase
+                    corrected_filename = f"{filename_part}.{extension.lower()}"
+                    
+                    if current_text != corrected_filename:
+                        logger.debug(f"THEORY_19: Correcting filename casing: '{current_text}' -> '{corrected_filename}' (preserving filename, lowercasing extension)")
+                        capitalized_text = (
+                            capitalized_text[:entity.start] + 
+                            corrected_filename + 
+                            capitalized_text[entity.end:]
+                        )
+                else:
+                    # Fallback for edge cases without proper extension
+                    if current_text != entity.text.lower():
+                        logger.debug(f"THEORY_19: Forcing lowercase for dot filename (no extension): '{entity.text}'")
+                        capitalized_text = (
+                            capitalized_text[:entity.start] + 
+                            entity.text.lower() + 
+                            capitalized_text[entity.end:]
+                        )
     
     logger.debug(f"THEORY_19: Coordination-aware capitalization complete")
     return capitalized_text

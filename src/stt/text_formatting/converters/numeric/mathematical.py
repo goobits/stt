@@ -34,7 +34,14 @@ class MathematicalConverter(BaseNumericConverter):
 
     def convert_math_expression(self, entity: Entity) -> str:
         """Convert parsed math expressions to properly formatted text"""
-        if not entity.metadata or "parsed" not in entity.metadata:
+        if not entity.metadata:
+            return entity.text
+
+        # Handle specific power expressions with base and power metadata
+        if "base" in entity.metadata and "power" in entity.metadata:
+            return self._convert_power_expression(entity)
+
+        if "parsed" not in entity.metadata:
             return entity.text
 
         try:
@@ -113,6 +120,30 @@ class MathematicalConverter(BaseNumericConverter):
         except (AttributeError, ValueError, TypeError, IndexError) as e:
             logger.debug(f"Error converting math expression: {e}")
             return entity.text
+
+    def _convert_power_expression(self, entity: Entity) -> str:
+        """Convert power expressions with base and power metadata to superscript notation."""
+        base = entity.metadata.get("base", "")
+        power = entity.metadata.get("power", "")
+        
+        # Convert base if it's a number word
+        converted_base = self.number_parser.parse(base)
+        if not converted_base:
+            converted_base = base
+            
+        # Convert power to superscript
+        if isinstance(power, str) and power.isdigit():
+            superscript_power = self.convert_to_superscript(power)
+        else:
+            # Try to parse power if it's not already a digit
+            parsed_power = self.number_parser.parse(str(power))
+            if parsed_power:
+                superscript_power = self.convert_to_superscript(parsed_power)
+            else:
+                # Fallback to original power
+                superscript_power = str(power)
+        
+        return f"{converted_base}{superscript_power}"
 
     def _convert_math_token(self, token: str) -> str:
         """Convert individual math tokens"""
