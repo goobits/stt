@@ -167,6 +167,22 @@ def convert_entities(
             logger.warning(f"Error converting entity {entity.type}('{entity.text}'): {e}")
             converted_text = entity.text  # Fallback to original text
         
+        # POSITION TRACKING: Update entity positions when conversion changes text length
+        if converted_text != entity.text and pipeline_state:
+            # Get entity ID from the universal entity tracker
+            entity_id = pipeline_state.entity_tracker.generate_entity_id(entity)
+            
+            # Update the entity's converted text in the tracker
+            if entity_id in pipeline_state.entity_tracker.entities:
+                pipeline_state.entity_tracker.entities[entity_id].converted_text = converted_text
+                pipeline_state.entity_tracker.mark_entity_converted(entity_id, converted_text, "step3_conversion")
+                
+                # If this is a text length change, we need to track position updates for subsequent entities
+                length_delta = len(converted_text) - len(entity.text)
+                if length_delta != 0:
+                    logger.debug(f"POSITION_TRACKING: Entity {entity.type} conversion changed text length by {length_delta}")
+                    # Note: We don't update positions yet - we do bulk position updates after all conversions
+        
         # THEORY 19: Record conversion for capitalization coordination
         if pipeline_state and hasattr(pipeline_state, 'entity_capitalization_coordinator'):
             # Get entity ID from the universal entity tracker
@@ -198,6 +214,16 @@ def convert_entities(
 
     # Join everything into a single string
     processed_text = "".join(result_parts)
+    
+    # POSITION TRACKING: Update all entity positions in the pipeline state after conversion
+    if pipeline_state:
+        # Update the pipeline state's text to match the processed text
+        pipeline_state.text = processed_text
+        
+        # Validate entity positions and log any mismatches
+        position_warnings = pipeline_state.validate_entity_positions(processed_text, "step3_conversion")
+        for warning in position_warnings:
+            logger.warning(f"POSITION_TRACKING: {warning}")
 
     # Step 3c: Post-conversion validation and boundary repair
     # Ensure converted entities still have valid positions

@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "languages_tested": [
+      "en",
+      "es"
+    ],
+    "patterns_tested": [
+      "mathematical",
+      "currency",
+      "web"
+    ],
+    "test_level": "standard",
+    "overall_success_rate": 0.3277777777777778,
+    "language_rankings": {
+      "en": 0.39444444444444443,
+      "es": 0.2611111111111111
+    },
+    "pattern_rankings": {
+      "mathematical": 0.25,
+      "currency": 0.4,
+      "web": 0.3333333333333333
+    }
+  },
+  "language_summaries": {
+    "en": {
+      "total_tests": 12,
+      "total_passed": 5,
+      "total_failed": 7,
+      "average_success_rate": 0.39444444444444443,
+      "pattern_count": 3,
+      "perfect_patterns": [],
+      "problematic_patterns": [
+        "mathematical",
+        "web"
+      ]
+    },
+    "es": {
+      "total_tests": 12,
+      "total_passed": 3,
+      "total_failed": 9,
+      "average_success_rate": 0.2611111111111111,
+      "pattern_count": 3,
+      "perfect_patterns": [],
+      "problematic_patterns": [
+        "mathematical",
+        "currency",
+        "web"
+      ]
+    }
+  },
+  "recommendations": [
+    "Overall success rate is 32.8%. Consider improving resource quality and pattern definitions.",
+    "Language 'es' has low success rate (26.1%). Review resource completeness and accuracy.",
+    "Language 'en' has low success rate (39.4%). Review resource completeness and accuracy.",
+    "Pattern 'mathematical' has low success rate (25.0%). Review pattern logic and test cases.",
+    "Pattern 'web' has low success rate (33.3%). Review pattern logic and test cases."
+  ]
+}

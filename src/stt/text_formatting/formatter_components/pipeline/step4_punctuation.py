@@ -14,6 +14,7 @@ This is Step 4 of the 4-step formatting pipeline:
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 
@@ -21,6 +22,9 @@ from ... import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
 from ...constants import get_resources
 from ...nlp_provider import get_punctuator
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 
 def add_punctuation(
@@ -56,7 +60,15 @@ def add_punctuation(
 
     # Add comma insertion for common introductory phrases BEFORE punctuation model processing
     # THEORY 8: Pass pipeline state for universal entity coordination
+    original_text = text
     text = _add_comma_for_introductory_phrases(text, language, pipeline_state)
+    
+    # POSITION TRACKING: Update entity positions if comma insertion changed text
+    if pipeline_state and text != original_text:
+        logger.debug(f"POSITION_TRACKING: Comma insertion changed text: '{original_text}' -> '{text}'")
+        # Find all the changes and update positions accordingly
+        # For now, we'll update the pipeline state text - more precise tracking could be added
+        pipeline_state.text = text
     
     # Initialize filename placeholders outside the try block (Theory 7 fix)
     filename_placeholders = {}
@@ -73,6 +85,28 @@ def add_punctuation(
                 placeholder = f"__FILENAME_{i}__"
                 filename_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
+
+            # THEORY 8: Protect already-formatted abbreviations BEFORE URL protection
+            # This prevents abbreviations like "i.e." from being mistakenly caught by URL patterns
+            abbreviation_placeholders = {}
+            # Pattern to match common abbreviations that are already formatted (e.g., i.e., e.g., etc.)
+            # Include some context to prevent punctuation model from adding unwanted punctuation around them
+            # Note: Don't use word boundaries after periods as periods are not word characters
+            # Updated pattern to handle abbreviations at start of text or with spaces
+            abbrev_pattern = re.compile(r'(^|\s)(i\.e\.|e\.g\.|etc\.|vs\.|cf\.)(\s|$)', re.IGNORECASE)
+            for i, match in enumerate(abbrev_pattern.finditer(protected_text)):
+                placeholder = f"__ABBREV_{i}__"
+                # Store the entire match including surrounding context to preserve positioning
+                full_match = match.group(0)
+                abbreviation_only = match.group(2)  # Just the abbreviation part without spaces
+                abbreviation_placeholders[placeholder] = {
+                    'full_match': full_match,
+                    'abbreviation_only': abbreviation_only,
+                    'prefix': match.group(1),
+                    'suffix': match.group(3)
+                }
+                protected_text = protected_text.replace(full_match, placeholder, 1)
+                logger.debug(f"POSITION_TRACKING: Protected abbreviation '{abbreviation_only}' with placeholder {placeholder}")
 
             # Now protect URLs and technical terms from the punctuation model
             # Using pre-compiled patterns for performance
@@ -118,21 +152,11 @@ def add_punctuation(
                 placeholder = f"__DECIMAL_{i}__"
                 decimal_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
-            
-            # THEORY 8: Protect already-formatted abbreviations from punctuation model corruption
-            abbreviation_placeholders = {}
-            # Pattern to match common abbreviations that are already formatted (e.g., i.e., e.g., etc.)
-            # Include some context to prevent punctuation model from adding unwanted punctuation around them
-            # Note: Don't use word boundaries after periods as periods are not word characters
-            abbrev_pattern = re.compile(r'(\s)(i\.e\.|e\.g\.|etc\.|vs\.|cf\.)(\s)', re.IGNORECASE)
-            for i, match in enumerate(abbrev_pattern.finditer(protected_text)):
-                placeholder = f"__ABBREV_{i}__"
-                # Store the entire match including surrounding spaces to preserve context
-                abbreviation_placeholders[placeholder] = match.group(0)
-                protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Apply punctuation to the protected text
+            logger.debug(f"POSITION_TRACKING: Sending to punctuation model: '{protected_text}'")
             result = punctuator.restore_punctuation(protected_text)
+            logger.debug(f"POSITION_TRACKING: Punctuation model returned: '{result}'")
 
             # Restore URLs
             for placeholder, url in url_placeholders.items():
@@ -159,8 +183,36 @@ def add_punctuation(
                 result = re.sub(rf"\b{re.escape(placeholder)}\b", decimal, result)
             
             # THEORY 8: Restore protected abbreviations
-            for placeholder, abbreviation in abbreviation_placeholders.items():
-                result = re.sub(rf"\b{re.escape(placeholder)}\b", abbreviation, result)
+            for placeholder, abbrev_data in abbreviation_placeholders.items():
+                full_match = abbrev_data['full_match']
+                abbreviation_only = abbrev_data['abbreviation_only']
+                logger.debug(f"POSITION_TRACKING: Restoring abbreviation placeholder '{placeholder}' -> '{full_match}' in text '{result}'")
+                old_result = result
+                # Use simple replacement instead of word boundaries since placeholder contains underscores
+                result = result.replace(placeholder, full_match)
+                if result != old_result:
+                    logger.debug(f"POSITION_TRACKING: Successfully restored abbreviation: '{old_result}' -> '{result}'")
+                    
+                    # POSITION TRACKING: Update entity positions after abbreviation restoration
+                    if pipeline_state:
+                        # Find the position where the restoration happened
+                        restore_pos = old_result.find(placeholder)
+                        if restore_pos != -1:
+                            # Find all abbreviation entities and update their converted text
+                            # since we know we just restored an abbreviation
+                            logger.debug(f"POSITION_TRACKING: Looking for ABBREVIATION entities to update with text '{abbreviation_only}'")
+                            logger.debug(f"POSITION_TRACKING: Available entities: {[(eid, ei.entity.type.value, ei.original_text, ei.converted_text) for eid, ei in pipeline_state.entity_tracker.entities.items()]}")
+                            
+                            for entity_id, entity_info in pipeline_state.entity_tracker.entities.items():
+                                # Check if this is an abbreviation entity (using EntityType enum comparison)
+                                from stt.text_formatting.common import EntityType
+                                if entity_info.entity.type == EntityType.ABBREVIATION:
+                                    # Update the entity's expected text to match the restored abbreviation
+                                    entity_info.converted_text = abbreviation_only
+                                    logger.debug(f"POSITION_TRACKING: Updated entity {entity_id} expected text to '{abbreviation_only}'")
+                                    break
+                else:
+                    logger.debug(f"POSITION_TRACKING: Abbreviation placeholder '{placeholder}' not found or not restored")
 
             # NOTE: Filename restoration moved to end after all post-processing
 
@@ -300,6 +352,19 @@ def add_punctuation(
             result = re.sub(r"([.!?]){2,}", r"\1", result)
 
             if result != text:
+                # POSITION_TRACKING: Update entity positions after punctuation model changes
+                if pipeline_state:
+                    logger.debug(f"POSITION_TRACKING: Punctuation model changed text: '{text}' -> '{result}'")
+                    
+                    # Update pipeline state with the final text after all restorations
+                    # This ensures entity tracking uses the text with restored abbreviations
+                    pipeline_state.text = result
+                    
+                    # Validate entity positions after punctuation changes but before restoration
+                    position_warnings = pipeline_state.validate_entity_positions(result, "step4_punctuation")
+                    for warning in position_warnings:
+                        logger.warning(f"POSITION_TRACKING: {warning}")
+                
                 text = result
 
         except (AttributeError, ValueError, RuntimeError, OSError):
@@ -325,8 +390,20 @@ def add_punctuation(
     text = re.sub(r"\b(\d+)\s+([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
 
     # FINAL: Restore filenames after all post-processing (Theory 7 fix)
+    original_text_before_restore = text
     for placeholder, filename in filename_placeholders.items():
         text = re.sub(rf"\b{re.escape(placeholder)}\b", filename, text)
+    
+    # POSITION TRACKING: Update entity positions after filename restoration
+    if pipeline_state:
+        # Always update the pipeline state with the final text
+        pipeline_state.text = text
+        
+        # Final validation of entity positions after all punctuation processing
+        # This includes abbreviation restoration, so entity positions should be correct now
+        position_warnings = pipeline_state.validate_entity_positions(text, "step4_punctuation_final")
+        for warning in position_warnings:
+            logger.warning(f"POSITION_TRACKING: {warning}")
 
     return text
 

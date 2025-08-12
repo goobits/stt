@@ -110,6 +110,83 @@ class UniversalEntityTracker:
             self.entities[entity_id].current_start = new_start
             self.entities[entity_id].current_end = new_end
     
+    def update_all_positions_after_text_change(self, modification_start: int, modification_end: int, new_text: str):
+        """
+        Update all entity positions after a text modification.
+        
+        Args:
+            modification_start: Start position of the modification
+            modification_end: End position of the modification
+            new_text: The new text that replaced the modified section
+        """
+        old_length = modification_end - modification_start
+        new_length = len(new_text)
+        length_delta = new_length - old_length
+        
+        # Record this modification for tracking
+        self.text_modifications.append(("text_change", modification_start, modification_end, new_text))
+        
+        # Update positions of all entities
+        for entity_id, state_info in self.entities.items():
+            # Update current positions based on the modification
+            updated_start, updated_end = self._calculate_updated_position(
+                state_info.current_start, state_info.current_end,
+                modification_start, modification_end, length_delta
+            )
+            
+            # Only update if positions actually changed
+            if updated_start != state_info.current_start or updated_end != state_info.current_end:
+                state_info.current_start = updated_start
+                state_info.current_end = updated_end
+                state_info.add_modification("position_update", f"Updated from ({state_info.original_start}, {state_info.original_end}) to ({updated_start}, {updated_end})")
+    
+    def _calculate_updated_position(self, entity_start: int, entity_end: int, 
+                                   mod_start: int, mod_end: int, length_delta: int) -> tuple[int, int]:
+        """
+        Calculate new entity position after a text modification.
+        
+        Args:
+            entity_start: Current start position of entity
+            entity_end: Current end position of entity
+            mod_start: Start position of text modification
+            mod_end: End position of text modification
+            length_delta: Change in text length (new_length - old_length)
+            
+        Returns:
+            Tuple of (new_start, new_end)
+        """
+        # Case 1: Entity is completely before the modification
+        if entity_end <= mod_start:
+            return entity_start, entity_end  # No change needed
+        
+        # Case 2: Entity is completely after the modification
+        if entity_start >= mod_end:
+            return entity_start + length_delta, entity_end + length_delta
+        
+        # Case 3: Entity overlaps with modification (complex case)
+        if entity_start < mod_start and entity_end > mod_end:
+            # Entity surrounds the modification
+            return entity_start, entity_end + length_delta
+        
+        # Case 4: Entity starts before and overlaps modification
+        if entity_start < mod_start and entity_end > mod_start:
+            # Entity partially overlaps from the left
+            return entity_start, entity_end + length_delta
+        
+        # Case 5: Entity starts within modification and extends beyond
+        if entity_start < mod_end and entity_end > mod_end:
+            # Entity partially overlaps from the right
+            return mod_start, entity_end + length_delta
+        
+        # Case 6: Entity is completely within the modification (may be corrupted)
+        if entity_start >= mod_start and entity_end <= mod_end:
+            # This entity's boundaries may be invalid after modification
+            # For now, keep it at the modification point - may need validation later
+            return mod_start, mod_start + max(1, entity_end - entity_start)
+        
+        # Fallback: return original positions
+        return entity_start, entity_end
+    
     def mark_entity_converted(self, entity_id: str, converted_text: str, step: str):
         """Mark entity as converted and track the conversion"""
         if entity_id in self.entities:
@@ -480,11 +557,67 @@ class PipelineState:
         """Get capitalization guidance for a specific position"""
         return self.entity_capitalization_coordinator.get_capitalization_guidance_for_position(position)
         
-    def update_entity_positions_after_modification(self, start: int, end: int, new_length: int):
+    def update_entity_positions_after_modification(self, start: int, end: int, new_text: str):
         """Update entity positions after text modification"""
         # Update both the entity tracker and capitalization coordinator
         # This ensures position consistency across all coordination systems
-        self.entity_capitalization_coordinator.update_positions_after_modification(start, end, new_length)
+        self.entity_tracker.update_all_positions_after_text_change(start, end, new_text)
+        self.entity_capitalization_coordinator.update_positions_after_modification(start, end, len(new_text))
+        
+        # Update the current text being processed
+        self.text = self.text[:start] + new_text + self.text[end:]
+    
+    def validate_entity_positions(self, current_text: str, step: str) -> list[str]:
+        """
+        Validate that all tracked entities have valid positions in the current text.
+        
+        Args:
+            current_text: The current state of the text being processed
+            step: The current pipeline step for logging
+            
+        Returns:
+            List of validation warnings/errors
+        """
+        warnings = []
+        
+        for entity_id, state_info in self.entity_tracker.entities.items():
+            start = state_info.current_start
+            end = state_info.current_end
+            
+            # Check if position is within text bounds
+            if start < 0 or end > len(current_text) or start >= end:
+                warning = f"Entity {entity_id} has invalid position ({start}-{end}) for text length {len(current_text)}"
+                warnings.append(warning)
+                continue
+            
+            # Check if entity text matches current position
+            expected_text = state_info.converted_text or state_info.entity.text
+            actual_text = current_text[start:end]
+            
+            if actual_text != expected_text:
+                warning = f"Entity position mismatch! Expected '{expected_text}' but found '{actual_text}' at position {start}-{end} in step {step}"
+                warnings.append(warning)
+                
+                # Try to find the entity nearby (within 10 characters)
+                search_start = max(0, start - 10)
+                search_end = min(len(current_text), end + 10)
+                search_text = current_text[search_start:search_end]
+                
+                if expected_text in search_text:
+                    # Found it nearby - calculate new position
+                    found_pos = current_text.find(expected_text, search_start)
+                    if found_pos != -1:
+                        warnings.append(f"  Found '{expected_text}' at nearby position {found_pos}")
+                        # Could auto-correct here if needed
+        
+        return warnings
+    
+    def get_entity_at_position(self, position: int) -> Optional[EntityStateInfo]:
+        """Get the entity that contains the given position."""
+        for state_info in self.entity_tracker.entities.values():
+            if state_info.current_start <= position < state_info.current_end:
+                return state_info
+        return None
     
     def should_skip_punctuation_modification(self, step: str, start: int, end: int, modification_type: str = "comma") -> bool:
         """
