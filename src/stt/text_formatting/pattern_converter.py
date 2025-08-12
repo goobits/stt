@@ -53,6 +53,11 @@ class PatternConverter:
         # Get URL keywords for web conversions
         self.url_keywords = self.resources["spoken_keywords"]["url"]
 
+        # Pre-compute entity types that need full text context for performance
+        self._full_text_entity_types = frozenset([
+            EntityType.CURRENCY, EntityType.CARDINAL, EntityType.ORDINAL, EntityType.QUANTITY
+        ])
+
         # Comprehensive converter mapping
         self.converters = {
             # Web converters
@@ -118,8 +123,8 @@ class PatternConverter:
         try:
             converter = self.converters.get(entity.type)
             if converter:
-                # Some converters need the full text for context
-                if entity.type in [EntityType.CURRENCY, EntityType.CARDINAL, EntityType.ORDINAL, EntityType.QUANTITY]:
+                # Some converters need the full text for context - use pre-computed set
+                if entity.type in self._full_text_entity_types:
                     return converter(entity, full_text)
                 else:
                     return converter(entity)

@@ -297,9 +297,11 @@ class TextFormatter:
         common_starters.extend(["índice"])
         
         # Check for words with space or at end of string (for words like "índice--")
+        # Cache lowercase version for efficiency
+        cleaned_text_lower = cleaned_text.lower()
         starts_with_common_word = any(
-            cleaned_text.lower().startswith(word + " ") or 
-            cleaned_text.lower().startswith(word) and (len(cleaned_text) == len(word) or not cleaned_text[len(word)].isalpha())
+            cleaned_text_lower.startswith(word + " ") or 
+            cleaned_text_lower.startswith(word) and (len(cleaned_text) == len(word) or not cleaned_text[len(word)].isalpha())
             for word in common_starters
         )
         should_capitalize = not is_standalone_tech and not skip_capitalization_for_cli or starts_with_common_word
@@ -384,9 +386,11 @@ class TextFormatter:
         
         for idiom in multi_word_idioms:
             # Find all occurrences of this idiom (case-insensitive)
-            import re
-            pattern = re.escape(idiom.lower())
-            for match in re.finditer(pattern, text_lower):
+            # Pre-compile pattern for efficiency
+            idiom_lower = idiom.lower()
+            pattern = re.escape(idiom_lower)
+            compiled_pattern = re.compile(pattern)
+            for match in compiled_pattern.finditer(text_lower):
                 # Create a protected entity that other detectors will skip over
                 idiom_entities.append(Entity(
                     start=match.start(),

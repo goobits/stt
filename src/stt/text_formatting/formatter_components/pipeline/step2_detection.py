@@ -181,7 +181,12 @@ def detect_all_entities(
     # Code and Web entities are highly specific and should run first.
     web_entities = detectors["web_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(web_entities)
-    logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
+    if web_entities:
+        # Pre-compute entity descriptions for efficiency
+        entity_descriptions = [f"{e.type.value}:{e.text}" for e in web_entities]
+        logger.info(f"Web entities detected: {len(web_entities)} - {entity_descriptions}")
+    else:
+        logger.info("Web entities detected: 0")
     
     # PHASE 23: Validate boundary integrity after web detection
     _, web_validation_warnings = boundary_validator.validate_at_step("web_detection", final_entities, text)
@@ -203,9 +208,12 @@ def detect_all_entities(
     # Spoken letters are very specific patterns and should run early to avoid conflicts
     letter_entities = detectors["spoken_letter_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(letter_entities)
-    logger.info(
-        f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}"
-    )
+    if letter_entities:
+        # Pre-compute entity descriptions for efficiency
+        entity_descriptions = [f"{e.type.value}:{e.text}" for e in letter_entities]
+        logger.info(f"Letter entities detected: {len(letter_entities)} - {entity_descriptions}")
+    else:
+        logger.info("Letter entities detected: 0")
     
     # PHASE 23: Validate boundary integrity after letter detection
     _, letter_validation_warnings = boundary_validator.validate_at_step("letter_detection", final_entities, text)
@@ -226,7 +234,12 @@ def detect_all_entities(
     
     code_entities = detectors["code_detector"].detect(text, final_entities, doc=doc, pipeline_state=pipeline_state)
     final_entities.extend(code_entities)
-    logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
+    if code_entities:
+        # Pre-compute entity descriptions for efficiency
+        entity_descriptions = [f"{e.type.value}:{e.text}" for e in code_entities]
+        logger.info(f"Code entities detected: {len(code_entities)} - {entity_descriptions}")
+    else:
+        logger.info("Code entities detected: 0")
     
     # PHASE 23: Validate boundary integrity after code detection
     _, code_validation_warnings = boundary_validator.validate_at_step("code_detection", final_entities, text)
@@ -248,9 +261,12 @@ def detect_all_entities(
     # Numeric entities are next, as they are more specific than base SpaCy entities.
     numeric_entities = detectors["numeric_detector"].detect(text, final_entities, doc=doc)
     final_entities.extend(numeric_entities)
-    logger.info(
-        f"Numeric entities detected: {len(numeric_entities)} - {[f'{e.type}:{e.text}' for e in numeric_entities]}"
-    )
+    if numeric_entities:
+        # Pre-compute entity descriptions for efficiency
+        entity_descriptions = [f"{e.type.value}:{e.text}" for e in numeric_entities]
+        logger.info(f"Numeric entities detected: {len(numeric_entities)} - {entity_descriptions}")
+    else:
+        logger.info("Numeric entities detected: 0")
     
     # PHASE 23: Validate boundary integrity after numeric detection
     _, numeric_validation_warnings = boundary_validator.validate_at_step("numeric_detection", final_entities, text)
@@ -272,9 +288,12 @@ def detect_all_entities(
     # Finally, run the base SpaCy detector for general entities like DATE, TIME, etc.
     base_spacy_entities = detectors["entity_detector"].detect_entities(text, final_entities, doc=doc)
     final_entities.extend(base_spacy_entities)
-    logger.info(
-        f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}"
-    )
+    if base_spacy_entities:
+        # Pre-compute entity descriptions for efficiency
+        entity_descriptions = [f"{e.type.value}:{e.text}" for e in base_spacy_entities]
+        logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {entity_descriptions}")
+    else:
+        logger.info("Base SpaCy entities detected: 0")
     
     # PHASE 23: Validate boundary integrity after SpaCy detection
     _, spacy_validation_warnings = boundary_validator.validate_at_step("spacy_detection", final_entities, text)
@@ -538,20 +557,26 @@ def _deduplicate_entities_fallback(entities: List[Entity], entity_priorities: Di
         logger.debug(f"  {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
     
     def entities_overlap(e1, e2):
-        """Check if two entities overlap."""
-        return not (e1.end <= e2.start or e2.end <= e1.start)
+        """Check if two entities overlap - optimized attribute access."""
+        # Use tuple unpacking for faster attribute access
+        e1_start, e1_end = e1.start, e1.end
+        e2_start, e2_end = e2.start, e2.end
+        return not (e1_end <= e2_start or e2_end <= e1_start)
     
     for entity in entities:
         # Check if this entity overlaps with any already accepted entity
         overlaps_with_existing = False
+        # Cache entity attributes for faster access
+        entity_start, entity_end, entity_type, entity_text = entity.start, entity.end, entity.type, entity.text
+        entity_length = entity_end - entity_start
+        entity_priority = entity_priorities.get(entity_type, 0)
+        
         for existing in deduplicated_entities:
             if entities_overlap(entity, existing):
                 # Prefer longer entity (more specific) or same type
-                entity_length = entity.end - entity.start
                 existing_length = existing.end - existing.start
                 
-                # Get priorities for both entities
-                entity_priority = entity_priorities.get(entity.type, 0)
+                # Get priority for existing entity
                 existing_priority = entity_priorities.get(existing.type, 0)
 
                 # Priority is the primary factor - length is only a tiebreaker for same priority
@@ -559,14 +584,14 @@ def _deduplicate_entities_fallback(entities: List[Entity], entity_priorities: Di
                     # Remove the lower priority entity and add this higher priority one
                     deduplicated_entities.remove(existing)
                     logger.debug(
-                        f"Replacing lower priority entity {existing.type}('{existing.text}', priority={existing_priority}) with higher priority {entity.type}('{entity.text}', priority={entity_priority})"
+                        f"Replacing lower priority entity {existing.type}('{existing.text}', priority={existing_priority}) with higher priority {entity_type}('{entity_text}', priority={entity_priority})"
                     )
                     break
                 elif entity_priority < existing_priority:
                     # Keep the existing higher priority entity
                     overlaps_with_existing = True
                     logger.debug(
-                        f"Skipping lower priority entity: {entity.type}('{entity.text}', priority={entity_priority}) overlaps with higher priority {existing.type}('{existing.text}', priority={existing_priority})"
+                        f"Skipping lower priority entity: {entity_type}('{entity_text}', priority={entity_priority}) overlaps with higher priority {existing.type}('{existing.text}', priority={existing_priority})"
                     )
                     break
                 else:
@@ -575,20 +600,20 @@ def _deduplicate_entities_fallback(entities: List[Entity], entity_priorities: Di
                         # Remove the shorter existing entity and add this longer one
                         deduplicated_entities.remove(existing)
                         logger.debug(
-                            f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}') (same priority={entity_priority})"
+                            f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity_type}('{entity_text}') (same priority={entity_priority})"
                         )
                         break
                     else:
                         # Keep the existing longer or equal-length entity
                         overlaps_with_existing = True
                         logger.debug(
-                            f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}') (same priority={entity_priority})"
+                            f"Skipping overlapping entity: {entity_type}('{entity_text}') overlaps with {existing.type}('{existing.text}') (same priority={entity_priority})"
                         )
                         break
 
         if not overlaps_with_existing:
             deduplicated_entities.append(entity)
-            logger.debug(f"Added entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+            logger.debug(f"Added entity: {entity_type}('{entity_text}') at [{entity_start}:{entity_end}]")
     
     elapsed = time.perf_counter() - start_time
     logger.debug(f"Fallback deduplication completed in {elapsed:.4f}s")
