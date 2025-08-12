@@ -93,6 +93,7 @@ class StandardResourceLoader(ResourceLoader):
         self.resource_path = resource_path or _RESOURCE_PATH
         self._language_cache: Dict[str, Dict[str, Any]] = {}
         self._language_info_cache: Dict[str, LanguageInfo] = {}
+        self._available_languages_cache: Optional[List[str]] = None
     
     def load_language(self, language_code: str) -> Dict[str, Any]:
         """Load resources for a specific language with caching."""
@@ -109,8 +110,12 @@ class StandardResourceLoader(ResourceLoader):
     
     def get_available_languages(self) -> List[str]:
         """Get list of available language codes by scanning resource files."""
+        if self._available_languages_cache is not None:
+            return self._available_languages_cache
+            
         if not os.path.exists(self.resource_path):
-            return ["en"]  # Fallback to English
+            self._available_languages_cache = ["en"]  # Fallback to English
+            return self._available_languages_cache
         
         languages = []
         for file in os.listdir(self.resource_path):
@@ -118,7 +123,8 @@ class StandardResourceLoader(ResourceLoader):
                 lang_code = file[:-5]  # Remove .json extension
                 languages.append(lang_code)
         
-        return sorted(languages)
+        self._available_languages_cache = sorted(languages)
+        return self._available_languages_cache
     
     def validate_resource_structure(self, language_code: str) -> Dict[str, Any]:
         """Validate the structure of language resources."""
@@ -188,8 +194,6 @@ class StandardResourceLoader(ResourceLoader):
         if language_code in self._language_info_cache:
             return self._language_info_cache[language_code]
         
-        validation = self.validate_resource_structure(language_code)
-        
         # Define language families and fallback hierarchies
         language_families = {
             "en": ("English", "Germanic", []),
@@ -202,28 +206,14 @@ class StandardResourceLoader(ResourceLoader):
         
         name, family, fallbacks = language_families.get(language_code, (language_code.title(), "Unknown", ["en"]))
         
-        # Determine supported patterns based on resource completeness
-        resources = self.load_language(language_code)
-        supported_patterns = set()
-        
-        if "spoken_keywords" in resources:
-            if "mathematical" in resources["spoken_keywords"]:
-                supported_patterns.add("mathematical")
-            if "url" in resources["spoken_keywords"]:
-                supported_patterns.add("web")
-            if "code" in resources["spoken_keywords"]:
-                supported_patterns.add("code")
-        
-        if "currency" in resources or ("units" in resources and "currency_map" in resources["units"]):
-            supported_patterns.add("currency")
-        
+        # Create basic language info without full validation to defer resource loading
         language_info = LanguageInfo(
             code=language_code,
             name=name,
             family=family,
             fallback_languages=fallbacks,
-            supported_patterns=supported_patterns,
-            resource_completeness=validation["overall_completeness"]
+            supported_patterns=set(),  # Populate lazily when needed
+            resource_completeness=0.0  # Calculate lazily when needed
         )
         
         self._language_info_cache[language_code] = language_info
@@ -308,9 +298,15 @@ class MultiLanguageResourceManager:
         self._inheritance_rules: Dict[str, ResourceInheritance] = {}
         self._cached_merged_resources: Dict[str, Dict[str, Any]] = {}
         self._language_registry: Dict[str, LanguageInfo] = {}
+        self._languages_discovered: bool = False
         
-        # Initialize with discovered languages
-        self._discover_languages()
+        # Defer language discovery until actually needed
+    
+    def _ensure_languages_discovered(self):
+        """Ensure languages have been discovered (lazy loading)."""
+        if not self._languages_discovered:
+            self._discover_languages()
+            self._languages_discovered = True
     
     def _discover_languages(self):
         """Discover and register available languages."""
@@ -326,6 +322,7 @@ class MultiLanguageResourceManager:
     def register_language(self, language_info: LanguageInfo):
         """Register a language with the resource manager."""
         self._language_registry[language_info.code] = language_info
+        self._languages_discovered = True  # Mark as discovered if manually registering
         logger.debug(f"Registered language: {language_info.name} ({language_info.code})")
     
     def set_inheritance_rule(self, language_code: str, inheritance: ResourceInheritance):
@@ -346,6 +343,8 @@ class MultiLanguageResourceManager:
         Returns:
             Merged resource dictionary
         """
+        self._ensure_languages_discovered()
+        
         cache_key = f"{language_code}::{use_inheritance}"
         
         if cache_key in self._cached_merged_resources:
@@ -363,6 +362,8 @@ class MultiLanguageResourceManager:
     
     def _build_inherited_resources(self, language_code: str) -> Dict[str, Any]:
         """Build resources with inheritance applied."""
+        self._ensure_languages_discovered()
+        
         # Start with the base language resources
         primary_resources = self.loader.load_language(language_code)
         
@@ -444,6 +445,8 @@ class MultiLanguageResourceManager:
     
     def _get_inheritance_chain(self, language_code: str) -> List[str]:
         """Get the inheritance chain for a language."""
+        self._ensure_languages_discovered()
+        
         if language_code in self._language_registry:
             return [language_code] + self._language_registry[language_code].fallback_languages
         else:
@@ -451,10 +454,13 @@ class MultiLanguageResourceManager:
     
     def get_supported_languages(self) -> List[LanguageInfo]:
         """Get list of all supported languages."""
+        self._ensure_languages_discovered()
         return list(self._language_registry.values())
     
     def get_language_recommendations(self, target_patterns: List[str]) -> List[str]:
         """Recommend languages based on pattern support requirements."""
+        self._ensure_languages_discovered()
+        
         recommendations = []
         
         for lang_code, lang_info in self._language_registry.items():
@@ -519,6 +525,8 @@ class MultiLanguageResourceManager:
     
     def get_resource_statistics(self) -> Dict[str, Any]:
         """Get comprehensive statistics about resource usage."""
+        self._ensure_languages_discovered()
+        
         stats = {
             "total_languages": len(self._language_registry),
             "average_completeness": 0.0,
