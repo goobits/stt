@@ -82,16 +82,16 @@ class EntityValidator:
         # This should be handled by the specialized range detector
         if " to " in ent.text.lower():
             # Check if it matches our range pattern
-            from .. import regex_patterns
+            from ..pattern_modules.numeric_patterns import SPOKEN_NUMERIC_RANGE_PATTERN
 
-            range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
+            range_match = SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
             if range_match:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it matches numeric range pattern")
                 return True
 
         # Check if this individual CARDINAL is part of a larger range pattern
         # Look at the surrounding context to see if it's part of "X to Y" pattern
-        from .. import regex_patterns
+        from ..pattern_modules.numeric_patterns import SPOKEN_NUMERIC_RANGE_PATTERN
 
         # Get more context around this entity (20 chars before and after)
         context_start = max(0, ent.start_char - 20)
@@ -99,7 +99,7 @@ class EntityValidator:
         context = text[context_start:context_end]
 
         # Check if this context contains a range pattern that includes our entity
-        for range_match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(context):
+        for range_match in SPOKEN_NUMERIC_RANGE_PATTERN.finditer(context):
             # Adjust match positions to be relative to the full text
             abs_start = context_start + range_match.start()
             abs_end = context_start + range_match.end()
@@ -352,10 +352,10 @@ class EntityValidator:
             return False
 
         # Check if this PERCENT entity contains a range pattern (e.g., "five to ten percent")
-        from .. import regex_patterns
+        from ..pattern_modules.numeric_patterns import SPOKEN_NUMERIC_RANGE_PATTERN
 
         # Check if the entity text matches a numeric range pattern
-        range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
+        range_match = SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
         if range_match:
             logger.debug(f"Skipping PERCENT '{ent.text}' because it contains numeric range pattern")
             return True

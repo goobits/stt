@@ -18,7 +18,19 @@ import logging
 import os
 import re
 
-from ... import regex_patterns
+from ...pattern_modules.code_patterns import (
+    FILENAME_WITH_EXTENSION_PATTERN,
+    TECH_SEQUENCE_PATTERN,
+    MATH_EXPRESSION_PATTERN,
+)
+from ...pattern_modules.web_patterns import (
+    URL_PROTECTION_PATTERN,
+    EMAIL_PROTECTION_PATTERN,
+)
+from ...pattern_modules.text_patterns import (
+    TEMPERATURE_PROTECTION_PATTERN,
+    DECIMAL_PROTECTION_PATTERN,
+)
 from stt.text_formatting.common import Entity, EntityType
 from ...constants import get_resources
 from ...nlp_provider import get_punctuator
@@ -103,7 +115,7 @@ def add_punctuation(
             # Protect filenames FIRST (Theory 7 fix) - must come before URL protection
             # since filenames like "app.js" can be mistaken for domains
             protected_text = text
-            filename_matches = list(regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text))
+            filename_matches = list(FILENAME_WITH_EXTENSION_PATTERN.finditer(text))
             for i, match in enumerate(filename_matches):
                 placeholder = f"__FILENAME_{i}__"
                 filename_placeholders[placeholder] = match.group(0)
@@ -137,42 +149,42 @@ def add_punctuation(
             url_placeholders = {}
 
             # Find and replace URLs with placeholders
-            for i, match in enumerate(regex_patterns.URL_PROTECTION_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(URL_PROTECTION_PATTERN.finditer(protected_text)):
                 placeholder = f"__URL_{i}__"
                 url_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Also protect email addresses
             email_placeholders = {}
-            for i, match in enumerate(regex_patterns.EMAIL_PROTECTION_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(EMAIL_PROTECTION_PATTERN.finditer(protected_text)):
                 placeholder = f"__EMAIL_{i}__"
                 email_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Also protect sequences of all-caps technical terms (like "HTML CSS JavaScript")
             tech_placeholders = {}
-            for i, match in enumerate(regex_patterns.TECH_SEQUENCE_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(TECH_SEQUENCE_PATTERN.finditer(protected_text)):
                 placeholder = f"__TECH_{i}__"
                 tech_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Protect math expressions from the punctuation model (preserve spacing around operators)
             math_placeholders = {}
-            for i, match in enumerate(regex_patterns.MATH_EXPRESSION_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(MATH_EXPRESSION_PATTERN.finditer(protected_text)):
                 placeholder = f"__MATH_{i}__"
                 math_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Protect temperature expressions from the punctuation model
             temp_placeholders = {}
-            for i, match in enumerate(regex_patterns.TEMPERATURE_PROTECTION_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(TEMPERATURE_PROTECTION_PATTERN.finditer(protected_text)):
                 placeholder = f"__TEMP_{i}__"
                 temp_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Protect decimal numbers from the punctuation model
             decimal_placeholders = {}
-            for i, match in enumerate(regex_patterns.DECIMAL_PROTECTION_PATTERN.finditer(protected_text)):
+            for i, match in enumerate(DECIMAL_PROTECTION_PATTERN.finditer(protected_text)):
                 placeholder = f"__DECIMAL_{i}__"
                 decimal_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)

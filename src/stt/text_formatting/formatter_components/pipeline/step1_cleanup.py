@@ -15,7 +15,13 @@ import re
 import logging
 from typing import Dict, List, Any
 
-from ... import regex_patterns
+from ...pattern_modules.text_patterns import (
+    create_artifact_patterns,
+    create_profanity_pattern,
+    FILLER_WORDS_PATTERN,
+    REPEATED_PUNCTUATION_PATTERNS,
+    WHITESPACE_NORMALIZATION_PATTERN,
+)
 from ...constants import get_resources
 from ....core.config import get_config
 
@@ -68,7 +74,7 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
     transcription_artifacts = resources.get("filtering", {}).get("transcription_artifacts", [])
 
     # Remove various transcription artifacts using context-aware replacement
-    artifact_patterns = regex_patterns.create_artifact_patterns(transcription_artifacts)
+    artifact_patterns = create_artifact_patterns(transcription_artifacts)
 
     for i, pattern in enumerate(artifact_patterns):
         # Get the original artifact word
@@ -130,7 +136,7 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
             text = pattern.sub("", text).strip()
 
     # Remove filler words using centralized pattern
-    text = regex_patterns.FILLER_WORDS_PATTERN.sub("", text)
+    text = FILLER_WORDS_PATTERN.sub("", text)
 
     # Clean up orphaned commas at the beginning of text
     # This handles cases like "Actually, that's great" → ", that's great" → "that's great"
@@ -140,15 +146,15 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
     text = re.sub(r",\s*,", ",", text)
 
     # Normalize repeated punctuation using centralized patterns
-    for pattern, replacement in regex_patterns.REPEATED_PUNCTUATION_PATTERNS:
+    for pattern, replacement in REPEATED_PUNCTUATION_PATTERNS:
         text = pattern.sub(replacement, text)
 
     # Normalize whitespace using pre-compiled pattern
-    text = regex_patterns.WHITESPACE_NORMALIZATION_PATTERN.sub(" ", text).strip()
+    text = WHITESPACE_NORMALIZATION_PATTERN.sub(" ", text).strip()
 
     # Filter profanity using centralized pattern creation
     profanity_words = resources.get("filtering", {}).get("profanity_words", [])
-    profanity_pattern = regex_patterns.create_profanity_pattern(profanity_words)
+    profanity_pattern = create_profanity_pattern(profanity_words)
     result: str = profanity_pattern.sub(lambda m: "*" * len(m.group()), text)
     return result
 

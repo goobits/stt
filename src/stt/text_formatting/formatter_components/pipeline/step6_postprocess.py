@@ -16,7 +16,9 @@ import re
 from typing import TYPE_CHECKING
 
 from ....core.config import setup_logging
-from ... import regex_patterns
+from ...pattern_modules.web_patterns import (
+    WWW_DOMAIN_RESCUE,
+)
 from ...constants import get_resources
 from ...pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 from ...nlp_provider import get_nlp
@@ -988,7 +990,7 @@ def rescue_mangled_domains(text: str, resources: dict) -> str:
             return f"{prefix}.{domain}.{tld}"
         return match.group(0)
 
-    text = regex_patterns.WWW_DOMAIN_RESCUE.sub(fix_www_pattern, text)
+    text = WWW_DOMAIN_RESCUE.sub(fix_www_pattern, text)
 
     # Improved domain rescue using pattern recognition
     # Look for patterns like "wordTLD" where TLD is a known top-level domain
