@@ -584,5 +584,10 @@
     ],
     "always_capitalize_after_period": true,
     "capitalize_after_technical_entity": false
+  },
+  "regional_defaults": {
+    "temperature": "celsius",
+    "length": "metric",
+    "weight": "metric"
   }
 }

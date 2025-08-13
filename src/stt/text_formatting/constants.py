@@ -236,6 +236,12 @@ def get_regional_defaults(language: str) -> dict[str, str]:
         >>> get_regional_defaults("en-US")
         {"temperature": "fahrenheit", "length": "imperial", "weight": "imperial"}
     """
+    # Handle language variants (es-MX → es, fr-CA → fr)
+    if "-" in language:
+        base_lang = language.split("-")[0] 
+        if base_lang != language:
+            return get_regional_defaults(base_lang)
+    
     try:
         # Check if language-specific resource file exists
         filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
