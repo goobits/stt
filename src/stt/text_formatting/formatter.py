@@ -136,7 +136,7 @@ class TextFormatter:
                 # If SpaCy fails consistently, consider using fallback formatter
                 self._spacy_failure_count = getattr(self, '_spacy_failure_count', 0) + 1
                 if self._spacy_failure_count >= 3:
-                    logger.warning("Multiple SpaCy failures detected, consider using FallbackTextFormatter")
+                    logger.warning("Multiple SpaCy failures detected, consider checking SpaCy model installation")
 
         # Track original punctuation state for later use
         original_had_punctuation = bool(text.rstrip() and text.rstrip()[-1] in ".!?")
@@ -392,25 +392,7 @@ class TextFormatter:
 _formatter_instance = None
 
 
-def create_fallback_formatter(language: str = "en") -> 'FallbackTextFormatter':
-    """
-    Create a FallbackTextFormatter with the current TextFormatter as primary.
-    
-    Args:
-        language: Language for formatting
-        
-    Returns:
-        FallbackTextFormatter instance with comprehensive error handling
-    """
-    try:
-        from .fallback_formatter import FallbackTextFormatter
-        primary_formatter = TextFormatter(language=language)
-        return FallbackTextFormatter(primary_formatter=primary_formatter, language=language)
-    except Exception as e:
-        logger.error(f"Failed to create FallbackTextFormatter: {e}")
-        # Return a basic fallback that only does simple cleaning
-        from .fallback_formatter import FallbackTextFormatter
-        return FallbackTextFormatter(primary_formatter=None, language=language)
+# Legacy fallback formatter removed - use TextFormatter directly with proper error handling
 
 
 def format_transcription(text: str, key_name: str = "", enter_pressed: bool = False) -> str:
