@@ -360,8 +360,10 @@ class FinancialProcessor(BaseNumericProcessor):
         if number_text:
             amount = self.number_parser.parse(number_text)
             if amount:
+                # Apply cultural formatting to amount
+                formatted_amount = self._apply_cultural_formatting(amount)
                 # Format based on currency position
-                return self.format_with_currency_position(amount, symbol, unit, trailing_punct)
+                return self.format_with_currency_position(formatted_amount, symbol, unit, trailing_punct)
         
         return entity.text  # Fallback
     
@@ -376,7 +378,9 @@ class FinancialProcessor(BaseNumericProcessor):
                     cents_int = int(cents) if isinstance(cents, str) else cents
                     # Ensure cents is zero-padded to 2 digits
                     cents_str = str(cents_int).zfill(2)
-                    return f"${dollars_int}.{cents_str}"
+                    amount_str = f"{dollars_int}.{cents_str}"
+                    formatted_amount = self._apply_cultural_formatting(amount_str)
+                    return f"${formatted_amount}"
                 except (ValueError, TypeError):
                     pass
         return entity.text
@@ -405,7 +409,9 @@ class FinancialProcessor(BaseNumericProcessor):
                     cents_int = int(cents) if isinstance(cents, str) else cents
                     # Ensure cents is zero-padded to 2 digits
                     cents_str = str(cents_int).zfill(2)
-                    return f"€{euros_int}.{cents_str}"
+                    amount_str = f"{euros_int}.{cents_str}"
+                    formatted_amount = self._apply_cultural_formatting(amount_str)
+                    return f"€{formatted_amount}"
                 except (ValueError, TypeError):
                     pass
         return entity.text
@@ -421,7 +427,9 @@ class FinancialProcessor(BaseNumericProcessor):
                     pence_int = int(pence) if isinstance(pence, str) else pence
                     # Ensure pence is zero-padded to 2 digits
                     pence_str = str(pence_int).zfill(2)
-                    return f"£{pounds_int}.{pence_str}"
+                    amount_str = f"{pounds_int}.{pence_str}"
+                    formatted_amount = self._apply_cultural_formatting(amount_str)
+                    return f"£{formatted_amount}"
                 except (ValueError, TypeError):
                     pass
         return entity.text

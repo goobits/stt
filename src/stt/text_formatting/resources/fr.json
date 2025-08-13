@@ -208,7 +208,7 @@
     "date_ordinals": ["premier", "second", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième", "neuvième", "dixième", "onzième", "douzième", "treizième", "quatorzième", "quinzième", "seizième", "dix-septième", "dix-huitième", "dix-neuvième", "vingtième", "vingt et unième", "vingt-deuxième", "vingt-troisième", "trentième", "trente et unième"]
   },
   "units": {
-    "temperature_units": ["celsius", "centigrade", "fahrenheit", "c", "f"],
+    "temperature_units": ["celsius", "centigrade", "fahrenheit", "c", "f", "degrés"],
     "imperial_length": ["pied", "pieds", "pouce", "pouces"],
     "imperial_weight": ["livre", "livres", "once", "onces"],
     "currency_map": {
@@ -347,5 +347,9 @@
     "temperature": "celsius",
     "length": "metric",
     "weight": "metric"
+  },
+  "cultural_formatting": {
+    "decimal_separator": ",",
+    "thousands_separator": " "
   }
 }

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.common import NumberParser
-from stt.text_formatting.constants import get_resources
+from stt.text_formatting.constants import get_resources, get_regional_defaults
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.mapping_registry import get_mapping_registry
 
@@ -355,3 +355,65 @@ class BaseNumericProcessor(EntityProcessor):
             number = match.group(1)
             return f"#{number}"
         return ordinal
+    
+    def _apply_cultural_formatting(self, number_str: str) -> str:
+        """
+        Apply cultural number formatting based on language.
+        
+        This method provides consistent cultural formatting across all numeric processors,
+        replacing the inconsistent approach where only temperature formatting was cultural.
+        
+        Args:
+            number_str: The numeric string to format (e.g., "25.5", "1000.50")
+            
+        Returns:
+            Culturally formatted number string
+            
+        Examples:
+            # English (en): no change
+            _apply_cultural_formatting("25.5") → "25.5"
+            _apply_cultural_formatting("1,250.75") → "1,250.75"
+            
+            # Spanish (es): comma for decimal, period for thousands
+            _apply_cultural_formatting("25.5") → "25,5"
+            _apply_cultural_formatting("1,250.75") → "1.250,75"
+            
+            # French (fr): comma for decimal, space for thousands
+            _apply_cultural_formatting("25.5") → "25,5"
+            _apply_cultural_formatting("1,250.75") → "1 250,75"
+        """
+        # Get cultural formatting from language resources
+        cultural_formatting = self.resources.get("cultural_formatting", {})
+        
+        # Handle language variants (e.g., es-MX → Spanish formatting)
+        # Note: get_resources() already handles fallback for variants, but we may need explicit fallback
+        if not cultural_formatting and "-" in self.language:
+            base_lang = self.language.split("-")[0]
+            if base_lang != self.language:
+                # Use base language resources for variants
+                base_resources = get_resources(base_lang)
+                cultural_formatting = base_resources.get("cultural_formatting", {})
+        
+        # If no cultural formatting defined, return as-is (English behavior)
+        if not cultural_formatting:
+            return number_str
+        
+        decimal_sep = cultural_formatting.get("decimal_separator", ".")
+        thousands_sep = cultural_formatting.get("thousands_separator", ",")
+        
+        # If separators are the same as English defaults, no change needed
+        if decimal_sep == "." and thousands_sep == ",":
+            return number_str
+        
+        # Apply cultural formatting by swapping separators
+        # Use temporary placeholder to avoid conflicts during replacement
+        temp_placeholder = "TEMP_DECIMAL_SEP"
+        
+        # Replace existing decimal separator with placeholder
+        result = number_str.replace(".", temp_placeholder)
+        # Replace existing thousands separator with target thousands separator
+        result = result.replace(",", thousands_sep)  
+        # Replace placeholder with target decimal separator
+        result = result.replace(temp_placeholder, decimal_sep)
+        
+        return result

@@ -335,7 +335,7 @@
     "date_ordinals": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "vigésimo primero", "vigésimo segundo", "vigésimo tercero", "vigésimo cuarto", "vigésimo quinto", "vigésimo sexto", "vigésimo séptimo", "vigésimo octavo", "vigésimo noveno", "trigésimo", "trigésimo primero"]
   },
   "units": {
-    "temperature_units": ["celsius", "centígrados", "fahrenheit", "c", "f"],
+    "temperature_units": ["celsius", "centígrados", "fahrenheit", "c", "f", "grados"],
     "imperial_length": ["pie", "pies", "pulgada", "pulgadas"],
     "imperial_weight": ["libra", "libras", "onza", "onzas"],
     "currency_map": {
@@ -589,5 +589,9 @@
     "temperature": "celsius",
     "length": "metric",
     "weight": "metric"
+  },
+  "cultural_formatting": {
+    "decimal_separator": ",",
+    "thousands_separator": "."
   }
 }

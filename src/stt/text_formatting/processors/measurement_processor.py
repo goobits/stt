@@ -271,12 +271,16 @@ class MeasurementProcessor(BaseNumericProcessor):
     def _build_temperature_pattern_with_units(self) -> Pattern[str]:
         """Build pattern for temperature with explicit units."""
         number_pattern = self._build_number_pattern()
+        # Get temperature units from JSON resources (multilingual support)
+        temp_units = self.resources.get("units", {}).get("temperature_units", ["celsius", "centigrade", "fahrenheit", "c", "f"])
+        unit_pattern = r"(?:" + "|".join(sorted(temp_units, key=len, reverse=True)) + r")"
+        
         return re.compile(
             r"\b(?:(minus|negative)\s+)?"  # Optional minus/negative
             r"((?:" + number_pattern + r")(?:\s+(?:and\s+)?(?:" + number_pattern + r"))*"  # Numbers
             r"(?:\s+point\s+(?:" + number_pattern + r")(?:\s+(?:" + number_pattern + r"))*)?|\d+(?:\.\d+)?)"  # Numbers with optional decimal
             r"(?:\s+degrees?)?"  # Optional "degree" or "degrees"
-            r"\s+(celsius|centigrade|fahrenheit|c|f)"  # Required unit
+            r"\s+" + unit_pattern +  # Required unit (from JSON)
             r"\b",
             re.IGNORECASE,
         )
@@ -285,12 +289,16 @@ class MeasurementProcessor(BaseNumericProcessor):
     def _build_temperature_degrees_pattern(self) -> Pattern[str]:
         """Build pattern for temperature with degrees but optional units."""
         number_pattern = self._build_number_pattern()
+        # Get temperature units from JSON resources (multilingual support)
+        temp_units = self.resources.get("units", {}).get("temperature_units", ["celsius", "centigrade", "fahrenheit", "c", "f"])
+        unit_pattern = r"(?:" + "|".join(sorted(temp_units, key=len, reverse=True)) + r")"
+        
         return re.compile(
             r"\b(?:(minus|negative)\s+)?"  # Optional minus/negative
             r"((?:" + number_pattern + r")(?:\s+(?:and\s+)?(?:" + number_pattern + r"))*"  # Numbers
             r"(?:\s+point\s+(?:" + number_pattern + r")(?:\s+(?:" + number_pattern + r"))*)?|\d+(?:\.\d+)?)"  # Numbers with optional decimal
             r"\s+degrees?"  # Required "degree" or "degrees"
-            r"(?:\s+(celsius|centigrade|fahrenheit|c|f))?"  # Optional unit
+            r"(?:\s+" + unit_pattern + r")?"  # Optional unit (from JSON)
             r"\b",
             re.IGNORECASE,
         )
@@ -1201,15 +1209,6 @@ class MeasurementProcessor(BaseNumericProcessor):
             self.regional_config.get("unit_temperature")
         )
     
-    def _apply_cultural_formatting(self, number_str: str) -> str:
-        """Apply cultural number formatting based on language."""
-        formats = {
-            "en": {"decimal": ".", "thousands": ","},
-            "es": {"decimal": ",", "thousands": "."},
-            "fr": {"decimal": ",", "thousands": " "}
-        }
-        fmt = formats.get(self.language, formats["en"])
-        return number_str.replace(",", "TEMP").replace(".", fmt["decimal"]).replace("TEMP", fmt["thousands"])
     
     def convert_metric_unit(self, entity: Entity) -> str:
         """
@@ -1217,7 +1216,7 @@ class MeasurementProcessor(BaseNumericProcessor):
         
         Examples:
         - "five kilometers" → "5 km"
-        - "two point five centimeters" → "2.5 cm"
+        - "two point five centimeters" → "2.5 cm" (English) / "2,5 cm" (Spanish)
         - "ten kilograms" → "10 kg"
         - "three liters" → "3 L"
         """
@@ -1233,10 +1232,13 @@ class MeasurementProcessor(BaseNumericProcessor):
         if not parsed_num:
             return entity.text
         
+        # Apply cultural formatting
+        formatted_num = self._apply_cultural_formatting(parsed_num)
+        
         # Get unit mappings from registry
         unit_map = self.mapping_registry.get_measurement_unit_map()
         standard_unit = unit_map.get(unit, unit.upper())
-        return f"{parsed_num} {standard_unit}"
+        return f"{formatted_num} {standard_unit}"
     
     def convert_data_size(self, entity: Entity) -> str:
         """Convert data size expressions."""
@@ -1250,6 +1252,9 @@ class MeasurementProcessor(BaseNumericProcessor):
         if not parsed_num:
             return entity.text
         
+        # Apply cultural formatting
+        formatted_num = self._apply_cultural_formatting(parsed_num)
+        
         # Standardize data size units
         unit_map = {
             "byte": "B", "bytes": "B",
@@ -1260,7 +1265,7 @@ class MeasurementProcessor(BaseNumericProcessor):
         }
         
         standard_unit = unit_map.get(unit.lower(), unit)
-        return f"{parsed_num}{standard_unit}"
+        return f"{formatted_num}{standard_unit}"
     
     def convert_frequency(self, entity: Entity) -> str:
         """Convert frequency expressions."""
@@ -1274,6 +1279,9 @@ class MeasurementProcessor(BaseNumericProcessor):
         if not parsed_num:
             return entity.text
         
+        # Apply cultural formatting
+        formatted_num = self._apply_cultural_formatting(parsed_num)
+        
         # Standardize frequency units
         unit_map = {
             "hertz": "Hz",
@@ -1283,7 +1291,7 @@ class MeasurementProcessor(BaseNumericProcessor):
         }
         
         standard_unit = unit_map.get(unit.lower(), unit)
-        return f"{parsed_num} {standard_unit}"
+        return f"{formatted_num} {standard_unit}"
     
     def convert_time_duration(self, entity: Entity) -> str:
         """Convert time duration expressions."""
@@ -1297,12 +1305,15 @@ class MeasurementProcessor(BaseNumericProcessor):
         if not parsed_num:
             return entity.text
         
+        # Apply cultural formatting
+        formatted_num = self._apply_cultural_formatting(parsed_num)
+        
         # Get abbreviated unit from time duration mappings
         time_map = self.mapping_registry.get_time_duration_unit_map()
         abbrev = time_map.get(unit.lower(), unit)
         
         # Use compact formatting for durations (no space)
-        return f"{parsed_num}{abbrev}"
+        return f"{formatted_num}{abbrev}"
     
     def convert_percent(self, entity: Entity) -> str:
         """Convert percentage expressions."""
@@ -1314,7 +1325,8 @@ class MeasurementProcessor(BaseNumericProcessor):
                 number_text = match.group(1).strip()
                 number = self.parse_number(number_text)
                 if number is not None:
-                    return f"{number}%"
+                    formatted_number = self._apply_cultural_formatting(number)
+                    return f"{formatted_number}%"
             return entity.text
         
         # Handle groups metadata from format detector (for decimal percentages)
@@ -1345,9 +1357,13 @@ class MeasurementProcessor(BaseNumericProcessor):
                         decimal_parsed = decimal_part
                 
                 if integer_parsed and decimal_parsed:
-                    return f"{integer_parsed}.{decimal_parsed}%"
+                    # Apply cultural formatting to decimal percentages
+                    percentage_str = f"{integer_parsed}.{decimal_parsed}"
+                    formatted_percentage = self._apply_cultural_formatting(percentage_str)
+                    return f"{formatted_percentage}%"
                 elif integer_parsed:
-                    return f"{integer_parsed}%"
+                    formatted_integer = self._apply_cultural_formatting(integer_parsed)
+                    return f"{formatted_integer}%"
             
             # Fallback: convert the numeric parts individually and join
             parts = []
@@ -1362,7 +1378,8 @@ class MeasurementProcessor(BaseNumericProcessor):
             if parts:
                 # Join with dots for decimal percentages
                 percent_str = ".".join(parts)
-                return f"{percent_str}%"
+                formatted_percent = self._apply_cultural_formatting(percent_str)
+                return f"{formatted_percent}%"
         
         # Original handling for metadata with "number" field
         number_text = entity.metadata.get("number", "")
@@ -1370,7 +1387,8 @@ class MeasurementProcessor(BaseNumericProcessor):
         # Parse the number text to convert words to digits
         parsed_number = self.parse_number(number_text)
         if parsed_number is not None:
-            return f"{parsed_number}%"
+            formatted_number = self._apply_cultural_formatting(parsed_number)
+            return f"{formatted_number}%"
         
         # Fallback to original if parsing fails
         return f"{number_text}%"
