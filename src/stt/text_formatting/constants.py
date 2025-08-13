@@ -22,6 +22,9 @@ _NESTED_CACHE: dict[str, Any] = {}  # Cache for nested resource paths
 _NESTED_LOCK = threading.Lock()  # For thread-safe nested access
 _ACCESS_STATS: dict[str, int] = {}  # Track resource access frequency
 
+# Cache to suppress repeated warnings for missing language files
+_WARNED_LANGUAGES: set[str] = set()
+
 
 def get_resources(language: str = "en") -> dict[str, Any]:
     """
@@ -57,7 +60,10 @@ def get_resources(language: str = "en") -> dict[str, Any]:
         except FileNotFoundError:
             # Fallback to English if the requested language is not found
             if language != "en":
-                print(f"Warning: Language resource '{language}.json' not found. Falling back to 'en'.")
+                # Only warn once per language to avoid spam
+                if language not in _WARNED_LANGUAGES:
+                    _WARNED_LANGUAGES.add(language)
+                    print(f"Warning: Language resource '{language}.json' not found. Falling back to 'en'.")
                 return get_resources("en")
             raise ValueError("Default language resource 'en.json' not found.") from None
         except json.JSONDecodeError as e:
@@ -210,3 +216,99 @@ def get_resource_cache_info() -> dict[str, Any]:
         "lru_cache_maxsize": lru_info.maxsize,
         "top_accessed_paths": top_accessed,
     }
+
+
+# ==============================================================================
+# REGIONAL MEASUREMENT PREFERENCES
+# ==============================================================================
+
+def get_regional_defaults(language: str) -> dict[str, str]:
+    """
+    Get regional measurement defaults for language code.
+    
+    Args:
+        language: Language code (e.g., 'en-US', 'en-GB', 'en-CA')
+    
+    Returns:
+        Dictionary with regional defaults for temperature, length, weight
+    
+    Example:
+        >>> get_regional_defaults("en-US")
+        {"temperature": "fahrenheit", "length": "imperial", "weight": "imperial"}
+    """
+    try:
+        # Check if language-specific resource file exists
+        filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
+        if os.path.exists(filepath):
+            resources = get_resources(language)
+            regional_defaults = resources.get("regional_defaults", {})
+            if regional_defaults:
+                return regional_defaults
+        
+        # Smart fallback for unsupported English variants
+        if language.startswith("en-") and language not in ["en-US"]:
+            # Most English variants outside US use metric system
+            return {
+                "temperature": "celsius",
+                "length": "metric", 
+                "weight": "metric"
+            }
+        
+        # For non-English languages, use metric as global standard
+        if not language.startswith("en"):
+            return {
+                "temperature": "celsius",
+                "length": "metric",
+                "weight": "metric" 
+            }
+        
+        # Fallback to actual resource loading for supported languages
+        resources = get_resources(language)
+        return resources.get("regional_defaults", {})
+        
+    except Exception:
+        # If anything fails, provide sensible metric defaults
+        return {
+            "temperature": "celsius",
+            "length": "metric",
+            "weight": "metric"
+        }
+
+
+def get_measurement_preference(language: str, measurement_type: str, user_override: Optional[str] = None) -> str:
+    """
+    Get measurement preference with fallback chain.
+    
+    Precedence: User override → Regional default → System fallback (metric)
+    
+    Args:
+        language: Language code (e.g., 'en-US', 'en-GB')
+        measurement_type: Type of measurement ('temperature', 'length', 'weight')
+        user_override: Optional user preference override
+    
+    Returns:
+        Measurement unit preference string
+    
+    Example:
+        >>> get_measurement_preference("en-US", "temperature", "celsius")
+        "celsius"  # User override takes precedence
+        
+        >>> get_measurement_preference("en-US", "temperature")
+        "fahrenheit"  # Regional default for US
+        
+        >>> get_measurement_preference("en-GB", "temperature")
+        "celsius"  # Regional default for UK
+    """
+    # Validate user override first
+    valid_units = {
+        "temperature": ["celsius", "fahrenheit"],
+        "length": ["metric", "imperial"], 
+        "weight": ["metric", "imperial"]
+    }
+    
+    if user_override and user_override in valid_units.get(measurement_type, []):
+        return user_override
+        
+    # Fall back to regional default
+    regional_defaults = get_regional_defaults(language)
+    return regional_defaults.get(measurement_type, "metric")  # System fallback

@@ -19,11 +19,16 @@ logger = setup_logging(__name__)
 class PatternConverter:
     """Converts specific entity types to their final form"""
 
-    def __init__(self, language: str = "en"):
+    def __init__(self, language: str = "en", regional_config: dict = None):
         self.language = language
+        self.regional_config = regional_config or {}
 
         # Use the unified converter with all conversion methods
-        self.unified_converter = UnifiedPatternConverter(NumberParser(language=language), language=language)
+        self.unified_converter = UnifiedPatternConverter(
+            NumberParser(language=language), 
+            language=language, 
+            regional_config=self.regional_config
+        )
 
         # Entity type to converter method mapping
         self.converters = {}  # Start with an empty dict

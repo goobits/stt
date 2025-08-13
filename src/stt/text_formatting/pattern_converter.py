@@ -33,9 +33,10 @@ logger = setup_logging(__name__)
 class PatternConverter:
     """Unified pattern converter handling all entity type conversions."""
 
-    def __init__(self, number_parser: NumberParser, language: str = "en"):
+    def __init__(self, number_parser: NumberParser, language: str = "en", regional_config: dict = None):
         self.number_parser = number_parser
         self.language = language
+        self.regional_config = regional_config or {}
         self.config = get_config()
 
         # Load language-specific resources
@@ -45,7 +46,7 @@ class PatternConverter:
         self.text_converter = TextPatternConverter(number_parser, language)
         self.web_converter = WebPatternConverter(number_parser, language)
         self.code_converter = CodePatternConverter(number_parser, language)
-        self.measurement_processor = MeasurementProcessor(nlp=None, language=language)
+        self.measurement_processor = MeasurementProcessor(nlp=None, language=language, regional_config=self.regional_config)
         self.mathematical_processor = MathematicalProcessor(nlp=None, language=language)
         self.temporal_processor = TemporalProcessor(nlp=None, language=language)
         self.numeric_converter = NumericPatternConverter(number_parser, language)

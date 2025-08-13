@@ -38,6 +38,9 @@ class ConfigLoader:
         # Parse the cleaned JSON
         self._config = json.loads(content)
 
+        # Apply migrations for backward compatibility
+        self._config = self._migrate_legacy_language(self._config)
+
         self._platform = platform.system().lower()
         if self._platform == "darwin":
             self._platform = "darwin"  # Keep as darwin for config lookup
@@ -627,6 +630,14 @@ class ConfigLoader:
         formats = self.filename_formats
         # Try exact match first, then fallback to wildcard
         return formats.get(extension.lower(), formats.get("*", "lower_snake"))
+
+    def _migrate_legacy_language(self, config: dict) -> dict:
+        """Migrate 'en' to 'en-US' for backward compatibility."""
+        text_formatting = config.get("text_formatting", {})
+        if text_formatting.get("language") == "en":
+            text_formatting["language"] = "en-US"
+            logging.getLogger(__name__).info("Migrated language setting from 'en' to 'en-US'")
+        return config
 
     def save(self) -> None:
         """Save the current configuration back to the config file"""

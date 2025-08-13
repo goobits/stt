@@ -139,8 +139,13 @@ class ConversationMode(BaseMode):
             try:
                 text_formatting_config = self.config.get("text_formatting", {})
                 language = text_formatting_config.get("language", "en")
-                self.text_formatter = TextFormatter(language=language)
-                self.logger.info(f"Text formatting enabled for streaming results (language: {language})")
+                regional_config = {
+                    "unit_temperature": text_formatting_config.get("unit_temperature"),
+                    "unit_length": text_formatting_config.get("unit_length"),
+                    "unit_weight": text_formatting_config.get("unit_weight")
+                }
+                self.text_formatter = TextFormatter(language=language, regional_config=regional_config)
+                self.logger.info(f"Text formatting enabled for streaming results (language: {language}, regional preferences: {regional_config})")
             except Exception as e:
                 self.logger.warning(f"Text formatting initialization failed: {e}")
                 self.text_formatter = None

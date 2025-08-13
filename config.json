@@ -106,7 +106,10 @@
     }
   },
   "text_formatting": {
-    "language": "en",
+    "language": "en-US",
+    "unit_temperature": null,
+    "unit_length": null,
+    "unit_weight": null,
     "filename_formats": {
       "md": "UPPER_SNAKE",
       "json": "lower_snake",

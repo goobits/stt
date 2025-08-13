@@ -64,9 +64,10 @@ logger = setup_logging(__name__)
 class TextFormatter:
     """Main formatter orchestrating the pipeline"""
 
-    def __init__(self, language: str = "en"):
-        # Store the language for this formatter instance
+    def __init__(self, language: str = "en", regional_config: dict = None):
+        # Store the language and regional config for this formatter instance
         self.language = language
+        self.regional_config = regional_config or {}
 
         # Load shared NLP model once
         self.nlp = get_nlp()
@@ -84,7 +85,7 @@ class TextFormatter:
 
         # Initialize components with dependency injection and language support
         self.entity_detector = EntityDetector(nlp=self.nlp, language=self.language)
-        self.pattern_converter = PatternConverter(language=self.language)
+        self.pattern_converter = PatternConverter(language=self.language, regional_config=self.regional_config)
         self.smart_capitalizer = SmartCapitalizer(language=self.language)
 
         # Instantiate specialized detectors with shared NLP model and language

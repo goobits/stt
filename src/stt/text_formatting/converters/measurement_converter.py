@@ -6,15 +6,17 @@ from typing import Dict
 from stt.text_formatting.common import Entity, EntityType
 from .base import BasePatternConverter
 from stt.text_formatting.mapping_registry import get_mapping_registry
+from stt.text_formatting.constants import get_measurement_preference
 
 
 class MeasurementPatternConverter(BasePatternConverter):
     """Converter for measurement-related patterns like quantities, temperatures, and metric units."""
     
-    def __init__(self, number_parser, language: str = "en"):
+    def __init__(self, number_parser, language: str = "en", regional_config: dict = None):
         """Initialize measurement pattern converter."""
         super().__init__(number_parser, language)
         self.mapping_registry = get_mapping_registry(language)
+        self.regional_config = regional_config or {}
         
         # Define supported entity types and their converter methods
         self.supported_types: Dict[EntityType, str] = {
@@ -326,8 +328,20 @@ class MeasurementPatternConverter(BasePatternConverter):
             if unit_lower in ["fahrenheit", "f"]:
                 return f"{parsed_num}°F"
 
-        # No unit specified, just degrees
-        return f"{parsed_num}°"
+        # No unit specified - use regional preference for ambiguous temperatures
+        temp_preference = self._get_temperature_preference()
+        if temp_preference == "fahrenheit":
+            return f"{parsed_num}°F"
+        else:
+            return f"{parsed_num}°C"
+
+    def _get_temperature_preference(self) -> str:
+        """Get temperature preference from regional config chain."""
+        return get_measurement_preference(
+            self.language, 
+            "temperature", 
+            self.regional_config.get("unit_temperature")
+        )
 
     def convert_metric_unit(self, entity: Entity) -> str:
         """

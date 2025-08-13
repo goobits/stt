@@ -19,10 +19,16 @@ from stt.text_formatting.entity_processor import BaseNumericProcessor, Processin
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.modern_pattern_cache import cached_pattern
+from stt.text_formatting.constants import get_measurement_preference
 
 
 class MeasurementProcessor(BaseNumericProcessor):
     """Processor for measurement entities (quantities, temperatures, metric units, etc.)."""
+    
+    def __init__(self, nlp=None, language: str = "en", regional_config: dict = None):
+        """Initialize measurement processor with regional config support."""
+        super().__init__(nlp, language)
+        self.regional_config = regional_config or {}
     
     def _init_detection_rules(self) -> List[ProcessingRule]:
         """Initialize detection rules for measurement entities."""
@@ -1177,8 +1183,20 @@ class MeasurementProcessor(BaseNumericProcessor):
             if unit_lower in ["fahrenheit", "f"]:
                 return f"{parsed_num}°F"
         
-        # No unit specified, just degrees
-        return f"{parsed_num}°"
+        # No unit specified - use regional preference for ambiguous temperatures
+        temp_preference = self._get_temperature_preference()
+        if temp_preference == "fahrenheit":
+            return f"{parsed_num}°F"
+        else:
+            return f"{parsed_num}°C"
+
+    def _get_temperature_preference(self) -> str:
+        """Get temperature preference from regional config chain."""
+        return get_measurement_preference(
+            self.language, 
+            "temperature", 
+            self.regional_config.get("unit_temperature")
+        )
     
     def convert_metric_unit(self, entity: Entity) -> str:
         """
