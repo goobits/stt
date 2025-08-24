@@ -184,3 +184,5 @@ celerybeat-schedule
 
 # Profiling data
 .prof
+# Symbolic links directory
+.links
