@@ -326,6 +326,11 @@ class ConfigLoader:
             return "float16"
         return "int8"
 
+    @property
+    def transcription_backend(self) -> str:
+        """Get the transcription backend to use."""
+        return str(self.get("transcription.backend", "faster_whisper"))
+
     def get_hotkey_config(self, key_name: str) -> Dict[str, Any]:
         """Get configuration for a specific hotkey from array"""
         hotkeys = self.get("hotkeys", [])

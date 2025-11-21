@@ -47,13 +47,13 @@ import time  # noqa: E402
 from collections import defaultdict  # noqa: E402
 import uuid  # noqa: E402
 from typing import Tuple  # noqa: E402
-from faster_whisper import WhisperModel  # noqa: E402
 from ..core.config import get_config, setup_logging  # noqa: E402
 from ..core.token_manager import TokenManager  # noqa: E402
 from ..audio.decoder import OpusStreamDecoder  # noqa: E402
 from ..audio.opus_batch import OpusBatchDecoder  # noqa: E402
 from ..utils.ssl import create_ssl_context  # noqa: E402
 from ..text_formatting.formatter import format_transcription  # noqa: E402
+from .backends import get_backend_class  # noqa: E402
 
 # Get config instance and setup logging
 config = get_config()
@@ -68,9 +68,17 @@ class MatildaWebSocketServer:
         self.auth_token = config.auth_token  # Keep for backward compatibility
         # Initialize JWT token manager
         self.token_manager = TokenManager(config.jwt_secret_key)
-        self.model = None
-        self.device = config.whisper_device_auto
-        self.compute_type = config.whisper_compute_type_auto
+
+        # Initialize Backend
+        self.backend_name = config.transcription_backend
+        self.backend = None
+        try:
+            backend_class = get_backend_class(self.backend_name)
+            self.backend = backend_class()
+            logger.info(f"Using transcription backend: {self.backend_name}")
+        except ValueError as e:
+            logger.error(f"Failed to initialize backend: {e}")
+            sys.exit(1)
 
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> session_info
@@ -119,17 +127,11 @@ class MatildaWebSocketServer:
         return ssl_context
 
     async def load_model(self):
-        """Load Whisper model asynchronously"""
+        """Load transcription model asynchronously"""
         try:
-            logger.info(f"Loading Faster Whisper {self.model_size} model...")
-            # Run in thread to avoid blocking event loop
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
-            )
-            logger.info(f"Faster Whisper {self.model_size} model loaded successfully")
+            await self.backend.load()
         except Exception as e:
-            logger.exception(f"Failed to load Whisper model: {e}")
+            logger.exception(f"Failed to load backend model: {e}")
             logger.exception(traceback.format_exc())
             raise
 
@@ -165,7 +167,7 @@ class MatildaWebSocketServer:
                         "type": "welcome",
                         "message": "Connected to Matilda WebSocket Server",
                         "client_id": client_id,
-                        "server_ready": self.model is not None,
+                        "server_ready": self.backend.is_ready,
                     }
                 )
             )
@@ -223,14 +225,17 @@ class MatildaWebSocketServer:
             loop = asyncio.get_event_loop()
 
             def transcribe_audio():
-                if self.model is None:
-                    raise RuntimeError("Model not loaded")
-                segments, info = self.model.transcribe(temp_path, beam_size=5, language="en")
-                return "".join([segment.text for segment in segments]).strip(), info
+                if not self.backend.is_ready:
+                    raise RuntimeError("Backend not ready/model not loaded")
+                # Delegate to backend
+                return self.backend.transcribe(temp_path, language="en")
 
+            # Run in executor (even if backend is fast, good to isolate)
+            # However, parakeet might be running on GPU/Metal.
+            # backend.transcribe is synchronous in our interface.
             text, info = await loop.run_in_executor(None, transcribe_audio)
+
             logger.info(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
-            logger.info(f"Client {client_id}: FULL_RAW_TEXT: {text}")
 
             # Apply server-side text formatting
             if text.strip():
@@ -251,8 +256,8 @@ class MatildaWebSocketServer:
                 True,
                 text,
                 {
-                    "duration": info.duration if hasattr(info, "duration") else 0,
-                    "language": info.language if hasattr(info, "language") else "en",
+                    "duration": info.get("duration", 0),
+                    "language": info.get("language", "en"),
                 },
             )
 
@@ -300,8 +305,8 @@ class MatildaWebSocketServer:
             return
 
         # Check if model is loaded
-        if not self.model:
-            await self.send_error(websocket, "Server not ready. Whisper model not loaded.")
+        if not self.backend.is_ready:
+            await self.send_error(websocket, "Server not ready. Model not loaded.")
             return
 
         # Get audio data
@@ -370,8 +375,8 @@ class MatildaWebSocketServer:
             logger.info(f"Stream session started by JWT client: {client_name}")
 
         # Check if model is loaded
-        if not self.model:
-            await self.send_error(websocket, "Server not ready. Whisper model not loaded.")
+        if not self.backend.is_ready:
+            await self.send_error(websocket, "Server not ready. Model not loaded.")
             return
 
         # Create session ID for this stream
@@ -573,7 +578,11 @@ class MatildaWebSocketServer:
         logger.info(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
         logger.info(f"Your Ubuntu IP: {server_host} (Mac clients should connect to this IP)")
         logger.info(f"Authentication token: {self.auth_token}")
-        logger.info(f"Model: {self.model_size}, Device: {self.device}, Compute: {self.compute_type}")
+        logger.info(f"Backend: {self.backend_name}")
+        if self.backend_name == "faster_whisper":
+            logger.info(f"Model: {config.whisper_model}, Device: {config.whisper_device_auto}, Compute: {config.whisper_compute_type_auto}")
+        elif self.backend_name == "parakeet":
+            logger.info(f"Model: {config.get('parakeet.model', 'default')}")
 
         if self.ssl_enabled:
             logger.info(f"SSL enabled - cert: {config.ssl_cert_file}, verify: {config.ssl_verify_mode}")

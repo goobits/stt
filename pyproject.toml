@@ -47,6 +47,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Mac dependencies for Parakeet
+mac = [
+    "mlx>=0.0.1",
+    "parakeet-mlx>=0.0.1",
+]
 # Development dependencies
 dev = [
     "pytest>=6.0",
