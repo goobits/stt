@@ -28,6 +28,8 @@ if str(project_root) not in sys.path:
 
 def create_rich_cli():
     """Create Rich-enhanced Click CLI interface"""
+    if not RICH_AVAILABLE:
+        raise ImportError("Rich library is required for rich CLI. Install it or use fallback parser.")
     console = Console()
     
     @click.command(context_settings={"allow_extra_args": False})
