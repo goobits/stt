@@ -134,17 +134,21 @@ class PatternConverter:
     def convert_spoken_protocol_url(self, entity: Entity) -> str:
         """Convert spoken protocol URLs like 'http colon slash slash www.google.com/path?query=value'"""
         text = entity.text.lower()
+        logger.info(f"Converting protocol URL: '{text}'")
 
         # Get language-specific keywords
         colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
         slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
 
-        # Try to find and replace "colon slash slash" pattern
+        # Try to find and replace "colon slash slash" pattern using regex for flexibility
         for colon_kw in colon_keywords:
             for slash_kw in slash_keywords:
-                pattern = f" {colon_kw} {slash_kw} {slash_kw}"
-                if pattern in text:
-                    text = text.replace(pattern, "://")
+                # Match colon, slash, slash with flexible whitespace
+                # Allow start of string or whitespace before colon
+                pattern = rf"(?:^|\s+){re.escape(colon_kw)}\s+{re.escape(slash_kw)}\s+{re.escape(slash_kw)}\s*"
+                if re.search(pattern, text):
+                    logger.info(f"Found protocol pattern: '{pattern}' in '{text}'")
+                    text = re.sub(pattern, "://", text)
                     break
             else:
                 continue
@@ -160,6 +164,96 @@ class PatternConverter:
         if url_text and url_text[-1] in ".!?":
             trailing_punct = url_text[-1]
             url_text = url_text[:-1]
+
+        # Special handling for IP addresses (sequences of numbers and dots)
+        # If we detect this is an IP address (e.g. "one two seven dot zero..."), convert using digit parsing
+        if "dot" in url_text.lower() and not any(tld in url_text.lower() for tld in ["com", "org", "net", "edu", "gov", "io"]):
+            # Check for port number (split by colon)
+            port_part = None
+            ip_text = url_text
+            if " colon " in url_text.lower():
+                parts = re.split(r"\s+colon\s+", url_text, maxsplit=1, flags=re.IGNORECASE)
+                if len(parts) == 2:
+                    ip_text = parts[0]
+                    port_text = parts[1]
+                    # Parse port
+                    parsed_port = self.number_parser.parse_as_digits(port_text.strip())
+                    if not parsed_port:
+                        parsed_port = self.number_parser.parse(port_text.strip())
+                    if not parsed_port:
+                        # Fallback for multi-word numbers
+                        sub_parts = []
+                        for word in port_text.split():
+                            digit = self.number_parser.parse(word)
+                            if digit and digit.isdigit():
+                                sub_parts.append(digit)
+                        if sub_parts:
+                            parsed_port = "".join(sub_parts)
+
+                    if parsed_port:
+                        port_part = parsed_port
+
+            # Split IP by 'dot'
+            parts = re.split(r"\s+dot\s+", ip_text, flags=re.IGNORECASE)
+            if len(parts) == 4: # IPv4
+                # Check if parts look like numbers
+                converted_parts = []
+                all_valid = True
+                for part in parts:
+                    # Use parse_as_digits which handles "one two seven" -> "127"
+                    parsed = self.number_parser.parse_as_digits(part.strip())
+                    if not parsed:
+                        parsed = self.number_parser.parse(part.strip())
+
+                    if parsed and parsed.isdigit():
+                        converted_parts.append(parsed)
+                    else:
+                        # Fallback: try parsing individual words and joining them
+                        # e.g. "one two seven" -> "1" "2" "7" -> "127"
+                        sub_parts = []
+                        for word in part.split():
+                            digit = self.number_parser.parse(word)
+                            if digit and digit.isdigit():
+                                sub_parts.append(digit)
+                            else:
+                                sub_parts = []
+                                break
+                        if sub_parts:
+                            converted_parts.append("".join(sub_parts))
+                        else:
+                            all_valid = False
+                            break
+
+                if all_valid:
+                    ip_str = ".".join(converted_parts)
+                    if port_part:
+                        return f"{ip_str}:{port_part}{trailing_punct}"
+                    return ip_str + trailing_punct
+
+        # Check for port number (split by colon) in regular URLs
+        port_part = None
+        if " colon " in url_text.lower():
+            # Split by colon, but only if it's likely a port (at the end)
+            parts = re.split(r"\s+colon\s+", url_text, maxsplit=1, flags=re.IGNORECASE)
+            if len(parts) == 2:
+                url_text = parts[0]
+                port_text = parts[1]
+                # Parse port
+                parsed_port = self.number_parser.parse_as_digits(port_text.strip())
+                if not parsed_port:
+                    parsed_port = self.number_parser.parse(port_text.strip())
+                if not parsed_port:
+                    # Fallback for multi-word numbers
+                    sub_parts = []
+                    for word in port_text.split():
+                        digit = self.number_parser.parse(word)
+                        if digit and digit.isdigit():
+                            sub_parts.append(digit)
+                    if sub_parts:
+                        parsed_port = "".join(sub_parts)
+
+                if parsed_port:
+                    port_part = parsed_port
 
         # Handle query parameters separately first (before converting keywords)
         if "question mark" in url_text.lower():
@@ -181,6 +275,9 @@ class PatternConverter:
             # No query parameters, use comprehensive keyword conversion
             # This method handles both number words and keyword conversion in the right order
             url_text = self._convert_url_keywords(url_text)
+
+        if port_part:
+            return f"{url_text}:{port_part}{trailing_punct}"
 
         return url_text + trailing_punct
 

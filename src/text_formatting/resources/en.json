@@ -218,6 +218,7 @@
       "gps": "GPS",
       "wifi": "WiFi",
       "api": "API",
+      "ssh": "SSH",
       "url": "URL",
       "html": "HTML",
       "css": "CSS",

@@ -70,6 +70,10 @@ class SmartCapitalizer:
         # Load uppercase abbreviations from resources
         self.uppercase_abbreviations = self.resources.get("technical", {}).get("uppercase_abbreviations", {})
 
+        # Remove "URL" from uppercase abbreviations to avoid over-capitalization
+        if "url" in self.uppercase_abbreviations:
+            del self.uppercase_abbreviations["url"]
+
         # Load common abbreviations from resources
         self.common_abbreviations = tuple(self.resources.get("technical", {}).get("common_abbreviations", []))
 

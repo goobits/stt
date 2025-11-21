@@ -36,6 +36,7 @@ class WebEntityDetector:
         self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
         self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
         self.spoken_protocol_pattern = regex_patterns.get_spoken_protocol_pattern(language)
+        self.spoken_ip_pattern = regex_patterns.get_spoken_ip_pattern(language)
         # Note: _detect_spoken_emails builds its own pattern internally
         # Note: port_pattern is the same as port_number_pattern
 
@@ -53,6 +54,9 @@ class WebEntityDetector:
         all_entities = entities + web_entities  # Update with all detected so far
 
         self._detect_spoken_urls(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+
+        self._detect_spoken_ips(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
         self._detect_port_numbers(text, web_entities, all_entities)
@@ -74,6 +78,14 @@ class WebEntityDetector:
                     Entity(
                         start=match.start(), end=match.end(), text=match.group(), type=EntityType.SPOKEN_PROTOCOL_URL
                     )
+                )
+
+    def _detect_spoken_ips(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
+        """Detect spoken IP addresses."""
+        for match in self.spoken_ip_pattern.finditer(text):
+            if not is_inside_entity(match.start(), match.end(), existing_entities):
+                web_entities.append(
+                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.SPOKEN_URL)
                 )
 
     def _detect_spoken_urls(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
@@ -100,18 +112,22 @@ class WebEntityDetector:
         simple_email_pattern = rf"""
         (?:^|(?<=\s))                       # Start or after space
         (                                   # Capture group for the whole email
-            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get|send|write|forward|reply|contact)\s+)  # Not preceded by these words, but allow "email"
+            (?!(?:the|a|an|this|that|these|those|my|your|our|their|his|her|its|to|for|from|with|by|you|i|we|they|look|see|check|find|get|send|write|forward|reply|contact|email|is|are|was|were|be|have|has|had|do|does|did|or|and|but|notify|visit)\s+)  # Not preceded by these words
+            (?!(?:is|are|was|were|be|have|has|had|do|does|did|or|and|but|email|notify|visit|check)\s) # Username cannot be these common verbs
             [a-zA-Z][a-zA-Z0-9]*            # Username starting with letter
             (?:                             # Optional username parts
                 (?:\s+(?:underscore|dash)\s+|[._-])
                 [a-zA-Z0-9]+
+            |                               # OR allow space-separated words (e.g., "john doe", "user one")
+                # But exclude common stop words to avoid capturing sentences like "visit the site"
+                \s+(?!at\b|dot\b|the\b|a\b|an\b|this\b|that\b|to\b|for\b|in\b|on\b|with\b|by\b)[a-zA-Z0-9]+
             )*
             \s+(?:{at_pattern})\s+          # "at" keyword
             [a-zA-Z0-9-]+                   # Domain must start with alphanumeric or hyphen
-            (?:\s+[a-zA-Z0-9-]+)*           # Optional number words like "two" with hyphens
-            (?:\s+dot\s+[a-zA-Z0-9-]+)+     # Must have at least one "dot" with hyphens
-            (?:\s+[a-zA-Z0-9-]+)*           # More optional parts with hyphens
-            (?:\s+dot\s+[a-zA-Z0-9-]+)*     # More dots optional with hyphens
+            (?:\s+(?!dot\b|at\b)[a-zA-Z0-9-]+)*  # Optional parts (excluding dot/at)
+            (?:                             # Domain parts with dots (non-greedy)
+                \s+dot\s+[a-zA-Z0-9-]+
+            )+                              # One or more dot parts
         )
         (?=\s|$|[.!?])                      # End boundary
         """

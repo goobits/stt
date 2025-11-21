@@ -1134,6 +1134,7 @@ class TextFormatter:
         punctuator = get_punctuator()
         if punctuator:
             try:
+                logger.info(f"Text passed to _add_punctuation: '{text}'")
                 # Protect URLs and technical terms from the punctuation model by temporarily replacing them
                 # Using pre-compiled patterns for performance
                 url_placeholders = {}
@@ -1144,6 +1145,7 @@ class TextFormatter:
                     placeholder = f"__URL_{i}__"
                     url_placeholders[placeholder] = match.group(0)
                     protected_text = protected_text.replace(match.group(0), placeholder, 1)
+                    logger.info(f"Protected URL: '{match.group(0)}' as '{placeholder}'")
 
                 # Also protect email addresses
                 email_placeholders = {}
@@ -1151,6 +1153,7 @@ class TextFormatter:
                     placeholder = f"__EMAIL_{i}__"
                     email_placeholders[placeholder] = match.group(0)
                     protected_text = protected_text.replace(match.group(0), placeholder, 1)
+                    logger.info(f"Protected Email: '{match.group(0)}' as '{placeholder}'")
 
                 # Also protect sequences of all-caps technical terms (like "HTML CSS JavaScript")
                 tech_placeholders = {}
@@ -1178,6 +1181,11 @@ class TextFormatter:
                 logger.debug(f"URL placeholders: {url_placeholders}")
                 result = punctuator.restore_punctuation(protected_text)
                 logger.debug(f"Text after punctuation model: '{result}'")
+
+                # Clean up any double punctuation and odd spacing BEFORE restoration
+                # This prevents destructive regex from affecting restored URLs/IPs
+                result = re.sub(r"\s*([.!?])\s*", r"\1 ", result).strip()
+                result = re.sub(r"([.!?]){2,}", r"\1", result)
 
                 # Restore URLs
                 for placeholder, url in url_placeholders.items():
@@ -1266,6 +1274,9 @@ class TextFormatter:
                 # Fix hyphenated acronyms that the model sometimes creates
                 result = result.replace("- ", " ")
 
+                # Fix spacing around hyphens in numbers (e.g. phone numbers "555 - 123" -> "555-123")
+                result = re.sub(r"(\d)\s*[-–—]\s*(\d)", r"\1-\2", result)
+
                 # Fix spacing around math operators that the punctuation model may have removed
                 # But be careful not to add spaces in URLs (which contain query parameters)
                 # Only add spaces if it looks like a math expression (variable = value or number op number)
@@ -1296,6 +1307,32 @@ class TextFormatter:
 
                 result = re.sub(r":\s*(__ENTITY_\d+__)", should_preserve_colon, result)
 
+                # Fix unwanted spaces after placeholders inserted by punctuation model
+                # The punctuation model tends to add spaces after URLs/emails like "http://example. com"
+                # because it sees the period as a sentence end.
+                # We need to remove spaces inside what should be contiguous entities.
+
+                # This handles the case where a placeholder was replaced back but got split
+                # e.g. "http://example. com"
+                # But result here still has placeholders? No, result has placeholders replaced at line 983-998
+                # Wait, placeholders are restored BEFORE this point.
+                # So we are operating on the restored text.
+
+                # Fix URLs that got split (e.g. "http://example. com")
+                # Match protocol + chars + dot + space + TLD
+                # We check for [^\s.] to ensure we don't consume the dot in the first group
+                result = re.sub(r"(https?://[^\s]*[^\s.])\.\s+([a-z]{2,})", r"\1.\2", result)
+
+                # Fix emails that got split (e.g. "user@example. com")
+                # Match email chars + dot + space + TLD
+                result = re.sub(r"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]*[a-zA-Z0-9-])\.\s+([a-z]{2,})", r"\1.\2", result)
+
+                # Fix IP addresses that got split (e.g. "127. 0. 0. 1")
+                # Match digit + dot + space + digit, repeat until no more matches
+                # We run this in a loop or multiple times to handle chaining
+                for _ in range(3): # Max 3 dots in IPv4
+                    result = re.sub(r"(\d+)\.\s+(\d+)", r"\1.\2", result)
+
                 # 2. Re-join sentences incorrectly split after technical entities
 
                 # Add a specific rule for the "on line" pattern
@@ -1314,9 +1351,9 @@ class TextFormatter:
                     flags=re.IGNORECASE,
                 )
 
-                # 3. Clean up any double punctuation and odd spacing
-                result = re.sub(r"\s*([.!?])\s*", r"\1 ", result).strip()  # Normalize space after punctuation
-                result = re.sub(r"([.!?]){2,}", r"\1", result)
+                # 3. Clean up any double punctuation and odd spacing - MOVED UP
+                # result = re.sub(r"\s*([.!?])\s*", r"\1 ", result).strip()  # Normalize space after punctuation
+                # result = re.sub(r"([.!?]){2,}", r"\1", result)
 
                 if result != text:
                     logger.info(f"Punctuation added: '{result}'")
@@ -1342,8 +1379,21 @@ class TextFormatter:
         # Remove colons before file/version entities, but keep them for URLs and complex entities
 
         # Also remove colons before direct URLs and emails (for any that bypass entity detection)
-        text = re.sub(r":\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", r" \1", text)
-        text = re.sub(r":\s*(https?://[^\s]+)", r" \1", text)
+        # But preserve colons after specific action verbs
+        def should_remove_colon_before_link(match):
+            # Get text before the colon
+            start_pos = max(0, match.start() - 20)
+            preceding_text = text[start_pos : match.start()].strip().lower()
+            # Preserve colon for specific contexts
+            preserve_words = self.resources.get("context_words", {}).get("preserve_colon", [])
+            for word in preserve_words:
+                if preceding_text.endswith(word):
+                    return match.group(0)  # Keep the colon
+            # Otherwise remove it
+            return f" {match.group(1)}"
+
+        text = re.sub(r":\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", should_remove_colon_before_link, text)
+        text = re.sub(r":\s*(https?://[^\s]+)", should_remove_colon_before_link, text)
 
         # Fix time formatting issues (e.g., "at 3:p m" -> "at 3 PM")
         text = re.sub(r"\b(\d+):([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)

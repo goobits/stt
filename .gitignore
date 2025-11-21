@@ -55,10 +55,9 @@ Thumbs.db
 
 # Logs
 *.log
-logs/*.txt
-logs/*.log
-src/logs/*.txt
-src/logs/*.log
+logs/
+!logs/.gitkeep
+src/logs/
 
 # Test artifacts
 .pytest_cache/

@@ -395,12 +395,14 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
     slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
     question_mark_keywords = [k for k, v in url_keywords.items() if v == "?"]
+    colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
 
     # Create alternation patterns for each keyword type (inline implementation)
     # Sort by length to match longer phrases first
     dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
     slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True) 
     question_mark_keywords_sorted = sorted(question_mark_keywords, key=len, reverse=True)
+    colon_keywords_sorted = sorted(colon_keywords, key=len, reverse=True)
     
     dot_escaped = [re.escape(k) for k in dot_keywords_sorted] + [r"\."]
     dot_pattern = "|".join(dot_escaped)
@@ -410,6 +412,9 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
 
     question_mark_escaped = [re.escape(k) for k in question_mark_keywords_sorted]
     question_mark_pattern = "|".join(question_mark_escaped)
+
+    colon_escaped = [re.escape(k) for k in colon_keywords_sorted]
+    colon_pattern = "|".join(colon_escaped)
 
     # Create number words pattern from language-specific resources
     from .common import NumberParser
@@ -455,6 +460,11 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
             \s+(?:{question_mark_pattern})\s+ # Spoken "question mark"
             .+                          # Query parameters
         )?                              # Optional query string
+        (?:                             # Optional port part
+            \s+(?:{colon_pattern})\s+   # " colon "
+            (?:{number_words_pattern})  # Port number (number words)
+            (?:\s+(?:{number_words_pattern}))* # Additional number words
+        )?
     )
     ([.!?]?)                            # Capture group 2: optional punctuation
     """
@@ -614,6 +624,68 @@ def get_spoken_protocol_pattern(language: str = "en") -> Pattern:
 
 # Spoken protocol pattern: "http colon slash slash example.com" or "http colon slash slash example dot com"
 SPOKEN_PROTOCOL_PATTERN = build_spoken_protocol_pattern("en")
+
+
+def build_spoken_ip_pattern(language: str = "en") -> Pattern:
+    """Builds the spoken IP address pattern dynamically from keywords."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    url_keywords = resources["spoken_keywords"]["url"]
+
+    # Get dot and colon keywords
+    dot_keywords = [k for k, v in url_keywords.items() if v == "."]
+    dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
+    dot_escaped = [re.escape(k) for k in dot_keywords_sorted]
+    dot_pattern = "|".join(dot_escaped)
+
+    colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
+    colon_keywords_sorted = sorted(colon_keywords, key=len, reverse=True)
+    colon_escaped = [re.escape(k) for k in colon_keywords_sorted]
+    colon_pattern = "|".join(colon_escaped)
+
+    # Create number words pattern from language-specific resources
+    from .common import NumberParser
+
+    number_parser_instance = NumberParser(language)
+    number_words = list(number_parser_instance.all_number_words)
+    number_words_escaped = [re.escape(word) for word in number_words]
+    number_words_pattern = "|".join(number_words_escaped)
+
+    # Pattern for an IP octet (digits or number words)
+    octet_pattern = rf"""
+    (?:
+        \d+                             # Digits
+        |
+        (?:{number_words_pattern})      # Single number word
+        (?:                             # Optional additional number words
+            \s+(?:{number_words_pattern})
+        )*
+    )
+    """
+
+    pattern_str = rf"""
+    \b                                  # Word boundary
+    (                                   # Capture group 1: full IP with optional port
+        {octet_pattern}
+        \s+(?:{dot_pattern})\s+         # " dot "
+        {octet_pattern}
+        \s+(?:{dot_pattern})\s+         # " dot "
+        {octet_pattern}
+        \s+(?:{dot_pattern})\s+         # " dot "
+        {octet_pattern}
+        (?:                             # Optional port part
+            \s+(?:{colon_pattern})\s+   # " colon "
+            {octet_pattern}             # Port number (reuses octet pattern which matches numbers)
+        )?
+    )
+    \b                                  # Word boundary
+    """
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+def get_spoken_ip_pattern(language: str = "en") -> Pattern:
+    """Get the spoken IP pattern for the specified language."""
+    return build_spoken_ip_pattern(language)
 
 # Legacy pattern removed - now using dynamic pattern built from i18n resources
 
